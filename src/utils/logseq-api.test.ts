@@ -11,6 +11,7 @@ import {
 	LogseqConnectionError,
 	queryByProperty,
 	removeBlock,
+	upsertBlockProperty,
 } from './logseq-api';
 
 const config: LogseqApiConfig = { port: 12315, token: 'test-token' };
@@ -250,5 +251,37 @@ describe('error handling', () => {
 
 		const result = await getPage(config, 'Test');
 		expect(result).toEqual(data);
+	});
+
+	test('removeBlock throws LogseqConnectionError on connection failure', async () => {
+		mockFetch.mockRejectedValue(new TypeError('fetch failed'));
+		await expect(removeBlock(config, 'block-uuid')).rejects.toThrow(LogseqConnectionError);
+	});
+
+	test('removeBlock throws LogseqAuthError on 401', async () => {
+		mockFetch.mockReturnValue(errorResponse(401, 'Unauthorized'));
+		await expect(removeBlock(config, 'block-uuid')).rejects.toThrow(LogseqAuthError);
+	});
+
+	test('insertBatchBlock throws LogseqApiError on 500', async () => {
+		mockFetch.mockReturnValue(errorResponse(500, 'Internal Server Error'));
+		await expect(insertBatchBlock(config, 'target-uuid', [{ content: 'test' }])).rejects.toThrow(LogseqApiError);
+	});
+
+	test('insertBatchBlock throws LogseqConnectionError on connection failure', async () => {
+		mockFetch.mockRejectedValue(new TypeError('fetch failed'));
+		await expect(insertBatchBlock(config, 'target-uuid', [{ content: 'test' }])).rejects.toThrow(
+			LogseqConnectionError,
+		);
+	});
+
+	test('upsertBlockProperty throws LogseqAuthError on 401', async () => {
+		mockFetch.mockReturnValue(errorResponse(401, 'Unauthorized'));
+		await expect(upsertBlockProperty(config, 'block-uuid', 'key', 'value')).rejects.toThrow(LogseqAuthError);
+	});
+
+	test('upsertBlockProperty throws LogseqApiError on 500', async () => {
+		mockFetch.mockReturnValue(errorResponse(500, 'Internal Server Error'));
+		await expect(upsertBlockProperty(config, 'block-uuid', 'key', 'value')).rejects.toThrow(LogseqApiError);
 	});
 });
