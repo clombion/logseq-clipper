@@ -33,8 +33,9 @@ jobs:
       - name: Package Chrome zip
         run: cd dist && zip -r ../logseq-web-clipper-chrome.zip . && cd ..
 
-      # Sign Firefox extension via Mozilla AMO (unlisted)
+      # Sign Firefox extension via Mozilla AMO (unlisted) — only on release
       - name: Sign Firefox extension
+        if: github.event_name == 'release'
         id: sign
         run: |
           # Run signing, capture exit code instead of failing
