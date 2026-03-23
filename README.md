@@ -1,104 +1,130 @@
-Obsidian Web Clipper helps you highlight and capture the web in your favorite browser. Anything you save is stored as durable Markdown files that you can read offline, and preserve for the long term.
+# Logseq Web Clipper
 
-- **[Download Web Clipper](https://obsidian.md/clipper)**
-- **[Documentation](https://help.obsidian.md/web-clipper)**
-- **[Troubleshooting](https://help.obsidian.md/web-clipper/troubleshoot)**
+A browser extension that clips web pages directly into [Logseq](https://logseq.com) via its HTTP API. Forked from [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) v1.2.1.
 
-## Get started
+## What changed from the upstream
 
-Install the extension by downloading it from the official directory for your browser:
+**Replaced — Logseq integration via HTTP API:**
+- Saves clips as Logseq pages with `property:: value` metadata via `createPage`
+- Structures content as hierarchical blocks via `insertBatchBlock` (headings → parent blocks, paragraphs → children)
+- Dedup detection — queries existing clips by `source::` property before saving, warns if URL already clipped
+- Append-only clip log (`[[Web Clips Log]]`) with content hashes for dedup and history
+- "Update existing" flow — replaces content blocks on an existing page, appends new log entry with `replaces::` pointer
+- Settings sync — extension settings stored as JSON in the log page for cross-browser portability
+- First-run setup page guiding users through enabling Logseq's HTTP API
 
-- **[Chrome Web Store](https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf)** for Chrome, Brave, Arc, Orion, and other Chromium-based browsers.
-- **[Firefox Add-Ons](https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/)** for Firefox and Firefox Mobile.
-- **[Safari Extensions](https://apps.apple.com/us/app/obsidian-web-clipper/id6720708363)** for macOS, iOS, and iPadOS.
-- **[Edge Add-Ons](https://microsoftedge.microsoft.com/addons/detail/obsidian-web-clipper/eigdjhmgnaaeaonimdklocfekkaanfme)** for Microsoft Edge.
+**Removed:**
+- Obsidian vault concept (Logseq uses graphs)
+- `obsidian://` URI scheme integration
+- Safari/Xcode build target
+- Legacy mode, silent open, beta features toggles
+- Overwrite behavior (replaced by dedup/update mechanism)
 
-## Use the extension
+**Kept from upstream:**
+- Content extraction via [Defuddle](https://github.com/kepano/defuddle)
+- Template system with variables, filters, and logic
+- Highlighter (mark up web pages, save highlights)
+- Reader mode (distraction-free reading)
+- LLM interpreter (summarize pages via OpenAI, Anthropic, Gemini, Ollama, etc.)
+- 100+ filters for template processing
+- Side panel and embedded modes
 
-Documentation is available on the [Obsidian Help site](https://help.obsidian.md/web-clipper), which covers how to use [highlighting](https://help.obsidian.md/web-clipper/highlight), [templates](https://help.obsidian.md/web-clipper/templates), [variables](https://help.obsidian.md/web-clipper/variables), [filters](https://help.obsidian.md/web-clipper/filters), and more.
+## Install
 
-## Contribute
+The extension is not yet on browser stores. Install from source:
 
-### Translations
+### Firefox
 
-You can help translate Web Clipper into your language. Submit your translation via pull request using the format found in the [/_locales](/src/_locales) folder.
+1. Clone and build (see [Development](#development) below)
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click **Load Temporary Add-on**
+4. Select any file inside `dist_firefox/`
 
-### Features and bug fixes
+For permanent installation on Firefox Nightly/Developer Edition:
+1. Set `xpinstall.signatures.required` to `false` in `about:config`
+2. Go to `about:addons` → gear icon → **Install Add-on From File…**
+3. Select the `.zip` from `builds/`
 
-See the [help wanted](https://github.com/obsidianmd/obsidian-clipper/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) tag for issues where contributions are welcome.
+### Chrome / Chromium
 
-## Roadmap
+1. Clone and build
+2. Open `chrome://extensions`, enable **Developer mode**
+3. Click **Load unpacked**, select `dist/`
 
-In no particular order:
+## Logseq setup
 
-- [ ] A separate icon for Web Clipper
-- [ ] Annotate highlights
-- [ ] Template directory
-- [x] Template validation
-- [x] Template logic (if/for)
-- [x] Save images locally, [added in Obsidian 1.8.0](https://obsidian.md/changelog/2024-12-18-desktop-v1.8.0/)
-- [x] Translate UI into more languages — help is welcomed
+The extension connects to Logseq's local HTTP API. On first install, a setup page guides you through these steps:
 
-## Developers
+1. **Enable HTTP API**: In Logseq, go to **Settings → Features** → enable **HTTP APIs Server**
+2. **Start the server**: Click the API icon in the toolbar → **Start Server**
+3. **Create a token**: In the API panel → **Authorization tokens** → **Add new token** → paste the value into the extension
 
-To build the extension:
+Optional: enable "Auto start server" in the API panel so it starts with Logseq.
 
-```
-npm run build
-```
+## Development
 
-This will create three directories:
-- `dist/` for the Chromium version
-- `dist_firefox/` for the Firefox version
-- `dist_safari/` for the Safari version
+### Prerequisites
 
-### Install the extension locally
+- Node.js (v18+)
+- [pnpm](https://pnpm.io/)
+- Logseq with HTTP API enabled (for manual testing)
 
-For Chromium browsers, such as Chrome, Brave, Edge, and Arc:
+### Setup
 
-1. Open your browser and navigate to `chrome://extensions`
-2. Enable **Developer mode**
-3. Click **Load unpacked** and select the `dist` directory
-
-For Firefox:
-
-1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
-2. Click **Load Temporary Add-on**
-3. Navigate to the `dist_firefox` directory and select the `manifest.json` file
-
-If you want to run the extension permanently you can do so with the Nightly or Developer versions of Firefox.
-
-1. Type `about:config` in the URL bar
-2. In the Search box type `xpinstall.signatures.required`
-3. Double-click the preference, or right-click and select "Toggle", to set it to `false`.
-4. Go to `about:addons` > gear icon > **Install Add-on From File…**
-
-For iOS Simulator testing on macOS:
-
-1. Run `npm run build` to build the extension
-2. Open `xcode/Obsidian Web Clipper/Obsidian Web Clipper.xcodeproj` in Xcode
-3. Select the **Obsidian Web Clipper (iOS)** scheme from the scheme selector
-4. Choose an iOS Simulator device and click **Run** to build and launch the app
-5. Once the app is running on the simulator, open **Safari**
-6. Navigate to a webpage and tap the **Extensions** button in Safari to access the Web Clipper extension
-
-### Run tests
-
-```
-npm test
+```bash
+pnpm install
 ```
 
-Or run in watch mode during development:
+### Build
+
+```bash
+pnpm run build:chrome    # → dist/
+pnpm run build:firefox   # → dist_firefox/
+pnpm run build           # both
+```
+
+### Test
+
+```bash
+pnpm test                # run once
+pnpm run test:watch      # watch mode
+```
+
+### Lint & format
+
+```bash
+pnpm run lint            # biome check
+pnpm run format          # biome format --write
+```
+
+### Project structure
 
 ```
-npm run test:watch
+src/
+├── core/              # popup.ts, settings.ts (UI entry points)
+├── managers/          # template-ui, general-settings, highlights, interpreter
+├── utils/
+│   ├── logseq-api.ts          # HTTP API client for Logseq
+│   ├── logseq-note-creator.ts # Save, dedup, clip log, settings sync
+│   ├── markdown-to-blocks.ts  # Markdown → IBatchBlock[] converter
+│   ├── shared.ts              # Pure functions (variables, frontmatter)
+│   ├── filters/               # 100+ template filters
+│   └── ...
+├── _locales/          # 32 languages
+├── setup.html/ts      # First-run setup page
+└── manifest.*.json    # Chrome, Firefox manifests
 ```
 
-## Third-party libraries
+## Upstream sync
 
+A [monthly GitHub Action](.github/workflows/upstream-check.yml) compares this fork against the upstream Obsidian Web Clipper and opens an issue with categorized changes (security, dependencies, bug fixes) for manual review and cherry-picking.
+
+## Credits
+
+- Forked from [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) by [kepano](https://github.com/kepano)
 - [webextension-polyfill](https://github.com/mozilla/webextension-polyfill) for browser compatibility
-- [defuddle](https://github.com/kepano/defuddle) for content extraction and Markdown conversion
+- [Defuddle](https://github.com/kepano/defuddle) for content extraction and Markdown conversion
 - [dayjs](https://github.com/iamkun/dayjs) for date parsing and formatting
-- [lz-string](https://github.com/pieroxy/lz-string) to compress templates to reduce storage space
+- [lz-string](https://github.com/pieroxy/lz-string) for template compression
 - [lucide](https://github.com/lucide-icons/lucide) for icons
-- [dompurify](https://github.com/cure53/DOMPurify) for sanitizing HTML
+- [DOMPurify](https://github.com/cure53/DOMPurify) for HTML sanitization
