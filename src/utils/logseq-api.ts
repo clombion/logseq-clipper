@@ -160,9 +160,13 @@ export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<
 	const results = await logseqApi(config, 'logseq.DB.datascriptQuery', [
 		`[:find (pull ?p [:block/name :block/original-name]) :where [?p :block/journal-day ${journalDay}]]`,
 	]);
-	if (results && results.length > 0 && results[0].length > 0) {
-		const page = results[0][0];
-		return page['original-name'] || page.name;
+	if (results && results.length > 0) {
+		// Query may return [null] entries for blocks with journal-day — find the actual page
+		for (const row of results) {
+			if (row[0] && row[0].name) {
+				return row[0]['original-name'] || row[0].name;
+			}
+		}
 	}
 	// Fallback: use Logseq's default format (MMM do, yyyy)
 	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
