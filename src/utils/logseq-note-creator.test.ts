@@ -47,7 +47,10 @@ import {
 	saveToLogseq,
 	updateExistingClip,
 	computeContentHash,
+	getTodayJournalPageName,
+	syncSettings,
 } from './logseq-note-creator';
+import { generalSettings } from './storage-utils';
 
 const mockedQueryByProperty = vi.mocked(queryByProperty);
 const mockedCreatePage = vi.mocked(createPage);
@@ -296,5 +299,183 @@ describe('computeContentHash', () => {
 		const hash2 = await computeContentHash('identical');
 
 		expect(hash1).toBe(hash2);
+	});
+});
+
+describe('getTodayJournalPageName', () => {
+	test('returns a string in YYYY_MM_DD format', () => {
+		const result = getTodayJournalPageName();
+		expect(result).toMatch(/^\d{4}_\d{2}_\d{2}$/);
+	});
+
+	test('matches current date', () => {
+		const now = new Date();
+		const expected = `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}_${String(now.getDate()).padStart(2, '0')}`;
+		expect(getTodayJournalPageName()).toBe(expected);
+	});
+});
+
+describe('clip log entry format', () => {
+	test('new clip log entry has source, clipped-at, content-hash properties', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([{ content: 'test' }]);
+		mockedCreatePage.mockResolvedValue({ name: 'My Page', uuid: 'p-uuid' });
+		mockedGetPageBlocksTree.mockResolvedValue([{ uuid: 'fb-uuid', content: '' }]);
+
+		await saveToLogseq('test', 'My Page', [], 'create', 'https://example.com');
+
+		// Find the insertBatchBlock call for the log entry (on 'log-block-uuid')
+		const logInsertCall = mockedInsertBatchBlock.mock.calls.find(
+			(c) => c[1] === 'log-block-uuid',
+		);
+		expect(logInsertCall).toBeDefined();
+		const propChildren = logInsertCall![2] as { content: string }[];
+		const propKeys = propChildren.map((b) => b.content.split('::')[0].trim());
+		expect(propKeys).toContain('source');
+		expect(propKeys).toContain('clipped-at');
+		expect(propKeys).toContain('content-hash');
+	});
+
+	test('update log entry includes replaces property', async () => {
+		mockedGetPageBlocksTree.mockResolvedValue([
+			{ uuid: 'props-block', content: 'properties' },
+			{ uuid: 'old-block', content: 'old' },
+		]);
+		mockedMarkdownToBlocks.mockReturnValue([{ content: 'new' }]);
+
+		await updateExistingClip('Old Page', 'new content', [], 'https://example.com/old');
+
+		const logInsertCall = mockedInsertBatchBlock.mock.calls.find(
+			(c) => {
+				const blocks = c[2] as { content: string }[];
+				return blocks.some((b) => b.content.includes('replaces::'));
+			},
+		);
+		expect(logInsertCall).toBeDefined();
+		const propChildren = logInsertCall![2] as { content: string }[];
+		const replacesBlock = propChildren.find((b) => b.content.startsWith('replaces::'));
+		expect(replacesBlock).toBeDefined();
+		expect(replacesBlock!.content).toContain('Old Page');
+	});
+
+	test('log entry content is wiki-link format [[Page Title]]', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([]);
+		mockedCreatePage.mockResolvedValue({ name: 'Wiki Test', uuid: 'p-uuid' });
+		mockedGetPageBlocksTree.mockResolvedValue([]);
+
+		await saveToLogseq('', 'Wiki Test', [], 'create', 'https://example.com');
+
+		const logCall = mockedAppendBlockInPage.mock.calls.find(
+			(c) => c[1] === 'Web Clips Log',
+		);
+		expect(logCall).toBeDefined();
+		expect(logCall![2]).toBe('[[Wiki Test]]');
+	});
+});
+
+describe('syncSettings', () => {
+	test('write calls appendBlockInPage with settings JSON on the log page', async () => {
+		await syncSettings('write');
+
+		const call = mockedAppendBlockInPage.mock.calls.find(
+			(c) => c[1] === 'Web Clips Log',
+		);
+		expect(call).toBeDefined();
+		const content = call![2] as string;
+		expect(content).toContain('## Settings');
+		expect(content).toContain('```json');
+		// Should contain serialized generalSettings
+		const parsed = JSON.parse(content.match(/```json\n([\s\S]*?)\n```/)![1]);
+		expect(parsed.logseqApiPort).toBe(12315);
+	});
+
+	test('read parses settings from log page blocks and updates generalSettings', async () => {
+		const settingsPayload = JSON.stringify({ logseqApiPort: 9999 });
+		mockedGetPageBlocksTree.mockResolvedValue([
+			{
+				uuid: 'settings-block',
+				content: `## Settings\n\`\`\`json\n${settingsPayload}\n\`\`\``,
+			},
+		]);
+
+		await syncSettings('read');
+
+		expect(generalSettings.logseqApiPort).toBe(9999);
+		// Restore for other tests
+		(generalSettings as any).logseqApiPort = 12315;
+	});
+});
+
+describe('saveToLogseq edge cases', () => {
+	test('empty noteContent still creates page with properties', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([]);
+		mockedCreatePage.mockResolvedValue({ name: 'Empty Note', uuid: 'p-uuid' });
+		mockedGetPageBlocksTree.mockResolvedValue([]);
+
+		await saveToLogseq(
+			'',
+			'Empty Note',
+			[{ name: 'tags', value: 'empty' }],
+			'create',
+			'https://example.com/empty',
+		);
+
+		expect(mockedCreatePage).toHaveBeenCalledTimes(1);
+		const propsArg = mockedCreatePage.mock.calls[0][2] as Record<string, string>;
+		expect(propsArg['source']).toBe('https://example.com/empty');
+		expect(propsArg['tags']).toBe('empty');
+		// insertBatchBlock should NOT be called for content (no blocks, or empty tree)
+		// but IS called for the log entry
+		const contentInsertCalls = mockedInsertBatchBlock.mock.calls.filter(
+			(c) => c[1] !== 'log-block-uuid',
+		);
+		expect(contentInsertCalls).toHaveLength(0);
+	});
+
+	test('prepend-daily calls prependBlockInPage with journal page name', async () => {
+		const blocks = [{ content: 'Prepended daily content' }];
+		mockedMarkdownToBlocks.mockReturnValue(blocks);
+		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'prepend-uuid', content: '' });
+
+		await saveToLogseq(
+			'Prepended daily content',
+			'Some Title',
+			[],
+			'prepend-daily',
+			'https://example.com/prepend-daily',
+		);
+
+		expect(mockedPrependBlockInPage).toHaveBeenCalled();
+		const prependCall = mockedPrependBlockInPage.mock.calls[0];
+		// The page name should be today's journal in YYYY_MM_DD format
+		expect(prependCall[1]).toMatch(/^\d{4}_\d{2}_\d{2}$/);
+		expect(prependCall[2]).toBe('Prepended daily content');
+	});
+
+	test('append-daily calls appendBlockInPage with journal page name', async () => {
+		const blocks = [{ content: 'Daily content' }];
+		mockedMarkdownToBlocks.mockReturnValue(blocks);
+
+		await saveToLogseq(
+			'Daily content',
+			'Some Title',
+			[],
+			'append-daily',
+			'https://example.com/daily',
+		);
+
+		const appendCall = mockedAppendBlockInPage.mock.calls.find(
+			(c) => (c[1] as string).match(/^\d{4}_\d{2}_\d{2}$/),
+		);
+		expect(appendCall).toBeDefined();
+		expect(appendCall![2]).toBe('Daily content');
+	});
+});
+
+describe('checkDuplicate error handling', () => {
+	test('does not crash when API throws, returns exists: false', async () => {
+		mockedQueryByProperty.mockRejectedValue(new Error('network error'));
+
+		const result = await checkDuplicate('https://example.com/error');
+		expect(result).toEqual({ exists: false });
 	});
 });

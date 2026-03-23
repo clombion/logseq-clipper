@@ -26,19 +26,23 @@ export async function checkDuplicate(url: string): Promise<{
 	pageTitle?: string;
 	clippedAt?: string;
 }> {
-	const config = getApiConfig();
-	const results = await queryByProperty(config, 'source', url);
+	try {
+		const config = getApiConfig();
+		const results = await queryByProperty(config, 'source', url);
 
-	if (results && results.length > 0) {
-		const first = results[0];
-		return {
-			exists: true,
-			pageTitle: first.name ?? first['original-name'] ?? first.originalName,
-			clippedAt: first.properties?.['clipped-at'] ?? first.properties?.clippedAt,
-		};
+		if (results && results.length > 0) {
+			const first = results[0];
+			return {
+				exists: true,
+				pageTitle: first.name ?? first['original-name'] ?? first.originalName,
+				clippedAt: first.properties?.['clipped-at'] ?? first.properties?.clippedAt,
+			};
+		}
+
+		return { exists: false };
+	} catch {
+		return { exists: false };
 	}
-
-	return { exists: false };
 }
 
 export async function saveToLogseq(
@@ -207,7 +211,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 
 // --- Internal functions ---
 
-function getTodayJournalPageName(): string {
+export function getTodayJournalPageName(): string {
 	const now = new Date();
 	const yyyy = now.getFullYear();
 	const mm = String(now.getMonth() + 1).padStart(2, '0');

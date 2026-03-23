@@ -98,11 +98,11 @@ export async function extractPageContent(tabId: number): Promise<ContentResponse
 		// First attempt failed — this commonly happens on Safari after an
 		// extension update when the old content script context is invalidated.
 		// Retry once; the background script will re-inject if needed.
-		console.log('[Obsidian Clipper] First extraction attempt failed, retrying...', firstError);
+		console.log('[Logseq Clipper] First extraction attempt failed, retrying...', firstError);
 		try {
 			return await sendExtractRequest(tabId);
 		} catch (retryError) {
-			console.error('[Obsidian Clipper] Extraction failed after retry:', retryError);
+			console.error('[Logseq Clipper] Extraction failed after retry:', retryError);
 			throw new Error('Web Clipper was not able to start. Please try reloading the page.');
 		}
 	}
