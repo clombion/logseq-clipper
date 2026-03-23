@@ -548,7 +548,9 @@ async function showProviderModal(provider: Provider, index?: number) {
 					const message = getMessage('getApiKeyHere').replace('$1', selectedPreset.name);
 					apiKeyDescription.textContent = getMessage('providerApiKeyDescription') + ' ';
 					const linkElement = document.createElement('a');
-					linkElement.href = selectedPreset.apiKeyUrl;
+					if (selectedPreset.apiKeyUrl?.startsWith('https://')) {
+						linkElement.href = selectedPreset.apiKeyUrl;
+					}
 					linkElement.target = '_blank';
 					linkElement.textContent = message;
 					apiKeyDescription.appendChild(linkElement);

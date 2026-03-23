@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { Template, Property, PromptVariable } from '../types/types';
 import { incrementStat, addHistoryEntry, getClipHistory } from '../utils/storage-utils';
 import { saveToLogseq, checkDuplicate, updateExistingClip } from '../utils/logseq-note-creator';
-import { LogseqConnectionError, LogseqAuthError } from '../utils/logseq-api';
+import { LogseqConnectionError, LogseqAuthError, LogseqApiError } from '../utils/logseq-api';
 import { generateFrontmatter, formatPropertyValue } from '../utils/shared';
 import { extractPageContent, initializePageContent } from '../utils/content-extractor';
 import { compileTemplate } from '../utils/template-compiler';
@@ -412,13 +412,15 @@ function setupEventListeners(tabId: number) {
 	if (moreButton && moreDropdown) {
 		moreButton.addEventListener('click', (e) => {
 			e.stopPropagation();
-			moreDropdown.classList.toggle('show');
+			const isOpen = moreDropdown.classList.toggle('show');
+			moreButton.setAttribute('aria-expanded', String(isOpen));
 		});
 
 		// Close dropdown when clicking outside
 		document.addEventListener('click', (e) => {
 			if (!moreButton.contains(e.target as Node)) {
 				moreDropdown.classList.remove('show');
+				moreButton.setAttribute('aria-expanded', 'false');
 			}
 		});
 	}
@@ -481,8 +483,12 @@ function setupEventListeners(tabId: number) {
 										const tabInfo = await getCurrentTabInfo();
 										await incrementStat('share', path, tabInfo.url, tabInfo.title);
 										const moreDropdown = document.getElementById('more-dropdown');
+										const moreBtn = document.getElementById('more-btn');
 										if (moreDropdown) {
 											moreDropdown.classList.remove('show');
+										}
+										if (moreBtn) {
+											moreBtn.setAttribute('aria-expanded', 'false');
 										}
 									})
 									.catch((error) => {
@@ -1153,8 +1159,12 @@ async function handleSaveToDownloads() {
 		await incrementStat('saveFile', path, tabInfo.url, tabInfo.title);
 
 		const moreDropdown = document.getElementById('more-dropdown');
+		const moreBtn = document.getElementById('more-btn');
 		if (moreDropdown) {
 			moreDropdown.classList.remove('show');
+		}
+		if (moreBtn) {
+			moreBtn.setAttribute('aria-expanded', 'false');
 		}
 	} catch (error) {
 		console.error('Failed to save file:', error);
@@ -1177,26 +1187,29 @@ function determineMainAction() {
 			mainButton.textContent = getMessage('copyToClipboard');
 			mainButton.onclick = () => copyContent();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq().catch(() => {}));
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
+			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
 			break;
 		case 'saveFile':
 			mainButton.textContent = getMessage('saveFile');
 			mainButton.onclick = () => handleSaveToDownloads();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq().catch(() => {}));
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
+			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
 			break;
 		default: // 'addToLogseq'
 			mainButton.textContent = getMessage('addToLogseq');
-			mainButton.onclick = () => handleClipLogseq();
+			mainButton.onclick = () => handleClipLogseq().catch(() => {});
 			// Add direct actions to secondary
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
+			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
 	}
 }
 
-async function handleClipLogseq(): Promise<void> {
+async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promise<void> {
 	if (!currentTemplate) return;
 
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
@@ -1223,7 +1236,8 @@ async function handleClipLogseq(): Promise<void> {
 		// Gather content
 		const properties = getPropertiesFromDOM();
 		const noteContent = noteContentField.value;
-		const isDailyNote = currentTemplate.behavior === 'append-daily' || currentTemplate.behavior === 'prepend-daily';
+		const behavior = behaviorOverride ?? currentTemplate.behavior;
+		const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
 		const noteName = isDailyNote ? '' : noteNameField?.value || '';
 		const path = isDailyNote ? '' : pathField?.value || '';
 
@@ -1231,25 +1245,27 @@ async function handleClipLogseq(): Promise<void> {
 		const tabInfo = await getCurrentTabInfo();
 		const currentUrl = tabInfo.url || '';
 
-		// Check for duplicate clip
-		const dup = await checkDuplicate(currentUrl);
-		if (dup.exists) {
-			const action = confirm(
-				`This URL was already clipped on ${dup.clippedAt} to page '${dup.pageTitle}'. ` +
-				`Press OK to update existing, or Cancel to create new.`
-			);
-			if (action) {
-				await updateExistingClip(dup.pageTitle!, noteContent, properties, currentUrl);
-				await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
-				if (!isSidePanel) {
-					setTimeout(() => window.close(), 500);
+		// Skip dedup for explicit "save as page" — user explicitly wants a new page
+		if (!behaviorOverride) {
+			const dup = await checkDuplicate(currentUrl);
+			if (dup.exists) {
+				const action = confirm(
+					`This URL was already clipped${dup.clippedAt ? ` on ${dup.clippedAt}` : ''} to page '${dup.pageTitle}'. ` +
+					`Press OK to update existing, or Cancel to create new.`
+				);
+				if (action) {
+					await updateExistingClip(dup.pageTitle!, noteContent, properties, currentUrl);
+					await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
+					if (!isSidePanel) {
+						setTimeout(() => window.close(), 500);
+					}
+					return;
 				}
-				return;
+				// User chose Cancel — proceed with normal save (create new)
 			}
-			// User chose Cancel — proceed with normal save (create new)
 		}
 
-		await saveToLogseq(noteContent, noteName, properties, currentTemplate.behavior, currentUrl);
+		await saveToLogseq(noteContent, noteName, properties, behavior, currentUrl);
 		await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
 
 		if (!isSidePanel) {
@@ -1257,19 +1273,24 @@ async function handleClipLogseq(): Promise<void> {
 		}
 	} catch (error) {
 		if (error instanceof LogseqConnectionError) {
-			showError('Logseq does not appear to be running. Please start Logseq and enable the API server.');
+			showError('Logseq is not running or API server is not started.');
 		} else if (error instanceof LogseqAuthError) {
-			showError('Logseq API authentication failed. Please check your API token in settings.');
+			showError('Invalid API token. Check Settings → Logseq Connection.');
+		} else if (error instanceof LogseqApiError) {
+			debugLog('Save', 'Logseq API error:', error.status, error.message);
+			showError('Save failed. Check that Logseq is open and the target page exists.');
 		} else {
-			console.error('Error in handleClipLogseq:', error);
-			showError('failedToSaveFile');
+			const msg = error instanceof Error ? error.message : String(error);
+			debugLog('Save', 'Save error:', msg);
+			showError(`Save failed: ${msg}`);
 		}
-		throw error;
+		throw error; // Keep throw — quickClip .catch() at line 217 needs it
 	}
 }
 
 function addSecondaryAction(container: Element, actionType: string, handler: () => void) {
-	const menuItem = document.createElement('div');
+	const menuItem = document.createElement('button');
+	menuItem.type = 'button';
 	menuItem.className = 'menu-item';
 
 	// Create menu item icon container
@@ -1303,6 +1324,8 @@ function getActionIcon(actionType: string): string {
 			return 'file-down';
 		case 'addToLogseq':
 			return 'pen-line';
+		case 'saveAsPage':
+			return 'file-plus';
 		default:
 			return 'plus';
 	}

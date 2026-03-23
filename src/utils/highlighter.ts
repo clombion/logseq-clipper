@@ -159,7 +159,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 		document.addEventListener('mouseup', handleMouseUp);
 		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('touchstart', handleTouchStart);
-		document.addEventListener('touchmove', handleTouchMove);
+		document.addEventListener('touchmove', handleTouchMove, { passive: true });
 		document.addEventListener('touchend', handleMouseUp);
 		document.addEventListener('keydown', handleKeyDown);
 		disableLinkClicks();

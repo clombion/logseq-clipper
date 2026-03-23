@@ -3,8 +3,8 @@
     "logseq-clipper@clombion.github.io": {
       "updates": [
         {
-          "version": "0.2.0",
-          "update_link": "https://github.com/clombion/logseq-clipper/releases/download/v0.2.0/logseq-web-clipper-firefox.xpi"
+          "version": "0.3.0",
+          "update_link": "https://github.com/clombion/logseq-clipper/releases/download/v0.3.0/logseq-web-clipper-firefox.xpi"
         }
       ]
     }

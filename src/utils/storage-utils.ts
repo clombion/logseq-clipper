@@ -95,6 +95,15 @@ const CURRENT_MIGRATION_VERSION = 1;
 export async function loadSettings(): Promise<Settings> {
 	const data = (await browser.storage.sync.get(null)) as StorageData;
 
+	// Load credential data from local storage (never cloud-synced)
+	const localData = await browser.storage.local.get(['interpreter_providers', 'logseq_settings']);
+	const localProviders = localData.interpreter_providers as Provider[] | undefined;
+	const localLogseq = localData.logseq_settings as StorageData['logseq_settings'] | undefined;
+
+	// Migration: if providers exist in sync but not yet in local, use sync data (first load after upgrade)
+	const effectiveProviders = localProviders ?? data.interpreter_settings?.providers;
+	const effectiveLogseq = localLogseq ?? data.logseq_settings;
+
 	// Load default settings first
 	const defaultSettings: Settings = {
 		showMoreActionsButton: false,
@@ -140,8 +149,8 @@ export async function loadSettings(): Promise<Settings> {
 	const sanitizedModels = Array.isArray(data.interpreter_settings?.models)
 		? data.interpreter_settings.models.filter((m) => m && typeof m === 'object' && typeof m.id === 'string')
 		: [];
-	const sanitizedProviders = Array.isArray(data.interpreter_settings?.providers)
-		? data.interpreter_settings.providers.filter((p) => p && typeof p === 'object' && typeof p.id === 'string')
+	const sanitizedProviders = Array.isArray(effectiveProviders)
+		? effectiveProviders.filter((p) => p && typeof p === 'object' && typeof p.id === 'string')
 		: [];
 
 	// Load user settings
@@ -172,9 +181,9 @@ export async function loadSettings(): Promise<Settings> {
 				(data.reader_settings?.themeMode as 'auto' | 'light' | 'dark') ??
 				defaultSettings.readerSettings.themeMode,
 		},
-		logseqApiPort: data.logseq_settings?.apiPort ?? defaultSettings.logseqApiPort,
-		logseqApiToken: data.logseq_settings?.apiToken ?? defaultSettings.logseqApiToken,
-		logseqLogPage: data.logseq_settings?.logPage ?? defaultSettings.logseqLogPage,
+		logseqApiPort: effectiveLogseq?.apiPort ?? defaultSettings.logseqApiPort,
+		logseqApiToken: effectiveLogseq?.apiToken ?? defaultSettings.logseqApiToken,
+		logseqLogPage: effectiveLogseq?.logPage ?? defaultSettings.logseqLogPage,
 		stats: data.stats || defaultSettings.stats,
 		history: data.history || defaultSettings.history,
 		ratings: data.ratings || defaultSettings.ratings,
@@ -182,6 +191,20 @@ export async function loadSettings(): Promise<Settings> {
 	};
 
 	generalSettings = loadedSettings;
+
+	// Migration: move credentials from sync to local on first load after upgrade
+	if (!localProviders && data.interpreter_settings?.providers) {
+		await browser.storage.local.set({ interpreter_providers: generalSettings.providers });
+		const { providers: _removed, ...rest } = data.interpreter_settings;
+		await browser.storage.sync.set({ interpreter_settings: rest });
+		debugLog('Settings', 'Migrated providers from sync to local storage');
+	}
+	if (!localLogseq && data.logseq_settings) {
+		await browser.storage.local.set({ logseq_settings: data.logseq_settings });
+		await browser.storage.sync.remove('logseq_settings');
+		debugLog('Settings', 'Migrated logseq_settings from sync to local storage');
+	}
+
 	debugLog('Settings', 'Loaded settings:', generalSettings);
 	return generalSettings;
 }
@@ -202,20 +225,12 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			alwaysShowHighlights: generalSettings.alwaysShowHighlights,
 			highlightBehavior: generalSettings.highlightBehavior,
 		},
-		// TODO: providers contains apiKey fields that get cloud-synced via storage.sync.
-		// Move interpreter_settings.providers to storage.local to prevent credential sync.
 		interpreter_settings: {
 			interpreterModel: generalSettings.interpreterModel,
 			models: generalSettings.models,
-			providers: generalSettings.providers,
 			interpreterEnabled: generalSettings.interpreterEnabled,
 			interpreterAutoRun: generalSettings.interpreterAutoRun,
 			defaultPromptContext: generalSettings.defaultPromptContext,
-		},
-		logseq_settings: {
-			apiPort: generalSettings.logseqApiPort,
-			apiToken: generalSettings.logseqApiToken,
-			logPage: generalSettings.logseqLogPage,
 		},
 		property_types: generalSettings.propertyTypes,
 		reader_settings: {
@@ -226,6 +241,16 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			themeMode: generalSettings.readerSettings.themeMode,
 		},
 		stats: generalSettings.stats,
+	});
+
+	// Credentials stored locally only — never cloud-synced
+	await browser.storage.local.set({
+		interpreter_providers: generalSettings.providers,
+		logseq_settings: {
+			apiPort: generalSettings.logseqApiPort,
+			apiToken: generalSettings.logseqApiToken,
+			logPage: generalSettings.logseqLogPage,
+		},
 	});
 }
 

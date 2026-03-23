@@ -74,17 +74,8 @@ describe('createPage', () => {
 		const body = JSON.parse(opts.body);
 		expect(body.method).toBe('logseq.Editor.createPage');
 		expect(body.args[0]).toBe('Test Page');
-		expect(body.args[2]).toEqual({ createFirstBlock: true, redirect: false });
-	});
-
-	test('with properties sends them as second arg', async () => {
-		const page = { name: 'Test Page', uuid: 'abc-123', properties: { type: 'article' } };
-		mockFetch.mockReturnValue(jsonResponse(page));
-
-		await createPage(config, 'Test Page', { type: 'article' });
-
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.args[1]).toEqual({ type: 'article' });
+		expect(body.args[1]).toEqual({}); // properties always empty — use upsertBlockProperty instead
+		expect(body.args[2]).toEqual({ redirect: false });
 	});
 });
 
@@ -178,5 +169,28 @@ describe('error handling', () => {
 			expect((err as LogseqApiError).status).toBe(500);
 			expect((err as LogseqApiError).message).toBe('Internal Server Error');
 		}
+	});
+
+	test('error-in-200: response with serialized Error object (string stack) throws LogseqApiError', async () => {
+		mockFetch.mockReturnValue(jsonResponse({
+			message: 'Invalid target: nil',
+			stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
+		}));
+
+		await expect(getPage(config, 'Test')).rejects.toThrow(LogseqApiError);
+		try {
+			await getPage(config, 'Test');
+		} catch (err) {
+			expect((err as LogseqApiError).status).toBe(200);
+			expect((err as LogseqApiError).message).toBe('Invalid target: nil');
+		}
+	});
+
+	test('false-positive guard: response with non-string stack passes through normally', async () => {
+		const data = { uuid: 'abc', stack: 42 };
+		mockFetch.mockReturnValue(jsonResponse(data));
+
+		const result = await getPage(config, 'Test');
+		expect(result).toEqual(data);
 	});
 });

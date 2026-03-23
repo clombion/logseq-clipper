@@ -1,3 +1,5 @@
+import { debugLog } from './debug';
+
 export interface LogseqApiConfig {
 	port: number;
 	token: string;
@@ -24,11 +26,10 @@ export interface LogseqBlock {
 }
 
 export class LogseqConnectionError extends Error {
-	cause: Error;
-	constructor(cause: Error) {
-		super(`Failed to connect to Logseq: ${cause.message}`);
+	constructor(cause: unknown) {
+		const wrapped = cause instanceof Error ? cause : new Error(String(cause));
+		super(`Failed to connect to Logseq: ${wrapped.message}`, { cause: wrapped });
 		this.name = 'LogseqConnectionError';
-		this.cause = cause;
 	}
 }
 
@@ -49,6 +50,7 @@ export class LogseqApiError extends Error {
 }
 
 async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = []): Promise<any> {
+	debugLog('LogseqAPI', `${method}`, args);
 	let response: Response;
 	try {
 		response = await fetch(`http://127.0.0.1:${config.port}/api`, {
@@ -60,7 +62,7 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 			body: JSON.stringify({ method, args }),
 		});
 	} catch (err) {
-		throw new LogseqConnectionError(err as Error);
+		throw new LogseqConnectionError(err);
 	}
 
 	if (response.status === 401) {
@@ -72,7 +74,17 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 		throw new LogseqApiError(response.status, text);
 	}
 
-	return await response.json();
+	const result = await response.json();
+	debugLog('LogseqAPI', `${method} →`, typeof result === 'object' ? Object.keys(result || {}) : result);
+
+	// HACK: Logseq server sends promise rejections as 200 with serialized Error objects.
+	// Discriminate by checking for 'stack' property (string type) — normal API responses
+	// never have stack traces. If Logseq changes error serialization, this may need updating.
+	if (result && typeof result === 'object' && typeof result.stack === 'string') {
+		throw new LogseqApiError(200, typeof result.message === 'string' ? result.message : 'Unknown Logseq API error');
+	}
+
+	return result;
 }
 
 export async function checkConnection(config: LogseqApiConfig): Promise<boolean> {
@@ -84,14 +96,15 @@ export async function checkConnection(config: LogseqApiConfig): Promise<boolean>
 	}
 }
 
+// Note: Logseq's createPage accepts a properties arg but silently ignores it
+// when the page already exists (F2). Use upsertBlockProperty instead.
 export async function createPage(
 	config: LogseqApiConfig,
 	title: string,
-	properties?: Record<string, any>,
-	opts: { createFirstBlock?: boolean; redirect?: boolean } = {},
+	opts: { redirect?: boolean } = {},
 ): Promise<LogseqPage> {
-	const mergedOpts = { createFirstBlock: true, redirect: false, ...opts };
-	return await logseqApi(config, 'logseq.Editor.createPage', [title, properties ?? {}, mergedOpts]);
+	const mergedOpts = { redirect: false, ...opts };
+	return await logseqApi(config, 'logseq.Editor.createPage', [title, {}, mergedOpts]);
 }
 
 export async function getPage(config: LogseqApiConfig, title: string): Promise<LogseqPage | null> {
@@ -141,6 +154,35 @@ export async function queryByProperty(config: LogseqApiConfig, property: string,
 	return await logseqApi(config, 'logseq.DB.q', [query]);
 }
 
+export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<string> {
+	const today = new Date();
+	const journalDay = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+	const results = await logseqApi(config, 'logseq.DB.datascriptQuery', [
+		`[:find (pull ?p [:block/name :block/original-name]) :where [?p :block/journal-day ${journalDay}]]`,
+	]);
+	if (results && results.length > 0 && results[0].length > 0) {
+		const page = results[0][0];
+		return page['original-name'] || page.name;
+	}
+	// Fallback: use Logseq's default format (MMM do, yyyy)
+	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const day = today.getDate();
+	const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+	return `${months[today.getMonth()]} ${day}${suffix}, ${today.getFullYear()}`;
+}
+
 export async function removeBlock(config: LogseqApiConfig, blockUuid: string): Promise<void> {
 	await logseqApi(config, 'logseq.Editor.removeBlock', [blockUuid]);
+}
+
+// HACK: Assumes upsertBlockProperty works on page entities (page UUIDs),
+// not just block UUIDs. Logseq's <get-block resolves both, but this
+// hasn't been verified against a running instance. Test manually.
+export async function upsertBlockProperty(
+	config: LogseqApiConfig,
+	blockUuid: string,
+	key: string,
+	value: any,
+): Promise<void> {
+	await logseqApi(config, 'logseq.Editor.upsertBlockProperty', [blockUuid, key, value]);
 }
