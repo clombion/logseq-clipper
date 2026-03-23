@@ -106,7 +106,7 @@ export function getAvailableLanguages(): { code: string; name: string }[] {
 }
 
 export async function getCurrentLanguage(): Promise<string> {
-	const savedLanguage = await getLocalStorage('language');
+	const savedLanguage = (await getLocalStorage('language')) as string | undefined;
 	if (savedLanguage && savedLanguage !== '') {
 		return savedLanguage;
 	}

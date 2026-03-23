@@ -16,6 +16,7 @@ const SCHEMA_VERSION = '0.1.0';
 
 // Add these type definitions at the top
 interface StorageData {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	[key: string]: any;
 	template_list?: string[];
 }
@@ -89,6 +90,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 				// Handle property types and preserve existing IDs or generate new ones
 				if (importedTemplate.properties) {
 					importedTemplate.properties = await Promise.all(
+						// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 						importedTemplate.properties.map(async (prop: any) => {
 							console.log('Processing property:', prop);
 							// Add or update the property type
@@ -160,6 +162,7 @@ function validateImportedTemplate(template: Partial<Template>): boolean {
 	const hasValidProperties =
 		Array.isArray(template.properties) &&
 		template.properties!.every(
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			(prop: any) =>
 				prop.hasOwnProperty('name') &&
 				prop.hasOwnProperty('value') &&
@@ -333,6 +336,7 @@ export async function exportAllSettings(): Promise<void> {
 		console.log('All data fetched:', allData);
 
 		// Create a copy of the data to modify, excluding connection settings (machine-specific secret)
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: any };
 
 		// Decompress all templates
@@ -352,9 +356,13 @@ export async function exportAllSettings(): Promise<void> {
 		}
 
 		// Strip API keys from providers to prevent credential leakage
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		if ((exportData as any).interpreter_settings?.providers) {
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			(exportData as any).interpreter_settings.providers =
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				(exportData as any).interpreter_settings.providers.map(
+					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 					({ apiKey, ...rest }: any) => rest
 				);
 		}
@@ -400,6 +408,7 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 						// Check if the data is already compressed (will be an array of strings)
 						const isAlreadyCompressed =
 							Array.isArray(importData[key]) &&
+							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 							importData[key].every((chunk: any) => typeof chunk === 'string');
 
 						if (!isAlreadyCompressed) {
@@ -426,6 +435,7 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 			const preservedLogseqSettings = currentStorage.logseq_settings;
 
 			// Remove logseq_settings from import data if present (don't import secrets)
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			delete (importData as any).logseq_settings;
 
 			await browser.storage.sync.clear();

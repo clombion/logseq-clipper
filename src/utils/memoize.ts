@@ -1,9 +1,11 @@
+// biome-ignore lint/suspicious/noExplicitAny: generic constraint requires any for function type compatibility
 interface MemoizeOptions<T extends (...args: any[]) => any> {
 	resolver?: (...args: Parameters<T>) => string;
 	expirationMs?: number;
 	keyFn?: (...args: Parameters<T>) => string | Promise<string>;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic constraint requires any for function type compatibility
 export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions<T> = {}): T {
 	const cache = new Map<string, ReturnType<T>>();
 	return ((...args: Parameters<T>): ReturnType<T> => {
@@ -17,6 +19,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options: Memoi
 	}) as T;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic constraint requires any for function type compatibility
 export function memoizeWithExpiration<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions<T>): T {
 	const cache = new Map<string, { value: ReturnType<T>; timestamp: number }>();
 	return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {

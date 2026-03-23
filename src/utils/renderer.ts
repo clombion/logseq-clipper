@@ -44,6 +44,7 @@ const defaultApplyFilterDirect: ApplyFilterDirectFn = builtInApplyFilterDirect;
 /**
  * Function type for resolving variables asynchronously (e.g., selectors)
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export type AsyncResolver = (name: string, context: RenderContext) => Promise<any>;
 
 /**
@@ -51,6 +52,7 @@ export type AsyncResolver = (name: string, context: RenderContext) => Promise<an
  */
 export interface RenderContext {
 	/** Variables available in the template */
+	// biome-ignore lint/suspicious/noExplicitAny: template variables are dynamic
 	variables: Record<string, any>;
 
 	/** Current URL for filter processing */
@@ -63,6 +65,7 @@ export interface RenderContext {
 	asyncResolver?: AsyncResolver;
 
 	/** Custom filter functions (optional, merged with built-in filters) */
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	filters?: Record<string, (...args: any[]) => any>;
 
 	/** Custom applyFilterDirect implementation (optional, uses built-in if not provided) */
@@ -188,6 +191,7 @@ async function renderNode(node: ASTNode, state: RenderState): Promise<string> {
 			return renderSet(node, state);
 		default:
 			state.errors.push({
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				message: `Unknown node type: ${(node as any).type}`,
 			});
 			return '';
@@ -273,6 +277,7 @@ function formatFilterArgs(args: Expression[]): string {
 			}
 			return String(val);
 		}
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		return String((arg as any).value || (arg as any).name || '');
 	});
 	if (formatted.length > 1) {
@@ -472,6 +477,7 @@ async function renderNodes(nodes: ASTNode[], state: RenderState): Promise<string
  */
 function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, state: RenderState): string {
 	// Handle trimLeft - trim trailing whitespace from previous output
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	if ('trimLeft' in node && (node as any).trimLeft && output.length > 0) {
 		output = trimTrailingWhitespace(output);
 	}
@@ -491,6 +497,7 @@ function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, sta
 // Expression Evaluation
 // ============================================================================
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateExpression(expr: Expression, state: RenderState): Promise<any> {
 	switch (expr.type) {
 		case 'literal':
@@ -515,14 +522,17 @@ async function evaluateExpression(expr: Expression, state: RenderState): Promise
 			return evaluateMember(expr, state);
 
 		default:
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			throw new Error(`Unknown expression type: ${(expr as any).type}`);
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function evaluateLiteral(expr: LiteralExpression): any {
 	return expr.value;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState): Promise<any> {
 	const name = expr.name;
 
@@ -555,6 +565,7 @@ async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState
 	return resolveVariable(name, state.context.variables);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateMember(expr: MemberExpression, state: RenderState): Promise<any> {
 	const object = await evaluateExpression(expr.object, state);
 	const property = await evaluateExpression(expr.property, state);
@@ -581,6 +592,7 @@ async function evaluateMember(expr: MemberExpression, state: RenderState): Promi
 	return undefined;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promise<any> {
 	// Handle nullish coalescing with short-circuit evaluation
 	if (expr.operator === '??') {
@@ -619,6 +631,7 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise<any> {
 	const argument = await evaluateExpression(expr.argument, state);
 
@@ -630,10 +643,12 @@ async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function evaluateFilter(expr: FilterExpression, state: RenderState): Promise<any> {
 	const value = await evaluateExpression(expr.value, state);
 
 	// Evaluate filter arguments
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const args: any[] = [];
 	for (const arg of expr.args) {
 		let argValue = await evaluateExpression(arg, state);
@@ -683,6 +698,7 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	return applyFilterDirectFn(stringValue, expr.name, paramString, state.context.currentUrl);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function evaluateContains(left: any, right: any): boolean {
 	if (left === undefined || left === null) return false;
 	if (right === undefined || right === null) return false;
@@ -715,6 +731,7 @@ function evaluateContains(left: any, right: any): boolean {
  * Schema variables can be stored with full keys like {{schema:@Movie.genre}}
  * but referenced with shorthand like schema:genre.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function resolveSchemaVariable(name: string, variables: Record<string, any>): any {
 	// name is like "schema:genre" or "schema:@Movie.genre" or "schema:director[*].name"
 	const schemaKey = name.slice('schema:'.length);
@@ -751,6 +768,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
  * Resolve a schema key to its raw value from variables (before parsing).
  * Handles exact match, plain key, and shorthand resolution.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): any {
 	const name = `schema:${schemaKey}`;
 
@@ -780,6 +798,7 @@ function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): an
 /**
  * Parse a schema value - if it's a JSON string, parse it to get the actual value.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function parseSchemaValue(value: any): any {
 	if (typeof value === 'string') {
 		// Try to parse as JSON to get arrays/objects
@@ -794,6 +813,7 @@ function parseSchemaValue(value: any): any {
 	return value;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function resolveVariable(name: string, variables: Record<string, any>): any {
 	const trimmed = name.trim();
 
@@ -816,6 +836,7 @@ function resolveVariable(name: string, variables: Record<string, any>): any {
 	return undefined;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getNestedValue(obj: any, path: string): any {
 	if (!path || !obj) return undefined;
 
@@ -886,6 +907,7 @@ function isQuotedString(str: string): boolean {
 /**
  * Check if a value is "truthy" for template conditionals
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function isTruthy(value: any): boolean {
 	if (value === undefined || value === null) return false;
 	if (value === '') return false;
@@ -898,6 +920,7 @@ function isTruthy(value: any): boolean {
 /**
  * Convert any value to a string for output
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function valueToString(value: any): string {
 	if (value === undefined || value === null) {
 		return '';
@@ -920,6 +943,7 @@ function valueToString(value: any): string {
  */
 export async function renderTemplate(
 	template: string,
+	// biome-ignore lint/suspicious/noExplicitAny: template variables are dynamic
 	variables: Record<string, any>,
 	currentUrl: string = '',
 ): Promise<string> {
@@ -935,8 +959,10 @@ export async function renderTemplate(
  */
 export function createSelectorResolver(
 	tabId: number,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	sendMessage: (tabId: number, message: any) => Promise<any>,
 ): AsyncResolver {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	return async (name: string, context: RenderContext): Promise<any> => {
 		const extractHtml = name.startsWith('selectorHtml:');
 		const prefix = extractHtml ? 'selectorHtml:' : 'selector:';

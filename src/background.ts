@@ -33,10 +33,12 @@ async function enableYouTubeEmbedRule(tabId: number): Promise<void> {
 				id: YOUTUBE_EMBED_RULE_ID,
 				priority: 1,
 				action: {
+					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 					type: 'modifyHeaders' as any,
 					requestHeaders: [
 						{
 							header: 'Referer',
+							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 							operation: 'set' as any,
 							value: 'https://logseq.com/',
 						},
@@ -44,6 +46,7 @@ async function enableYouTubeEmbedRule(tabId: number): Promise<void> {
 				},
 				condition: {
 					urlFilter: '||youtube.com/embed/',
+					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 					resourceTypes: ['sub_frame' as any],
 					tabIds: [tabId],
 				},
@@ -165,6 +168,7 @@ browser.runtime.onConnect.addListener((port) => {
 	}
 });
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function sendMessageToPopup(tabId: number, message: any): Promise<void> {
 	if (isPopupOpen(tabId)) {
 		try {
@@ -179,6 +183,7 @@ browser.runtime.onMessage.addListener(
 	(
 		request: unknown,
 		sender: browser.Runtime.MessageSender,
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		sendResponse: (response?: any) => void,
 	): true | undefined => {
 		if (typeof request === 'object' && request !== null) {
@@ -200,6 +205,7 @@ browser.runtime.onMessage.addListener(
 								action: 'copy-text-to-clipboard',
 								text: typedRequest.text,
 							});
+							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 							if ((response as any) && (response as any).success) {
 								sendResponse({ success: true });
 							} else {
@@ -433,7 +439,9 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'sendMessageToTab') {
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				const tabId = (typedRequest as any).tabId;
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				const message = (typedRequest as any).message;
 				if (tabId && message) {
 					// Ensure content script is loaded before sending message
@@ -445,6 +453,7 @@ browser.runtime.onMessage.addListener(
 						.then((response) => {
 							console.log(
 								'[Logseq Clipper] Tab response:',
+								// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 								response ? 'has content=' + !!(response as any).content : response,
 							);
 							sendResponse(response);

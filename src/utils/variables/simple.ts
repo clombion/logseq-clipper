@@ -4,6 +4,7 @@ import { resolveVariable, valueToString } from '../resolver';
 // Function to process a simple variable (without special prefixes)
 export async function processSimpleVariable(
 	variableString: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	variables: { [key: string]: any },
 	currentUrl: string,
 ): Promise<string> {

@@ -7,6 +7,7 @@ export const blockquote = (input: string | string[]): string => {
 			.join('\n');
 	};
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processArray = (arr: any[], depth: number = 1): string => {
 		return arr
 			.map((item) => {

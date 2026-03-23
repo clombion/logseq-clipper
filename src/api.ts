@@ -22,6 +22,7 @@ import { Template, Property } from './types/types';
 // ---------------------------------------------------------------------------
 
 export interface DocumentParser {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	parseFromString(html: string, mimeType: string): any;
 }
 
@@ -32,6 +33,7 @@ export interface ClipOptions {
 	documentParser: DocumentParser;
 	propertyTypes?: Record<string, string>;
 	/** Pre-parsed document to skip re-parsing (e.g. when already parsed for trigger matching). */
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	parsedDocument?: any;
 }
 
@@ -48,9 +50,11 @@ export interface ClipResult {
 // Selector resolvers (work on any { querySelectorAll } document)
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/suspicious/noExplicitAny: DOM API returns dynamic types
 type DocLike = { querySelectorAll: (selector: string) => any };
 
 export function createAsyncResolver(doc: DocLike): AsyncResolver {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	return async (name: string, _context: RenderContext): Promise<any> => {
 		if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
 			const extractHtml = name.startsWith('selectorHtml:');
@@ -99,6 +103,7 @@ function matchTriggerPattern(pattern: string, url: string): boolean {
 	return url.startsWith(pattern);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	const match = pattern.match(/^schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/);
 	if (!match) return false;
@@ -106,6 +111,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	if (!schemaType && !schemaKey) return false;
 
 	const schemaArray = Array.isArray(schemaOrgData) ? schemaOrgData : [schemaOrgData];
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const flattened = schemaArray.flatMap((s: any) => (Array.isArray(s) ? s : [s]));
 
 	for (const schema of flattened) {
@@ -136,6 +142,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
  * Find the first template whose triggers match the given URL (and optionally schema data).
  * URL prefix and regex triggers are checked first, then schema triggers.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function matchTemplate(templates: Template[], url: string, schemaOrgData?: any): Template | undefined {
 	// First pass: URL prefix and regex triggers
 	for (const template of templates) {

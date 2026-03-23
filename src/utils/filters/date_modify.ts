@@ -89,8 +89,10 @@ export const date_modify = (str: string, param?: string): string => {
 	const numericAmount = parseInt(amount, 10);
 
 	if (operation === '+') {
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		date = date.add(numericAmount, unit as any);
 	} else {
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		date = date.subtract(numericAmount, unit as any);
 	}
 

@@ -19,6 +19,7 @@ export async function sendToLLM(
 	content: string,
 	promptVariables: PromptVariable[],
 	model: ModelConfig,
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 ): Promise<{ promptResponses: any[] }> {
 	debugLog('Interpreter', 'Sending request to LLM...');
 
@@ -54,6 +55,7 @@ export async function sendToLLM(
 		};
 
 		let requestUrl: string;
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		let requestBody: any;
 		let headers: HeadersInit = {
 			'Content-Type': 'application/json',
@@ -247,6 +249,7 @@ interface LLMResponse {
 	prompts_responses: { [key: string]: string };
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function parseLLMResponse(responseContent: string, promptVariables: PromptVariable[]): { promptResponses: any[] } {
 	try {
 		let parsedResponse: LLMResponse;
@@ -651,6 +654,7 @@ export async function handleInterpreterUI(
 }
 
 // Similar to replaceVariables, but happens after the LLM response is received
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function replacePromptVariables(promptVariables: PromptVariable[], promptResponses: any[]) {
 	const allInputs = document.querySelectorAll('input, textarea');
 	allInputs.forEach((input) => {

@@ -182,6 +182,7 @@ declare global {
 		content: string;
 		selectedHtml: string;
 		extractedContent: { [key: string]: string };
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		schemaOrgData: any;
 		fullHtml: string;
 		highlights: string[];
@@ -199,6 +200,7 @@ declare global {
 		metaTags: { name?: string | null; property?: string | null; content: string | null }[];
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	browser.runtime.onMessage.addListener((request: any, sender, sendResponse) => {
 		if (request.action === 'ping') {
 			sendResponse({});

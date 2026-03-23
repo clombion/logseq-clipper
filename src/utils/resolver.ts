@@ -9,6 +9,7 @@ import browser from './browser-polyfill';
  * Context for variable resolution, including optional tabId for selector support
  */
 export interface ResolverContext {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	variables: { [key: string]: any };
 	tabId?: number;
 }
@@ -23,6 +24,7 @@ export interface ResolverContext {
  * - Array access: "items[0]" → variables.items[0]
  * - Literals: "string", 123, true/false, null
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function resolveVariable(name: string, variables: { [key: string]: any }): any {
 	const trimmed = name.trim();
 
@@ -69,6 +71,7 @@ export function resolveVariable(name: string, variables: { [key: string]: any })
  * Async version of resolveVariable that supports selector variables.
  * Use this in contexts where selectors need to be evaluated (set, for, if).
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export async function resolveVariableAsync(name: string, context: ResolverContext): Promise<any> {
 	const trimmed = name.trim();
 
@@ -84,6 +87,7 @@ export async function resolveVariableAsync(name: string, context: ResolverContex
 /**
  * Resolve a selector variable by querying the content script
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Promise<any> {
 	if (!tabId) {
 		console.error('Cannot resolve selector without tabId:', selectorExpr);
@@ -117,6 +121,7 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 /**
  * Resolve a schema variable (schema:key format)
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: any }): any {
 	// Try direct lookup: {{schema:@type}}
 	let value = variables[`{{${schemaKey}}}`];
@@ -144,6 +149,7 @@ function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: an
  * - "items[0]" → obj.items[0]
  * - "items[0].title" → obj.items[0].title
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function getNestedValue(obj: any, path: string): any {
 	if (!path || !obj) return undefined;
 
@@ -179,6 +185,7 @@ export function getNestedValue(obj: any, path: string): any {
  * - objects → JSON.stringify
  * - everything else → String()
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function valueToString(value: any): string {
 	if (value === undefined || value === null) {
 		return '';

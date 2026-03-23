@@ -124,8 +124,10 @@ export async function appendBlockInPage(
 	config: LogseqApiConfig,
 	page: string,
 	content: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq API opts are untyped
 	opts?: Record<string, any>,
 ): Promise<LogseqBlock> {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const args: any[] = [page, content];
 	if (opts) args.push(opts);
 	return await logseqApi(config, 'logseq.Editor.appendBlockInPage', args);
@@ -135,8 +137,10 @@ export async function prependBlockInPage(
 	config: LogseqApiConfig,
 	page: string,
 	content: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq API opts are untyped
 	opts?: Record<string, any>,
 ): Promise<LogseqBlock> {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const args: any[] = [page, content];
 	if (opts) args.push(opts);
 	return await logseqApi(config, 'logseq.Editor.prependBlockInPage', args);
@@ -158,6 +162,7 @@ export async function getPageBlocksTree(config: LogseqApiConfig, pageTitle: stri
 
 const VALID_PROPERTY_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export async function queryByProperty(config: LogseqApiConfig, property: string, value: string): Promise<any[]> {
 	if (!VALID_PROPERTY_NAME.test(property)) {
 		throw new Error(`Invalid property name: "${property}" — must match /^[a-zA-Z][a-zA-Z0-9_-]*$/`);
@@ -196,6 +201,7 @@ export async function upsertBlockProperty(
 	config: LogseqApiConfig,
 	blockUuid: string,
 	key: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	value: any,
 ): Promise<void> {
 	await logseqApi(config, 'logseq.Editor.upsertBlockProperty', [blockUuid, key, value]);

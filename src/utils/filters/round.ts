@@ -27,6 +27,7 @@ export const round = (input: string, param?: string): string => {
 		return Math.round(num * factor) / factor;
 	};
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processValue = (value: any, decimalPlaces?: number): any => {
 		if (typeof value === 'number') {
 			return roundNumber(value, decimalPlaces);
@@ -36,6 +37,7 @@ export const round = (input: string, param?: string): string => {
 		} else if (Array.isArray(value)) {
 			return value.map((item) => processValue(item, decimalPlaces));
 		} else if (typeof value === 'object' && value !== null) {
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			const result: { [key: string]: any } = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[key] = processValue(val, decimalPlaces);
@@ -51,6 +53,7 @@ export const round = (input: string, param?: string): string => {
 			return input; // Return the original input if the parameter is not a valid number
 		}
 
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		let parsedInput: any;
 		try {
 			parsedInput = JSON.parse(input);

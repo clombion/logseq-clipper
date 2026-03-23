@@ -212,6 +212,7 @@ async function initializeExtension(tabId: number) {
 
 function setupMessageListeners() {
 	browser.runtime.onMessage.addListener(
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
 			if (request.action === 'triggerQuickClip') {
 				handleClipLogseq()
@@ -590,6 +591,7 @@ function clearError(): void {
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function logError(message: string, error?: any): void {
 	console.error(message, error);
 	showError(message);
@@ -840,6 +842,7 @@ async function fillTemplateFieldValues(
 	currentTabId: number,
 	template: Template | null,
 	variables: { [key: string]: string },
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	schemaOrgData?: any,
 ) {
 	if (!template) return;
@@ -952,7 +955,7 @@ function setupMetadataToggle() {
 				// If the value is not set, default to not collapsed
 				updateMetadataToggleState(false);
 			} else {
-				updateMetadataToggleState(isCollapsed);
+				updateMetadataToggleState(isCollapsed as boolean);
 			}
 		});
 	}
@@ -990,7 +993,9 @@ async function getReplacedTemplate(
 	variables: { [key: string]: string },
 	tabId: number,
 	currentUrl: string,
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 ): Promise<any> {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const replacedTemplate: any = {
 		schemaVersion: '0.1.0',
 		name: template.name,

@@ -39,12 +39,12 @@ export let generalSettings: Settings = {
 	saveBehavior: 'addToLogseq',
 };
 
-export function setLocalStorage(key: string, value: any): Promise<void> {
+export function setLocalStorage(key: string, value: unknown): Promise<void> {
 	return browser.storage.local.set({ [key]: value });
 }
 
-export function getLocalStorage(key: string): Promise<any> {
-	return browser.storage.local.get(key).then((result: { [key: string]: any }) => result[key]);
+export function getLocalStorage(key: string): Promise<unknown> {
+	return browser.storage.local.get(key).then((result: Record<string, unknown>) => result[key]);
 }
 
 interface StorageData {

@@ -37,6 +37,7 @@ interface ContentResponse {
 	content: string;
 	selectedHtml: string;
 	extractedContent: ExtractedContent;
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	schemaOrgData: any;
 	fullHtml: string;
 	highlights: AnyHighlightData[];
@@ -113,6 +114,7 @@ export async function initializePageContent(
 	selectedHtml: string,
 	extractedContent: ExtractedContent,
 	currentUrl: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	schemaOrgData: any,
 	fullHtml: string,
 	highlights: AnyHighlightData[],

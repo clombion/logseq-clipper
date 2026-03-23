@@ -21,6 +21,7 @@ export interface ExtractedContent {
 	[key: string]: string;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export type FilterFunction = (value: string, param?: string) => string | any[];
 
 export interface PromptVariable {
@@ -107,6 +108,7 @@ export interface ConversationMessage {
 	author: string;
 	content: string;
 	timestamp?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: metadata values are untyped
 	metadata?: Record<string, any>;
 }
 

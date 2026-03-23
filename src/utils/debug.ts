@@ -32,7 +32,7 @@ export const toggleDebug = (filterName: string) => {
 };
 
 // Helper function for debug logging
-export const debugLog = (filterName: string, ...args: any[]) => {
+export const debugLog = (filterName: string, ...args: unknown[]) => {
 	if (DEBUG_MODE && debugMode) {
 		console.log(`[${filterName}]`, ...args);
 	}
@@ -43,5 +43,5 @@ export const isDebugMode = () => DEBUG_MODE && debugMode;
 
 // Expose toggleDebug to the global scope only in debug mode
 if (DEBUG_MODE) {
-	(window as any).toggleDebug = toggleDebug;
+	(window as unknown as Record<string, unknown>).toggleDebug = toggleDebug;
 }

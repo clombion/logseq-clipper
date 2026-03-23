@@ -20,6 +20,7 @@ export const link = (str: string, param?: string): string => {
 	try {
 		const data = JSON.parse(str);
 
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const processObject = (obj: any): string[] => {
 			return Object.entries(obj)
 				.map(([key, value]) => {

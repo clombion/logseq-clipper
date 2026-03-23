@@ -3,6 +3,7 @@ import { memoize, memoizeWithExpiration } from './memoize';
 
 // Modify the memoized function to handle regex patterns correctly
 const memoizedInternalMatchPattern = memoize(
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	(pattern: string, url: string, schemaOrgData: any): boolean => {
 		if (pattern.startsWith('schema:')) {
 			return matchSchemaPattern(pattern, schemaOrgData);
@@ -53,6 +54,7 @@ class Trie {
 		node.templates.push({ template, priority });
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	findLongestMatch(url: string, schemaOrgData: any): TriggerMatch | null {
 		let node = this.root;
 		let lastMatch: TriggerMatch | null = null;
@@ -102,6 +104,7 @@ export function initializeTriggers(templates: Template[]): void {
 }
 
 const memoizedFindMatchingTemplate = memoizeWithExpiration(
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	async (url: string, getSchemaOrgData: () => Promise<any>): Promise<Template | undefined> => {
 		if (!isInitialized) {
 			console.warn('Triggers not initialized. Call initializeTriggers first.');
@@ -142,10 +145,12 @@ const memoizedFindMatchingTemplate = memoizeWithExpiration(
 
 export const findMatchingTemplate = memoizedFindMatchingTemplate;
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function matchPattern(pattern: string, url: string, schemaOrgData: any): boolean {
 	return memoizedInternalMatchPattern(pattern, url, schemaOrgData);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	const [, schemaType, schemaKey, expectedValue] = pattern.match(/schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/) || [];
 
@@ -162,6 +167,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 			}
 			return [schema];
 		})
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		.filter((schema: any) => {
 			if (!schema || typeof schema !== 'object') return false;
 			if (!schemaType) return true;
@@ -189,6 +195,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	return false;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getSchemaValue(schemaData: any, key: string): any {
 	const keys = key.split('.');
 	let result = schemaData;

@@ -21,7 +21,7 @@ export function showModal(modal: HTMLElement | null): void {
 
 		// Store the escape handler on the modal element for cleanup
 		modal.dataset.escapeHandler = 'true';
-		(modal as any).escapeHandler = handleEscape;
+		(modal as unknown as Record<string, unknown>).escapeHandler = handleEscape;
 
 		// Focus the first focusable element in the modal
 		const focusable = modal.querySelector<HTMLElement>(
@@ -45,10 +45,10 @@ export function hideModal(modal: HTMLElement | null): void {
 
 		// Remove escape key handler if it exists
 		if (modal.dataset.escapeHandler === 'true') {
-			const handler = (modal as any).escapeHandler;
+			const handler = (modal as unknown as Record<string, unknown>).escapeHandler as ((e: KeyboardEvent) => void) | undefined;
 			if (handler) {
 				document.removeEventListener('keydown', handler);
-				delete (modal as any).escapeHandler;
+				delete (modal as unknown as Record<string, unknown>).escapeHandler;
 			}
 			delete modal.dataset.escapeHandler;
 		}

@@ -19,7 +19,7 @@ export function escapeDoubleQuotes(str: string): string {
 }
 
 export function sanitizeFileName(fileName: string): string {
-	const platform = (navigator as any).userAgentData?.platform || navigator.platform || '';
+	const platform = (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform || '';
 	const isWindows = /win/i.test(platform);
 	const isMac = /mac/i.test(platform);
 

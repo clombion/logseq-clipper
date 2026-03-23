@@ -1,4 +1,5 @@
 export const html_to_json = (input: string): string => {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const parseNode = (node: Node): any => {
 		if (node.nodeType === Node.TEXT_NODE) {
 			const text = node.textContent?.trim();
@@ -7,6 +8,7 @@ export const html_to_json = (input: string): string => {
 
 		if (node.nodeType === Node.ELEMENT_NODE) {
 			const element = node as Element;
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			const result: any = {
 				type: 'element',
 				tag: element.tagName.toLowerCase(),

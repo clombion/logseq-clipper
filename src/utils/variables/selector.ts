@@ -7,6 +7,7 @@ import { debugLog } from '../debug';
  * Resolve a selector and return the raw content (array or string).
  * Used by the renderer for for loops and conditionals.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export async function resolveSelector(tabId: number, selectorExpr: string): Promise<any> {
 	// Parse the selector expression (selector:... or selectorHtml:...)
 	// Format: selector:cssSelector or selectorHtml:cssSelector

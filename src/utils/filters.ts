@@ -250,6 +250,7 @@ function parseFilterString(filterString: string): string[] {
  * @returns The filtered value as a string
  */
 export function applyFilterDirect(
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	value: string | any[],
 	filterName: string,
 	paramString: string | undefined,
@@ -303,6 +304,7 @@ export function applyFilterDirect(
  * Used when filters are specified as a string like "filter1:arg|filter2".
  * For the optimized path with pre-parsed filters, use applyFilterDirect.
  */
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export function applyFilters(value: string | any[], filterString: string, currentUrl?: string): string {
 	debugLog('Filters', 'applyFilters called with:', { value, filterString, currentUrl });
 

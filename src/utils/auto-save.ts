@@ -10,12 +10,13 @@ export function initializeAutoSave(): void {
 		return;
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: generic constraint requires any for function type compatibility
 	const debounce = <T extends (...args: any[]) => any>(
 		func: T,
 		delay: number,
 	): ((...args: Parameters<T>) => void) => {
 		let debounceTimer: NodeJS.Timeout | null = null;
-		return function (this: any, ...args: Parameters<T>) {
+		return function (this: unknown, ...args: Parameters<T>) {
 			const context = this;
 			if (debounceTimer) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => func.apply(context, args), delay);

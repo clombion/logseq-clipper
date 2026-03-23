@@ -953,7 +953,7 @@ export class Reader {
 				const images = Array.from(figure.querySelectorAll('img')) as HTMLImageElement[];
 				return images.map((img) => {
 					// Store figure reference on the image for caption lookup
-					(img as any).figureElement = figure;
+					(img as unknown as { figureElement: HTMLElement }).figureElement = figure;
 					return img;
 				});
 			});
@@ -962,7 +962,7 @@ export class Reader {
 
 			// Add click handlers
 			this.images.forEach((img, index) => {
-				const figure = (img as any).figureElement;
+				const figure = (img as unknown as { figureElement?: HTMLElement }).figureElement;
 				const parentLink = img.closest('a');
 
 				if (figure) {
@@ -1080,7 +1080,7 @@ export class Reader {
 			container.appendChild(img);
 
 			// Handle caption if image is part of a figure
-			const figure = (this.images[index] as any).figureElement as HTMLElement;
+			const figure = (this.images[index] as unknown as { figureElement?: HTMLElement }).figureElement as HTMLElement;
 			if (figure) {
 				const figcaption = figure.querySelector('figcaption');
 				if (figcaption) {
@@ -1501,7 +1501,7 @@ export class Reader {
 
 			// Reapply highlights after restoring original content
 			if (typeof window !== 'undefined' && window.hasOwnProperty('applyHighlights')) {
-				(window as any).applyHighlights();
+				(window as unknown as { applyHighlights?: () => void }).applyHighlights?.();
 			}
 		}
 	}

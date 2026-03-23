@@ -791,6 +791,7 @@ function parseFilterArgument(state: ParserState): Expression | null {
 	// e.g., replace:"old":"new" should be one arg "old":"new", not two args
 	if (first.type === 'literal' && startToken.type === 'string') {
 		// Format string with quotes preserved
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const formatString = (val: any) => `"${val}"`;
 		let combined = formatString(first.value);
 
@@ -920,6 +921,7 @@ function parseFilterExpression(state: ParserState): Expression | null {
 					// Chain string:string pairs into a single arg
 					// e.g., replace:("old":"new","foo":"bar") → two args: "old":"new" and "foo":"bar"
 					if (arg.type === 'literal' && typeof arg.value === 'string' && check(state, 'colon')) {
+						// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 						const formatStr = (val: any) => `"${val}"`;
 						let combined = formatStr(arg.value);
 						while (check(state, 'colon')) {

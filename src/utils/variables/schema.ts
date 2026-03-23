@@ -97,6 +97,7 @@ export async function processSchema(
 	return applyFilters(schemaValue, filtersString, currentUrl);
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getNestedProperty(obj: any, path: string): any {
 	return path.split('.').reduce((prev, curr) => prev && prev[curr], obj);
 }

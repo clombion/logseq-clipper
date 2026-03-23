@@ -20,12 +20,14 @@ export const validateListParams = (param: string | undefined): ParamValidationRe
 	return { valid: true };
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export const list = (input: string | any[], param?: string): string => {
 	// Return empty string as-is without attempting to parse
 	if (input === '') {
 		return input;
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processListItem = (item: any, type: ListType, depth: number = 0): string => {
 		const indent = '\t'.repeat(depth);
 		let prefix: string;
@@ -49,6 +51,7 @@ export const list = (input: string | any[], param?: string): string => {
 		return `${indent}${prefix}${item}`;
 	};
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processArray = (arr: any[], type: ListType, depth: number = 0): string => {
 		return arr
 			.map((item, index) => {

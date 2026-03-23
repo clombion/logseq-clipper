@@ -15,12 +15,14 @@ export const title = (input: string | string[], param?: string): string | string
 			.join(' ');
 	};
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processValue = (value: any): any => {
 		if (typeof value === 'string') {
 			return toTitleCase(value);
 		} else if (Array.isArray(value)) {
 			return value.map(processValue);
 		} else if (typeof value === 'object' && value !== null) {
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			const result: { [key: string]: any } = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[toTitleCase(key)] = processValue(val);

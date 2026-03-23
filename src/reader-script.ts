@@ -9,10 +9,11 @@ import browser from './utils/browser-polyfill';
 	}
 
 	// Mark as initialized
-	(window as any).logseqReaderInitialized = true;
+	(window as unknown as Record<string, unknown>).logseqReaderInitialized = true;
 
 	// Listen for messages from the content script
 	browser.runtime.onMessage.addListener(
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
 			if (request.action === 'toggleReaderMode') {
 				(async () => {

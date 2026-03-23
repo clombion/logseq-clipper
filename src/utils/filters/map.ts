@@ -52,6 +52,7 @@ export const map = (str: string, param?: string): string => {
 				(expr.startsWith("'") && expr.endsWith("'"))
 			) {
 				// Use a simple object to store the mapped properties
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				const mappedItem: { [key: string]: any } = {};
 
 				// Parse the expression to extract property assignments or string literal
@@ -90,6 +91,7 @@ export const map = (str: string, param?: string): string => {
 	return str;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function evaluateExpression(expression: string, item: any, argName: string): any {
 	if (typeof item === 'string') {
 		// For simple string arrays, return the item directly
@@ -107,6 +109,7 @@ function evaluateExpression(expression: string, item: any, argName: string): any
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getNestedProperty(obj: any, path: string): any {
 	debugLog('Map', 'Getting nested property:', { obj: JSON.stringify(obj), path });
 	const result = path

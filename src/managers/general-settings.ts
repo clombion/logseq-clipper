@@ -1,7 +1,7 @@
 import { initializeIcons } from '../icons/icons';
 import { getCommands } from '../utils/hotkeys';
 import { initializeToggles, updateToggleState, initializeSettingToggle } from '../utils/ui-utils';
-import { generalSettings, loadSettings, saveSettings, setLocalStorage, getLocalStorage } from '../utils/storage-utils';
+import { generalSettings, loadSettings, saveSettings, setLocalStorage, getLocalStorage, Rating } from '../utils/storage-utils';
 import { checkConnection } from '../utils/logseq-api';
 import { detectBrowser } from '../utils/browser-detection';
 import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
@@ -129,7 +129,7 @@ export function initializeGeneralSettings(): void {
 		// Get clip history and ratings
 		const history = await getClipHistory();
 		const totalClips = history.length;
-		const existingRatings = (await getLocalStorage('ratings')) || [];
+		const existingRatings = ((await getLocalStorage('ratings')) || []) as unknown[];
 
 		// Show rating section only total clips >= 20 and no previous ratings
 		const rateExtensionSection = document.getElementById('rate-extension');
@@ -408,7 +408,7 @@ async function initializeUsageChart(): Promise<void> {
 
 async function handleRating(rating: number) {
 	// Get existing ratings from storage
-	const existingRatings = (await getLocalStorage('ratings')) || [];
+	const existingRatings = ((await getLocalStorage('ratings')) || []) as Rating[];
 
 	// Add new rating
 	const newRating = {

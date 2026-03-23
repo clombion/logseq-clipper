@@ -28,6 +28,7 @@ export interface BuildVariablesParams {
 	selection?: string;
 	selectionHtml?: string;
 	highlights?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	schemaOrgData?: any;
 	metaTags?: { name?: string | null; property?: string | null; content: string | null }[];
 	extractedContent?: Record<string, string>;
@@ -97,6 +98,7 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 // ---------------------------------------------------------------------------
 
 export function addSchemaOrgDataToVariables(
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	schemaData: any,
 	variables: Record<string, string>,
 	prefix: string = '',
@@ -257,6 +259,7 @@ export function formatPropertyValue(value: string, type: string, templateValue: 
  * Works with any document-like object (browser Document, linkedom, etc.).
  */
 export function extractContentBySelector(
+	// biome-ignore lint/suspicious/noExplicitAny: DOM API returns dynamic types
 	doc: { querySelectorAll: (selector: string) => any },
 	selector: string,
 	attribute?: string,
@@ -269,6 +272,7 @@ export function extractContentBySelector(
 			return '';
 		}
 
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		return Array.from(elements).map((el: any) => {
 			if (attribute) {
 				return el.getAttribute(attribute) || '';

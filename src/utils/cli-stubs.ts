@@ -4,7 +4,7 @@
 
 import type { Settings } from '../types/types';
 
-export default {} as any;
+export default {} as unknown;
 
 export const generalSettings: Settings = {
 	openBehavior: 'popup',

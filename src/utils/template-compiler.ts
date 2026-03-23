@@ -29,6 +29,7 @@ export type SelectorProcessor = (match: string, currentUrl: string) => Promise<s
 export async function compileTemplate(
 	tabId: number,
 	text: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	variables: { [key: string]: any },
 	currentUrl: string,
 	customAsyncResolver?: AsyncResolver,
@@ -40,6 +41,7 @@ export async function compileTemplate(
 	// Use provided resolver or default browser-based one
 	const asyncResolver =
 		customAsyncResolver ??
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		(async (name: string, ctx: RenderContext): Promise<any> => {
 			if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
 				return resolveSelector(ctx.tabId!, name);
@@ -90,6 +92,7 @@ export async function compileTemplate(
 export async function processVariables(
 	tabId: number,
 	text: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	variables: { [key: string]: any },
 	currentUrl: string,
 	customSelectorProcessor?: SelectorProcessor,

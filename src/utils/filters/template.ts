@@ -9,6 +9,7 @@ export const validateTemplateParams = (param: string | undefined): ParamValidati
 	return { valid: true };
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export const template = (input: string | any[], param?: string): string => {
 	debugLog('Template', 'Template input:', input);
 	debugLog('Template', 'Template param:', param);
@@ -23,6 +24,7 @@ export const template = (input: string | any[], param?: string): string => {
 	// Remove surrounding quotes (both single and double)
 	param = param.replace(/^(['"])([\s\S]*)\1$/, '$2');
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	let obj: any[] = [];
 	if (typeof input === 'string') {
 		try {
@@ -46,6 +48,7 @@ export const template = (input: string | any[], param?: string): string => {
 	return result;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function replaceTemplateVariables(obj: any, template: string): string {
 	debugLog('Template', 'Replacing template variables for:', obj);
 	debugLog('Template', 'Template:', template);
@@ -88,7 +91,9 @@ function replaceTemplateVariables(obj: any, template: string): string {
 	return result.trim();
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function parseObjectString(str: string): any {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const obj: any = {};
 	const regex = /(\w+):\s*("(?:\\.|[^"\\])*"|[^,}]+)/g;
 	let match;
@@ -105,6 +110,7 @@ function parseObjectString(str: string): any {
 	return obj;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getNestedProperty(obj: any, path: string): any {
 	debugLog('Template', 'Getting nested property:', { obj, path });
 	const result = path.split('.').reduce((current, key) => {

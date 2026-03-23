@@ -352,6 +352,7 @@ function mergeValidatedSettings(jsonString: string): void {
 		const parsed = JSON.parse(jsonString);
 		if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
 			const allowedKeys = Object.keys(generalSettings);
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic settings validation
 			const validated: Record<string, any> = {};
 			for (const key of allowedKeys) {
 				if (key in parsed) {
