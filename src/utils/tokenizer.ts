@@ -286,7 +286,7 @@ function tokenizeVariable(state: TokenizerState): void {
 	if (state.input[state.pos] === '}' && nextChar !== '}') {
 		// These characters after } indicate it's a valid rbrace in an expression
 		const validAfterBrace = ['|', ',', ')', ']', ' ', '\t', '\n', '\r'];
-		if (!validAfterBrace.includes(nextChar)) {
+		if (!validAfterBrace.includes(nextChar!)) {
 			state.errors.push({
 				message: `Malformed variable: expected '}}' but found '}'. Did you forget a '}'?`,
 				line: state.line,
@@ -441,7 +441,7 @@ function tokenizeExpression(state: TokenizerState, mode: 'variable' | 'tag'): vo
 	}
 
 	// Number literal
-	if (isDigit(char) || (char === '-' && isDigit(state.input[state.pos + 1]))) {
+	if (isDigit(char!) || (char === '-' && isDigit(state.input[state.pos + 1]!))) {
 		tokenizeNumber(state);
 		return;
 	}
@@ -561,7 +561,7 @@ function tokenizeExpression(state: TokenizerState, mode: 'variable' | 'tag'): vo
 	}
 
 	// Identifier or keyword
-	if (isIdentifierStart(char)) {
+	if (isIdentifierStart(char!)) {
 		tokenizeIdentifier(state);
 		return;
 	}
@@ -755,7 +755,7 @@ function tokenizeNumber(state: TokenizerState): void {
 	}
 
 	// Integer part
-	while (state.pos < state.input.length && isDigit(state.input[state.pos])) {
+	while (state.pos < state.input.length && isDigit(state.input[state.pos]!)) {
 		value += state.input[state.pos];
 		advanceChar(state);
 	}
@@ -764,7 +764,7 @@ function tokenizeNumber(state: TokenizerState): void {
 	if (state.pos < state.input.length && state.input[state.pos] === '.') {
 		value += '.';
 		advanceChar(state);
-		while (state.pos < state.input.length && isDigit(state.input[state.pos])) {
+		while (state.pos < state.input.length && isDigit(state.input[state.pos]!)) {
 			value += state.input[state.pos];
 			advanceChar(state);
 		}
@@ -783,7 +783,7 @@ function tokenizeIdentifier(state: TokenizerState): void {
 	const startColumn = state.column;
 	let value = '';
 
-	while (state.pos < state.input.length && isIdentifierChar(state.input[state.pos])) {
+	while (state.pos < state.input.length && isIdentifierChar(state.input[state.pos]!)) {
 		value += state.input[state.pos];
 		advanceChar(state);
 	}
@@ -996,7 +996,7 @@ function advanceChar(state: TokenizerState): void {
 }
 
 function skipWhitespace(state: TokenizerState): void {
-	while (state.pos < state.input.length && isWhitespace(state.input[state.pos])) {
+	while (state.pos < state.input.length && isWhitespace(state.input[state.pos]!)) {
 		advanceChar(state);
 	}
 }

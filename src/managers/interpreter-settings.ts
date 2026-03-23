@@ -402,12 +402,12 @@ function addProviderToList(event: Event) {
 }
 
 function editProvider(index: number) {
-	const providerToEdit = generalSettings.providers[index];
+	const providerToEdit = generalSettings.providers[index]!;
 	showProviderModal(providerToEdit, index);
 }
 
 function duplicateProvider(index: number) {
-	const providerToDuplicate = generalSettings.providers[index];
+	const providerToDuplicate = generalSettings.providers[index]!;
 	const duplicatedProvider: Provider = {
 		...providerToDuplicate,
 		id: Date.now().toString(),
@@ -424,7 +424,7 @@ function duplicateProvider(index: number) {
 }
 
 function deleteProvider(index: number): void {
-	const providerToDelete = generalSettings.providers[index];
+	const providerToDelete = generalSettings.providers[index]!;
 
 	const modelsUsingProvider = generalSettings.models.filter((m) => m.providerId === providerToDelete.id);
 	if (modelsUsingProvider.length > 0) {
@@ -771,7 +771,7 @@ function createModelListItem(model: ModelConfig, index: number): HTMLElement {
 	checkbox.addEventListener('change', () => {
 		const modelIndex = generalSettings.models.findIndex((m) => m.id === model.id);
 		if (modelIndex !== -1) {
-			generalSettings.models[modelIndex].enabled = checkbox.checked;
+			generalSettings.models[modelIndex]!.enabled = checkbox.checked;
 			saveSettings();
 		}
 	});
@@ -824,7 +824,7 @@ function addModelToList(event: Event) {
 }
 
 function editModel(index: number) {
-	const modelToEdit = generalSettings.models[index];
+	const modelToEdit = generalSettings.models[index]!;
 	showModelModal(modelToEdit, index);
 }
 
@@ -1152,7 +1152,7 @@ function debounce(func: Function, delay: number): (...args: any[]) => void {
 }
 
 function duplicateModel(index: number) {
-	const modelToDuplicate = generalSettings.models[index];
+	const modelToDuplicate = generalSettings.models[index]!;
 	const duplicatedModel: ModelConfig = {
 		...modelToDuplicate,
 		id: Date.now().toString(),

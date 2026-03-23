@@ -40,7 +40,7 @@ function parseSegments(markdown: string): Segment[] {
 	let i = 0;
 
 	while (i < lines.length) {
-		const line = lines[i];
+		const line = lines[i]!;
 
 		// Blank line — skip
 		if (line.trim() === '') {
@@ -50,12 +50,12 @@ function parseSegments(markdown: string): Segment[] {
 
 		// Fenced code block
 		if (/^(`{3,}|~{3,})/.test(line)) {
-			const fence = line.match(/^(`{3,}|~{3,})/)![1];
+			const fence = line.match(/^(`{3,}|~{3,})/)![1]!;
 			const codeLines: string[] = [line];
 			i++;
 			while (i < lines.length) {
-				codeLines.push(lines[i]);
-				if (lines[i].trimEnd() === fence) {
+				codeLines.push(lines[i]!);
+				if (lines[i]!.trimEnd() === fence) {
 					i++;
 					break;
 				}
@@ -67,7 +67,7 @@ function parseSegments(markdown: string): Segment[] {
 
 		// Heading
 		if (/^#{1,6}\s/.test(line)) {
-			const level = line.match(/^(#{1,6})\s/)![1].length;
+			const level = line.match(/^(#{1,6})\s/)![1]!.length;
 			segments.push({ type: 'heading', level, raw: line });
 			i++;
 			continue;
@@ -76,8 +76,8 @@ function parseSegments(markdown: string): Segment[] {
 		// Table (line contains | and the next line is a separator row)
 		if (isTableStart(lines, i)) {
 			const tableLines: string[] = [];
-			while (i < lines.length && lines[i].trim() !== '' && lines[i].includes('|')) {
-				tableLines.push(lines[i]);
+			while (i < lines.length && lines[i]!.trim() !== '' && lines[i]!.includes('|')) {
+				tableLines.push(lines[i]!);
 				i++;
 			}
 			segments.push({ type: 'table', raw: tableLines.join('\n') });
@@ -87,8 +87,8 @@ function parseSegments(markdown: string): Segment[] {
 		// Blockquote
 		if (/^>\s?/.test(line)) {
 			const quoteLines: string[] = [];
-			while (i < lines.length && /^>\s?/.test(lines[i])) {
-				quoteLines.push(lines[i]);
+			while (i < lines.length && /^>\s?/.test(lines[i]!)) {
+				quoteLines.push(lines[i]!);
 				i++;
 			}
 			segments.push({ type: 'blockquote', raw: quoteLines.join('\n') });
@@ -98,8 +98,8 @@ function parseSegments(markdown: string): Segment[] {
 		// Unordered or ordered list
 		if (isListItem(line)) {
 			const listLines: string[] = [];
-			while (i < lines.length && lines[i].trim() !== '' && (isListItem(lines[i]) || isIndentedLine(lines[i]))) {
-				listLines.push(lines[i]);
+			while (i < lines.length && lines[i]!.trim() !== '' && (isListItem(lines[i]!) || isIndentedLine(lines[i]!))) {
+				listLines.push(lines[i]!);
 				i++;
 			}
 			segments.push({ type: 'list', items: parseListItems(listLines) });
@@ -110,14 +110,14 @@ function parseSegments(markdown: string): Segment[] {
 		const paraLines: string[] = [];
 		while (
 			i < lines.length &&
-			lines[i].trim() !== '' &&
-			!/^#{1,6}\s/.test(lines[i]) &&
-			!/^(`{3,}|~{3,})/.test(lines[i]) &&
-			!/^>\s?/.test(lines[i]) &&
-			!isListItem(lines[i]) &&
+			lines[i]!.trim() !== '' &&
+			!/^#{1,6}\s/.test(lines[i]!) &&
+			!/^(`{3,}|~{3,})/.test(lines[i]!) &&
+			!/^>\s?/.test(lines[i]!) &&
+			!isListItem(lines[i]!) &&
 			!isTableStart(lines, i)
 		) {
-			paraLines.push(lines[i]);
+			paraLines.push(lines[i]!);
 			i++;
 		}
 		if (paraLines.length > 0) {
@@ -138,9 +138,9 @@ function isIndentedLine(line: string): boolean {
 }
 
 function isTableStart(lines: string[], i: number): boolean {
-	if (!lines[i].includes('|')) return false;
+	if (!lines[i]!.includes('|')) return false;
 	// Check if next non-empty line is a separator row like |---|---|
-	if (i + 1 < lines.length && /^\|?\s*[-:]+[-|\s:]*$/.test(lines[i + 1])) {
+	if (i + 1 < lines.length && /^\|?\s*[-:]+[-|\s:]*$/.test(lines[i + 1]!)) {
 		return true;
 	}
 	return false;
@@ -158,20 +158,20 @@ function parseListItems(lines: string[]): ListItem[] {
 		const match = line.match(/^(\s*)([-*]\s|\d+\.\s)(.*)/);
 		if (!match) continue; // skip continuation lines for simplicity
 
-		const indent = match[1].length;
-		const content = match[3];
+		const indent = match[1]!.length;
+		const content = match[3]!;
 
 		const item: ListItem = { content, children: [] };
 
 		// Pop stack until we find a parent with strictly less indent
-		while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+		while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
 			stack.pop();
 		}
 
 		if (stack.length === 0) {
 			root.push(item);
 		} else {
-			stack[stack.length - 1].item.children.push(item);
+			stack[stack.length - 1]!.item.children.push(item);
 		}
 
 		stack.push({ indent, item, children: item.children });
@@ -195,7 +195,7 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 		if (headingStack.length === 0) {
 			result.push(block);
 		} else {
-			const parent = headingStack[headingStack.length - 1].block;
+			const parent = headingStack[headingStack.length - 1]!.block;
 			if (!parent.children) parent.children = [];
 			parent.children.push(block);
 		}
@@ -206,7 +206,7 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 			const block: IBatchBlock = { content: seg.raw };
 
 			// Pop headings from stack that are same level or deeper
-			while (headingStack.length > 0 && headingStack[headingStack.length - 1].level >= seg.level) {
+			while (headingStack.length > 0 && headingStack[headingStack.length - 1]!.level >= seg.level) {
 				headingStack.pop();
 			}
 
@@ -214,7 +214,7 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 			if (headingStack.length === 0) {
 				result.push(block);
 			} else {
-				const parent = headingStack[headingStack.length - 1].block;
+				const parent = headingStack[headingStack.length - 1]!.block;
 				if (!parent.children) parent.children = [];
 				parent.children.push(block);
 			}

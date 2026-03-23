@@ -71,13 +71,13 @@ export async function setShortcutInstructions() {
 			// Split text around the URL placeholder and add strong element
 			const parts = instructionsText.split('$URL');
 			if (parts.length === 2) {
-				shortcutInstructionsElement.appendChild(document.createTextNode(parts[0]));
+				shortcutInstructionsElement.appendChild(document.createTextNode(parts[0]!));
 
 				const strongElement = document.createElement('strong');
 				strongElement.textContent = url;
 				shortcutInstructionsElement.appendChild(strongElement);
 
-				shortcutInstructionsElement.appendChild(document.createTextNode(parts[1]));
+				shortcutInstructionsElement.appendChild(document.createTextNode(parts[1]!));
 			} else {
 				// Fallback if no placeholder found
 				shortcutInstructionsElement.appendChild(document.createTextNode(instructionsText));

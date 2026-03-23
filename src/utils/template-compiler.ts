@@ -103,7 +103,7 @@ export async function processVariables(
 
 	while ((match = regex.exec(result)) !== null) {
 		const fullMatch = match[0];
-		const trimmedMatch = match[1].trim();
+		const trimmedMatch = match[1]!.trim();
 
 		let replacement: string;
 

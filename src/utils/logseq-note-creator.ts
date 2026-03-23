@@ -120,12 +120,12 @@ export async function saveToLogseq(
 	// Used when metadataContent is empty — mirrors the 'create' flow pattern.
 	const insertContentDirectlyOnPage = async (pageName: string) => {
 		if (blocks.length > 0) {
-			const anchor = await appendBlockInPage(config, pageName, blocks[0].content);
+			const anchor = await appendBlockInPage(config, pageName, blocks[0]!.content);
 			if (!anchor?.uuid) {
 				throw new Error(`Failed to create block on page '${pageName}'`);
 			}
 			debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
-			const children = blocks[0].children ?? [];
+			const children = blocks[0]!.children ?? [];
 			if (children.length > 0) {
 				await insertBatchBlock(config, anchor.uuid, children);
 			}
@@ -155,12 +155,12 @@ export async function saveToLogseq(
 
 			// Insert content blocks directly on the page
 			if (blocks.length > 0) {
-				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
+				const anchor = await appendBlockInPage(config, noteName, blocks[0]!.content);
 				if (!anchor?.uuid) {
 					throw new Error(`Failed to create block on page '${noteName}'`);
 				}
 				debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
-				const children = blocks[0].children ?? [];
+				const children = blocks[0]!.children ?? [];
 				if (children.length > 0) {
 					await insertBatchBlock(config, anchor.uuid, children);
 				}
@@ -276,11 +276,11 @@ export async function updateExistingClip(
 	// Insert new content
 	const blocks = markdownToBlocks(noteContent);
 	if (blocks.length > 0) {
-		const anchor = await appendBlockInPage(config, pageTitle, blocks[0].content);
+		const anchor = await appendBlockInPage(config, pageTitle, blocks[0]!.content);
 		if (!anchor?.uuid) {
 			throw new Error(`Failed to insert new content on page '${pageTitle}'`);
 		}
-		const children = blocks[0].children ?? [];
+		const children = blocks[0]!.children ?? [];
 		if (children.length > 0) {
 			await insertBatchBlock(config, anchor.uuid, children);
 		}
@@ -325,7 +325,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 			if (block.content?.includes('## Settings')) {
 				const jsonMatch = block.content.match(/```json\n([\s\S]*?)\n```/);
 				if (jsonMatch) {
-					mergeValidatedSettings(jsonMatch[1]);
+					mergeValidatedSettings(jsonMatch[1]!);
 				}
 				break;
 			}
@@ -335,7 +335,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 					if (child.content?.includes('## Settings')) {
 						const jsonMatch = child.content.match(/```json\n([\s\S]*?)\n```/);
 						if (jsonMatch) {
-							mergeValidatedSettings(jsonMatch[1]);
+							mergeValidatedSettings(jsonMatch[1]!);
 						}
 						break;
 					}

@@ -36,7 +36,7 @@ interface ChartPoint {
 export async function createUsageChart(container: HTMLElement, data: WeeklyUsage[]): Promise<void> {
 	// Calculate total clips for the period
 	const totalClips =
-		data[0].totalCount !== undefined ? data[0].totalCount : data.reduce((sum, d) => sum + d.count, 0);
+		data[0]!.totalCount !== undefined ? data[0]!.totalCount : data.reduce((sum, d) => sum + d.count, 0);
 
 	// Hide chart container if less than 20 items
 	const usageContainer = document.getElementById('usage-chart-container');
@@ -98,7 +98,7 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	const pathData = points.reduce((acc, point, i, arr) => {
 		if (i === 0) return `M ${point.x},${point.y}`;
 
-		const prev = arr[i - 1];
+		const prev = arr[i - 1]!;
 		const tension = 0.2;
 		const dx = point.x - prev.x;
 
@@ -120,12 +120,12 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 
 	const startLabel = document.createElement('div');
 	startLabel.className = 'chart-date-label';
-	startLabel.textContent = data[0].period;
+	startLabel.textContent = data[0]!.period;
 	labelsContainer.appendChild(startLabel);
 
 	const endLabel = document.createElement('div');
 	endLabel.className = 'chart-date-label';
-	endLabel.textContent = data[data.length - 1].period;
+	endLabel.textContent = data[data.length - 1]!.period;
 	labelsContainer.appendChild(endLabel);
 
 	lineContainer.appendChild(labelsContainer);
@@ -212,7 +212,7 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 
 	if (options.timeRange === 'all') {
 		// For "all time", start from the earliest entry
-		const earliest = dayjs(sortedHistory[0].datetime);
+		const earliest = dayjs(sortedHistory[0]!.datetime);
 		displayStartDate = earliest.startOf(options.aggregation);
 		displayPeriods = today.diff(displayStartDate, options.aggregation) + 1;
 	} else {

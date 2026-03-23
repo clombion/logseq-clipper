@@ -1302,7 +1302,7 @@ function checkTagKeyword(state: ParserState, ...keywords: TokenType[]): boolean 
 	const nextPos = state.pos + 1;
 	if (nextPos >= state.tokens.length) return false;
 
-	const nextToken = state.tokens[nextPos];
+	const nextToken = state.tokens[nextPos]!;
 	return keywords.includes(nextToken.type);
 }
 
@@ -1491,20 +1491,20 @@ function levenshteinDistance(a: string, b: string): number {
 		matrix[i] = [i];
 	}
 	for (let j = 0; j <= a.length; j++) {
-		matrix[0][j] = j;
+		matrix[0]![j] = j;
 	}
 
 	for (let i = 1; i <= b.length; i++) {
 		for (let j = 1; j <= a.length; j++) {
 			if (b.charAt(i - 1) === a.charAt(j - 1)) {
-				matrix[i][j] = matrix[i - 1][j - 1];
+				matrix[i]![j] = matrix[i - 1]![j - 1]!;
 			} else {
-				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+				matrix[i]![j] = Math.min(matrix[i - 1]![j - 1]! + 1, matrix[i]![j - 1]! + 1, matrix[i - 1]![j]! + 1);
 			}
 		}
 	}
 
-	return matrix[b.length][a.length];
+	return matrix[b.length]![a.length]!;
 }
 
 /**
@@ -1553,7 +1553,7 @@ function isValidVariable(name: string, definedVariables: Set<string>): boolean {
 	}
 
 	// Check for nested property access on known variables (e.g., loop.index)
-	const baseName = name.split('.')[0].split('[')[0];
+	const baseName = name.split('.')[0]!.split('[')[0]!;
 	if (PRESET_VARIABLES.has(baseName) || definedVariables.has(baseName) || baseName === 'loop') {
 		return true;
 	}

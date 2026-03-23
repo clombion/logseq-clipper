@@ -101,10 +101,10 @@ function parseObjectString(str: string): any {
 	while ((match = regex.exec(str)) !== null) {
 		let [, key, value] = match;
 		// Remove quotes from the value if it's a string
-		if (value.startsWith('"') && value.endsWith('"')) {
-			value = value.slice(1, -1);
+		if (value!.startsWith('"') && value!.endsWith('"')) {
+			value = value!.slice(1, -1);
 		}
-		obj[key] = value === 'undefined' ? undefined : value;
+		obj[key!] = value === 'undefined' ? undefined : value;
 	}
 
 	return obj;

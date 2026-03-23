@@ -45,7 +45,7 @@ export const replace = (str: string, param?: string): string => {
 			replacements.push(state.current.trim());
 			state.current = '';
 		} else {
-			processCharacter(char, state);
+			processCharacter(char!, state);
 		}
 	}
 
@@ -64,7 +64,7 @@ export const replace = (str: string, param?: string): string => {
 		replace = replace || '';
 
 		// Check if this is a regex pattern
-		const regexInfo = parseRegexPattern(search);
+		const regexInfo = parseRegexPattern(search!);
 		if (regexInfo) {
 			try {
 				// Process escaped sequences in replacement string
@@ -78,7 +78,7 @@ export const replace = (str: string, param?: string): string => {
 		}
 
 		// Handle escaped sequences for both search and replace
-		search = processEscapedCharacters(search);
+		search = processEscapedCharacters(search!);
 		replace = processEscapedCharacters(replace);
 
 		// For | and : characters, use string.split and join

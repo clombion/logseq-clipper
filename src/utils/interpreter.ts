@@ -301,14 +301,14 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 
 			// Try parsing with minimal sanitization first
 			try {
-				const minimalSanitized = jsonMatch[0]
+				const minimalSanitized = jsonMatch[0]!
 					.replace(/[""]/g, '"')
 					.replace(/\r\n/g, '\\n')
 					.replace(/\n/g, '\\n');
 				parsedResponse = JSON.parse(minimalSanitized);
 			} catch (minimalError) {
 				// If minimal sanitization fails, try full sanitization
-				const sanitizedMatch = sanitizeJsonString(jsonMatch[0]);
+				const sanitizedMatch = sanitizeJsonString(jsonMatch[0]!);
 				debugLog('Interpreter', 'Fully sanitized match:', sanitizedMatch);
 
 				try {
@@ -321,9 +321,9 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 					promptVariables.forEach((variable, index) => {
 						const promptKey = `prompt_${index + 1}`;
 						const promptRegex = new RegExp(`"${promptKey}"\\s*:\\s*"([^]*?)(?:"\\s*,|"\\s*})`, 'g');
-						const match = promptRegex.exec(jsonMatch[0]);
+						const match = promptRegex.exec(jsonMatch[0]!);
 						if (match) {
-							let content = match[1].replace(/"/g, '\\"').replace(/\r\n/g, '\\n').replace(/\n/g, '\\n');
+							let content = match[1]!.replace(/"/g, '\\"').replace(/\r\n/g, '\\n').replace(/\n/g, '\\n');
 							prompts_responses[promptKey] = content;
 						}
 					});
@@ -383,7 +383,7 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 
 	if (template?.noteContentFormat) {
 		while ((match = promptRegex.exec(template.noteContentFormat)) !== null) {
-			addPrompt(match[1], match[2] || '');
+			addPrompt(match[1]!, match[2] || '');
 		}
 	}
 
@@ -391,7 +391,7 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 		for (const property of template.properties) {
 			let propertyValue = property.value;
 			while ((match = promptRegex.exec(propertyValue)) !== null) {
-				addPrompt(match[1], match[2] || '');
+				addPrompt(match[1]!, match[2] || '');
 			}
 		}
 	}
@@ -401,7 +401,7 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 		if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
 			let inputValue = input.value;
 			while ((match = promptRegex.exec(inputValue)) !== null) {
-				addPrompt(match[1], match[2] || '');
+				addPrompt(match[1]!, match[2] || '');
 			}
 		}
 	});
@@ -516,7 +516,7 @@ export async function initializeInterpreter(
 			const lastSelectedModel = enabledModels.find((model) => model.id === generalSettings.interpreterModel);
 
 			if (!lastSelectedModel && enabledModels.length > 0) {
-				generalSettings.interpreterModel = enabledModels[0].id;
+				generalSettings.interpreterModel = enabledModels[0]!.id;
 				await saveSettings();
 				modelSelect.value = generalSettings.interpreterModel;
 			}

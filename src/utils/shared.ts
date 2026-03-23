@@ -58,7 +58,7 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 		'{{highlights}}': params.highlights || '',
 		'{{image}}': params.image || '',
 		'{{noteName}}': noteName.trim(),
-		'{{published}}': (params.published || '').split(',')[0].trim(),
+		'{{published}}': (params.published || '').split(',')[0]!.trim(),
 		'{{site}}': (params.site || '').trim(),
 		'{{title}}': (params.title || '').trim(),
 		'{{url}}': currentUrl.trim(),

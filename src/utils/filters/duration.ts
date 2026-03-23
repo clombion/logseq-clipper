@@ -72,7 +72,7 @@ function formatDuration(dur: Duration, format?: string): string {
 		s: seconds.toString(),
 	};
 
-	return format.replace(/HH|H|mm|m|ss|s/g, (match) => parts[match].toString());
+	return format.replace(/HH|H|mm|m|ss|s/g, (match) => parts[match]!.toString());
 }
 
 function padZero(num: number): string {

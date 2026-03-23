@@ -203,7 +203,7 @@ function splitFilterString(filterString: string): string[] {
 			state.current = '';
 		} else {
 			// For any other character, add it to the current filter
-			processCharacter(char, state);
+			processCharacter(char!, state);
 		}
 	}
 
@@ -227,7 +227,7 @@ function parseFilterString(filterString: string): string[] {
 			parts.push(state.current.trim());
 			state.current = '';
 		} else {
-			processCharacter(char, state);
+			processCharacter(char!, state);
 		}
 	}
 
@@ -326,7 +326,7 @@ export function applyFilters(value: string | any[], filterString: string, curren
 		debugLog('Filters', `Parsed filter: ${name}, Params:`, params);
 
 		// Get the filter function from the filters object
-		const filter = filters[name];
+		const filter = filters[name!];
 		if (filter) {
 			// Convert the input to a string if it's not already
 			const stringInput = typeof result === 'string' ? result : JSON.stringify(result);

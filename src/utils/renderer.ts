@@ -149,7 +149,7 @@ export async function renderAST(
 	let output = '';
 
 	for (let i = 0; i < ast.length; i++) {
-		const node = ast[i];
+		const node = ast[i]!;
 		const nodeOutput = await renderNode(node, state);
 		output = appendNodeOutput(output, nodeOutput, node, state);
 	}
@@ -662,7 +662,7 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 
 	// Check for custom filters first
 	if (state.context.filters && state.context.filters[expr.name]) {
-		return state.context.filters[expr.name](value, ...args);
+		return state.context.filters[expr.name]!(value, ...args);
 	}
 
 	const stringValue = valueToString(value);
@@ -740,7 +740,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
 	const nestedArrayMatch = schemaKey.match(/^(.*?)\[(\*|\d+)\](\.(.*))?$/);
 	if (nestedArrayMatch) {
 		const [, arrayKey, indexOrStar, , propertyPath] = nestedArrayMatch;
-		const arrayValue = resolveSchemaKey(arrayKey, variables);
+		const arrayValue = resolveSchemaKey(arrayKey!, variables);
 		if (arrayValue === undefined) return undefined;
 
 		const parsed = parseSchemaValue(arrayValue);
@@ -752,7 +752,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
 			}
 			return parsed;
 		} else {
-			const index = parseInt(indexOrStar, 10);
+			const index = parseInt(indexOrStar!, 10);
 			const item = parsed[index];
 			if (item === undefined) return undefined;
 			return propertyPath ? getNestedValue(item, propertyPath) : item;
@@ -853,10 +853,10 @@ function getNestedValue(obj: any, path: string): any {
 				const [, arrayKey, indexStr] = match;
 				const baseValue = arrayKey ? value[arrayKey] : value;
 				if (Array.isArray(baseValue)) {
-					const index = parseInt(indexStr, 10);
+					const index = parseInt(indexStr!, 10);
 					value = baseValue[index];
 				} else if (baseValue && typeof baseValue === 'object') {
-					value = baseValue[indexStr.replace(/^["']|["']$/g, '')];
+					value = baseValue[indexStr!.replace(/^["']|["']$/g, '')];
 				} else {
 					return undefined;
 				}
@@ -976,7 +976,7 @@ export function createSelectorResolver(
 		try {
 			const response = await sendMessage(tabId, {
 				action: 'extractContent',
-				selector: selector.replace(/\\"/g, '"'),
+				selector: selector!.replace(/\\"/g, '"'),
 				attribute: attribute,
 				extractHtml: extractHtml,
 			});

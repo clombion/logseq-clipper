@@ -124,7 +124,7 @@ export async function setLanguage(language: string): Promise<void> {
 
 // Helper function to match browser language to available languages
 export function matchBrowserLanguage(): string {
-	const browserLang = browser.i18n.getUILanguage().toLowerCase().split('-')[0]; // Get base language code
+	const browserLang = browser.i18n.getUILanguage().toLowerCase().split('-')[0]!; // Get base language code
 	const availableLangs = getAvailableLanguages()
 		.map((lang) => lang.code)
 		.filter((code) => code !== ''); // Exclude system default option
@@ -259,7 +259,7 @@ export function isRTLLanguage(languageCode: string): boolean {
 		'uz-AF', // Uzbek (in Afghanistan)
 		'yi', // Yiddish
 	];
-	return rtlLanguages.includes(languageCode.toLowerCase().split('-')[0]);
+	return rtlLanguages.includes(languageCode.toLowerCase().split('-')[0]!);
 }
 
 // Helper function to set up language and RTL support

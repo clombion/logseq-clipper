@@ -94,7 +94,7 @@ export function parseRegexPattern(pattern: string): { pattern: string; flags: st
 	const match = pattern.match(/^\/(.+)\/([gimsuy]*)$/);
 	if (!match) return null;
 	return {
-		pattern: match[1],
-		flags: match[2],
+		pattern: match[1]!,
+		flags: match[2]!,
 	};
 }

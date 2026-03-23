@@ -106,7 +106,7 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 	try {
 		const response = (await browser.tabs.sendMessage(tabId, {
 			action: 'extractContent',
-			selector: selector.replace(/\\"/g, '"'),
+			selector: selector!.replace(/\\"/g, '"'),
 			attribute: attribute,
 			extractHtml: extractHtml,
 		})) as { content: string | string[] };
@@ -164,12 +164,12 @@ export function getNestedValue(obj: any, path: string): any {
 				const [, arrayKey, indexStr] = match;
 				const baseValue = arrayKey ? value[arrayKey] : value;
 				if (Array.isArray(baseValue)) {
-					const index = parseInt(indexStr, 10);
+					const index = parseInt(indexStr!, 10);
 					return baseValue[index];
 				}
 				// Also handle object bracket notation: obj["key"]
 				if (baseValue && typeof baseValue === 'object') {
-					return baseValue[indexStr.replace(/^["']|["']$/g, '')];
+					return baseValue[indexStr!.replace(/^["']|["']$/g, '')];
 				}
 				return undefined;
 			}

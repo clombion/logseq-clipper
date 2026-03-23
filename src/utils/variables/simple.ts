@@ -11,7 +11,7 @@ export async function processSimpleVariable(
 	const [variablePath, ...filterParts] = variableString.split('|').map((part) => part.trim());
 
 	// Use unified resolver for variable lookup
-	const value = resolveVariable(variablePath, variables);
+	const value = resolveVariable(variablePath!, variables);
 
 	// Convert to string for filter processing
 	const stringValue = valueToString(value);

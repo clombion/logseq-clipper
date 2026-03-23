@@ -39,7 +39,7 @@ export function getElementXPath(element: Node): string {
 	let ix = 0;
 	const siblings = element.parentNode?.childNodes || [];
 	for (let i = 0; i < siblings.length; i++) {
-		const sibling = siblings[i];
+		const sibling = siblings[i]!;
 		if (sibling === element) {
 			return (
 				getElementXPath(element.parentNode!) +
@@ -68,7 +68,7 @@ export function isDarkColor(color: string): boolean {
 	if (!rgb || rgb.length < 3) return false;
 
 	// Calculate the perceived brightness
-	const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+	const brightness = (parseInt(rgb[0]!) * 299 + parseInt(rgb[1]!) * 587 + parseInt(rgb[2]!) * 114) / 1000;
 
 	// Return true if the brightness is below 128 (assuming 0-255 range)
 	return brightness < 128;

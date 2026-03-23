@@ -149,13 +149,13 @@ Example response:
 		});
 
 		// Add batch to chat history
-		this.chatHistories[targetLanguage].push({
+		this.chatHistories[targetLanguage]!.push({
 			role: 'user',
 			content: `Translate these messages to ${targetLanguage}. Respond with a valid JSON object where keys match the input keys and values are the translations. Format the response as a single line without pretty-printing:\n\n${batchPrompt}`,
 		});
 
 		try {
-			const response = await this.makeRequestWithRetry(this.chatHistories[targetLanguage]);
+			const response = await this.makeRequestWithRetry(this.chatHistories[targetLanguage]!);
 
 			// Clean and parse the JSON response
 			let translations: { [key: string]: string };
@@ -174,7 +174,7 @@ Example response:
 			}
 
 			// Add response to chat history
-			this.chatHistories[targetLanguage].push({
+			this.chatHistories[targetLanguage]!.push({
 				role: 'assistant',
 				content: JSON.stringify(translations),
 			});
@@ -207,7 +207,7 @@ Example response:
 		return Object.keys(messages)
 			.sort()
 			.reduce((acc: Messages, key) => {
-				acc[key] = messages[key];
+				acc[key] = messages[key]!;
 				return acc;
 			}, {});
 	}
@@ -262,7 +262,7 @@ Example response:
 				for (let i = 0; i < missingKeys.length; i += this.batchSize) {
 					const batch = missingKeys.slice(i, i + this.batchSize).map((key) => ({
 						key,
-						message: sortedSourceMessages[key].message,
+						message: sortedSourceMessages[key]!.message,
 					}));
 
 					// Try twice before falling back to source messages
@@ -274,8 +274,8 @@ Example response:
 							Object.entries(translations).forEach(([key, translation]) => {
 								localeMessages[key] = {
 									message: translation,
-									...(sortedSourceMessages[key].placeholders && {
-										placeholders: sortedSourceMessages[key].placeholders,
+									...(sortedSourceMessages[key]!.placeholders && {
+										placeholders: sortedSourceMessages[key]!.placeholders,
 									}),
 								};
 							});
@@ -288,7 +288,7 @@ Example response:
 							console.error(`  ❌ Both translation attempts failed, using source messages as fallback`);
 							// Fall back to source messages after both attempts fail
 							batch.forEach(({ key }) => {
-								localeMessages[key] = sortedSourceMessages[key];
+								localeMessages[key] = sortedSourceMessages[key]!;
 							});
 						}
 					}

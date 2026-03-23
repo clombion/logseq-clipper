@@ -27,7 +27,8 @@ export const table = (str: string, params?: string): string => {
 			const entries = Object.entries(data);
 			if (entries.length === 0) return str;
 
-			const [[firstKey, firstValue], ...restEntries] = entries;
+			const [firstEntry, ...restEntries] = entries;
+			const [firstKey, firstValue] = firstEntry!;
 			let table = `| ${escapeCell(firstKey)} | ${escapeCell(String(firstValue))} |\n| - | - |\n`;
 
 			restEntries.forEach(([key, value]) => {

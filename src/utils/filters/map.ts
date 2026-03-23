@@ -40,7 +40,7 @@ export const map = (str: string, param?: string): string => {
 			debugLog('Map', `Processing item ${index}:`, JSON.stringify(item, null, 2));
 
 			// Strip outer parentheses for object literal syntax: ({key: value})
-			let expr = expression.trim();
+			let expr = expression!.trim();
 			if (expr.startsWith('(') && expr.endsWith(')')) {
 				expr = expr.slice(1, -1).trim();
 			}
@@ -57,15 +57,15 @@ export const map = (str: string, param?: string): string => {
 
 				// Parse the expression to extract property assignments or string literal
 				if (expr.startsWith('{')) {
-					const assignments = expr.match(/\{(.+)\}/)?.[1].split(',') || [];
+					const assignments = expr.match(/\{(.+)\}/)?.[1]?.split(',') ?? [];
 
 					assignments.forEach((assignment) => {
 						const [key, value] = assignment.split(':').map((s) => s.trim());
 						// Remove any surrounding quotes from the key
-						const cleanKey = key.replace(/^['"](.+)['"]$/, '$1');
+						const cleanKey = key!.replace(/^['"](.+)['"]$/, '$1');
 						debugLog('Map', 'Processing assignment:', { cleanKey, value });
 						// Evaluate the value expression
-						const cleanValue = evaluateExpression(value, item, argName);
+						const cleanValue = evaluateExpression(value!, item, argName!);
 						debugLog('Map', 'Cleaned value:', cleanValue);
 						mappedItem[cleanKey] = cleanValue;
 						debugLog('Map', `Assigned ${cleanKey}:`, mappedItem[cleanKey]);
@@ -73,14 +73,14 @@ export const map = (str: string, param?: string): string => {
 				} else {
 					// Handle string literal — return plain string
 					const stringLiteral = expr.slice(1, -1);
-					return stringLiteral.replace(new RegExp(`\\$\\{${argName}\\}`, 'g'), item);
+					return stringLiteral.replace(new RegExp(`\\$\\{${argName!}\\}`, 'g'), item);
 				}
 
 				debugLog('Map', 'Mapped item:', mappedItem);
 				return mappedItem;
 			} else {
 				// If it's not an object literal or string literal, treat it as a simple expression
-				return evaluateExpression(expression, item, argName);
+				return evaluateExpression(expression!, item, argName!);
 			}
 		});
 

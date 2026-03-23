@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	function duplicateCurrentTemplate(): void {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
-			const currentTemplate = templates[editingTemplateIndex];
+			const currentTemplate = templates[editingTemplateIndex]!;
 			const newTemplate = duplicateTemplate(currentTemplate.id);
 			saveTemplateSettings()
 				.then(() => {
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	async function deleteCurrentTemplate(): Promise<void> {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
-			const currentTemplate = templates[editingTemplateIndex];
+			const currentTemplate = templates[editingTemplateIndex]!;
 			if (confirm(getMessage('confirmDeleteTemplate', [currentTemplate.name]))) {
 				const success = await deleteTemplate(currentTemplate.id);
 				if (success) {
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					await loadTemplates();
 					updateTemplateList();
 					if (templates.length > 0) {
-						showTemplateEditor(templates[0]);
+						showTemplateEditor(templates[0]!);
 					} else {
 						showSettingsSection('general');
 					}
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	function copyCurrentTemplateToClipboard(): void {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
-			const currentTemplate = templates[editingTemplateIndex];
+			const currentTemplate = templates[editingTemplateIndex]!;
 			copyTemplateToClipboard(currentTemplate);
 		}
 	}

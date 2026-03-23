@@ -1,7 +1,7 @@
 export const number_format = (input: string, param?: string): string => {
 	const formatNumber = (num: number, decimals: number, decPoint: string, thousandsSep: string): string => {
 		const parts = num.toFixed(decimals).split('.');
-		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep);
+		parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep);
 		return parts.join(decPoint);
 	};
 
@@ -65,9 +65,9 @@ export const number_format = (input: string, param?: string): string => {
 				params.push(current.trim());
 			}
 
-			if (params.length >= 1) decimals = parseInt(params[0], 10);
-			if (params.length >= 2) decPoint = unescapeString(params[1].replace(/^["'](.*)["']$/, '$1'));
-			if (params.length >= 3) thousandsSep = unescapeString(params[2].replace(/^["'](.*)["']$/, '$1'));
+			if (params.length >= 1) decimals = parseInt(params[0]!, 10);
+			if (params.length >= 2) decPoint = unescapeString(params[1]!.replace(/^["'](.*)["']$/, '$1'));
+			if (params.length >= 3) thousandsSep = unescapeString(params[2]!.replace(/^["'](.*)["']$/, '$1'));
 		}
 
 		if (isNaN(decimals)) decimals = 0;

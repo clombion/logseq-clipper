@@ -65,7 +65,7 @@ export function createAsyncResolver(doc: DocLike): AsyncResolver {
 			const selector = attrMatch ? attrMatch[1] : selectorPart;
 			const attribute = attrMatch ? attrMatch[2] : undefined;
 
-			return extractContentBySelector(doc, selector.replace(/\\"/g, '"'), attribute, extractHtml);
+			return extractContentBySelector(doc, selector!.replace(/\\"/g, '"'), attribute, extractHtml);
 		}
 		return undefined;
 	};
@@ -79,7 +79,7 @@ export function createSelectorProcessor(doc: DocLike): SelectorProcessor {
 
 		const [, selectorType, rawSelector, attribute, filtersString] = matches;
 		const extractHtml = selectorType === 'selectorHtml';
-		const selector = rawSelector.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+		const selector = rawSelector!.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
 		const content = extractContentBySelector(doc, selector, attribute, extractHtml);
 		const contentString = selectorContentToString(content);

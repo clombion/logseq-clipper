@@ -44,7 +44,7 @@ export const validateDateModifyParams = (param: string | undefined): ParamValida
 	}
 
 	const [, , , unit] = match;
-	const normalizedUnit = unit.toLowerCase().replace(/s$/, '');
+	const normalizedUnit = unit!.toLowerCase().replace(/s$/, '');
 
 	if (!validUnits.some((u) => u.replace(/s$/, '') === normalizedUnit)) {
 		return { valid: false, error: `invalid unit "${unit}". Use year, month, week, day, hour, minute, or second` };
@@ -86,7 +86,7 @@ export const date_modify = (str: string, param?: string): string => {
 	}
 
 	const [, operation, amount, unit] = match;
-	const numericAmount = parseInt(amount, 10);
+	const numericAmount = parseInt(amount!, 10);
 
 	if (operation === '+') {
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing

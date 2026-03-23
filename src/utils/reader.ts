@@ -450,7 +450,7 @@ export class Reader {
 		const lastHeadingAtLevel: { [key: number]: { element: Element; depth: number } } = {};
 
 		headings.forEach((heading) => {
-			const level = parseInt(heading.tagName[1]);
+			const level = parseInt(heading.tagName[1]!);
 			const currentRect = heading.getBoundingClientRect();
 
 			// Calculate depth based on parent headings
@@ -1150,7 +1150,7 @@ export class Reader {
 
 			// Clear body attributes
 			while (doc.body.attributes.length > 0) {
-				doc.body.removeAttribute(doc.body.attributes[0].name);
+				doc.body.removeAttribute(doc.body.attributes[0]!.name);
 			}
 
 			// Clean the html element but preserve lang and dir attributes
@@ -1306,7 +1306,7 @@ export class Reader {
 			let formattedDate = '';
 			if (published) {
 				try {
-					const date = new Date(published.split(',')[0].trim());
+					const date = new Date(published.split(',')[0]!.trim());
 					if (!isNaN(date.getTime())) {
 						formattedDate = new Intl.DateTimeFormat(undefined, {
 							year: 'numeric',

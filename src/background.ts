@@ -173,7 +173,7 @@ browser.runtime.onConnect.addListener((port) => {
 async function sendMessageToPopup(tabId: number, message: any): Promise<void> {
 	if (isPopupOpen(tabId)) {
 		try {
-			await popupPorts[tabId].postMessage(message);
+			await popupPorts[tabId]!.postMessage(message);
 		} catch (error) {
 			console.warn(`Error sending message to popup for tab ${tabId}:`, error);
 		}
