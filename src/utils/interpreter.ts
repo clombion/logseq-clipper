@@ -127,8 +127,8 @@ export async function sendToLLM(
 			};
 			headers = {
 				...headers,
-				'HTTP-Referer': 'https://obsidian.md/',
-				'X-Title': 'Obsidian Web Clipper',
+				'HTTP-Referer': 'https://logseq.com/',
+				'X-Title': 'Logseq Web Clipper',
 				Authorization: `Bearer ${provider.apiKey}`,
 			};
 		} else if (provider.name.toLowerCase().includes('ollama')) {
@@ -158,8 +158,8 @@ export async function sendToLLM(
 			};
 			headers = {
 				...headers,
-				'HTTP-Referer': 'https://obsidian.md/',
-				'X-Title': 'Obsidian Web Clipper',
+				'HTTP-Referer': 'https://logseq.com/',
+				'X-Title': 'Logseq Web Clipper',
 				Authorization: `Bearer ${provider.apiKey}`,
 			};
 		}
@@ -180,7 +180,7 @@ export async function sendToLLM(
 			if (provider.name.toLowerCase().includes('ollama') && response.status === 403) {
 				throw new Error(
 					`Ollama cannot process requests originating from a browser extension without setting OLLAMA_ORIGINS. ` +
-						`See instructions at https://help.obsidian.md/web-clipper/interpreter`,
+						`See Ollama documentation for OLLAMA_ORIGINS configuration`,
 				);
 			}
 

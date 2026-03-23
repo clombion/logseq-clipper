@@ -154,7 +154,7 @@ export function updateHighlights(newHighlights: AnyHighlightData[]) {
 
 // Toggle highlighter mode on or off
 export function toggleHighlighterMenu(isActive: boolean) {
-	document.body.classList.toggle('obsidian-highlighter-active', isActive);
+	document.body.classList.toggle('logseq-highlighter-active', isActive);
 	if (isActive) {
 		document.addEventListener('mouseup', handleMouseUp);
 		document.addEventListener('mousemove', handleMouseMove);
@@ -222,8 +222,8 @@ export function redo() {
 }
 
 function updateUndoRedoButtons() {
-	const undoButton = document.getElementById('obsidian-undo-highlights');
-	const redoButton = document.getElementById('obsidian-redo-highlights');
+	const undoButton = document.getElementById('logseq-undo-highlights');
+	const redoButton = document.getElementById('logseq-redo-highlights');
 
 	if (undoButton) {
 		undoButton.classList.toggle('active', canUndo());
@@ -263,12 +263,12 @@ async function handleClipButtonClick(e: Event) {
 
 export function createHighlighterMenu() {
 	// Check if the menu already exists
-	let menu = document.querySelector('.obsidian-highlighter-menu');
+	let menu = document.querySelector('.logseq-highlighter-menu');
 
 	// If the menu doesn't exist, create it
 	if (!menu) {
 		menu = document.createElement('div');
-		menu.className = 'obsidian-highlighter-menu';
+		menu.className = 'logseq-highlighter-menu';
 		document.body.appendChild(menu);
 	}
 
@@ -280,14 +280,14 @@ export function createHighlighterMenu() {
 	// Add clip button or no highlights message
 	if (highlightCount > 0) {
 		const clipButton = document.createElement('button');
-		clipButton.id = 'obsidian-clip-button';
+		clipButton.id = 'logseq-clip-button';
 		clipButton.className = 'mod-cta';
 		clipButton.textContent = 'Clip highlights';
 		menu.appendChild(clipButton);
 
 		// Add clear highlights button
 		const clearButton = document.createElement('button');
-		clearButton.id = 'obsidian-clear-highlights';
+		clearButton.id = 'logseq-clear-highlights';
 		clearButton.textContent = highlightText + ' ';
 
 		// Add trash icon
@@ -313,7 +313,7 @@ export function createHighlighterMenu() {
 
 	// Add undo button
 	const undoButton = document.createElement('button');
-	undoButton.id = 'obsidian-undo-highlights';
+	undoButton.id = 'logseq-undo-highlights';
 	const undoSvg = createSVG({
 		width: '16',
 		height: '16',
@@ -326,7 +326,7 @@ export function createHighlighterMenu() {
 
 	// Add redo button
 	const redoButton = document.createElement('button');
-	redoButton.id = 'obsidian-redo-highlights';
+	redoButton.id = 'logseq-redo-highlights';
 	const redoSvg = createSVG({
 		width: '16',
 		height: '16',
@@ -339,7 +339,7 @@ export function createHighlighterMenu() {
 
 	// Add exit button
 	const exitButton = document.createElement('button');
-	exitButton.id = 'obsidian-exit-highlighter';
+	exitButton.id = 'logseq-exit-highlighter';
 	const exitSvg = createSVG({
 		width: '16',
 		height: '16',
@@ -353,8 +353,8 @@ export function createHighlighterMenu() {
 	// Add event listeners to the buttons we just created
 	if (highlightCount > 0) {
 		// Use the clearButton and clipButton we already created
-		const clearButtonEl = menu.querySelector('#obsidian-clear-highlights') as HTMLButtonElement;
-		const clipButtonEl = menu.querySelector('#obsidian-clip-button') as HTMLButtonElement;
+		const clearButtonEl = menu.querySelector('#logseq-clear-highlights') as HTMLButtonElement;
+		const clipButtonEl = menu.querySelector('#logseq-clip-button') as HTMLButtonElement;
 
 		if (clearButtonEl) {
 			clearButtonEl.addEventListener('click', clearHighlights);
@@ -374,9 +374,9 @@ export function createHighlighterMenu() {
 	}
 
 	// Use the buttons we already created
-	const exitButtonEl = menu.querySelector('#obsidian-exit-highlighter') as HTMLButtonElement;
-	const undoButtonEl = menu.querySelector('#obsidian-undo-highlights') as HTMLButtonElement;
-	const redoButtonEl = menu.querySelector('#obsidian-redo-highlights') as HTMLButtonElement;
+	const exitButtonEl = menu.querySelector('#logseq-exit-highlighter') as HTMLButtonElement;
+	const undoButtonEl = menu.querySelector('#logseq-undo-highlights') as HTMLButtonElement;
+	const redoButtonEl = menu.querySelector('#logseq-redo-highlights') as HTMLButtonElement;
 
 	if (exitButtonEl) {
 		exitButtonEl.addEventListener('click', exitHighlighterMode);
@@ -406,7 +406,7 @@ export function createHighlighterMenu() {
 }
 
 function removeHighlighterMenu() {
-	const menu = document.querySelector('.obsidian-highlighter-menu');
+	const menu = document.querySelector('.logseq-highlighter-menu');
 	if (menu) {
 		menu.remove();
 	}
@@ -1023,7 +1023,7 @@ export async function loadHighlights() {
 
 		if (generalSettings.alwaysShowHighlights) {
 			applyHighlights();
-			document.body.classList.add('obsidian-highlighter-always-show');
+			document.body.classList.add('logseq-highlighter-always-show');
 		}
 	} else {
 		highlights = [];
@@ -1056,7 +1056,7 @@ export function updateHighlighterMenu() {
 }
 
 function handleKeyDown(event: KeyboardEvent) {
-	if (event.key === 'Escape' && document.body.classList.contains('obsidian-highlighter-active')) {
+	if (event.key === 'Escape' && document.body.classList.contains('logseq-highlighter-active')) {
 		exitHighlighterMode();
 	} else if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
 		event.preventDefault();

@@ -9,7 +9,7 @@ import { flattenShadowDom } from './utils/flatten-shadow-dom';
 
 declare global {
 	interface Window {
-		obsidianClipperRuntimeCheck?: () => string | undefined;
+		logseqClipperRuntimeCheck?: () => string | undefined;
 	}
 }
 
@@ -22,23 +22,23 @@ declare global {
 	// `browser` reference, so it will return undefined (or throw) once the
 	// old context is gone.
 	try {
-		const runtimeId = window.obsidianClipperRuntimeCheck?.();
-		console.log('[Obsidian Clipper] Re-init guard: runtimeCheck returned', runtimeId);
+		const runtimeId = window.logseqClipperRuntimeCheck?.();
+		console.log('[Logseq Clipper] Re-init guard: runtimeCheck returned', runtimeId);
 		if (runtimeId) {
-			console.log('[Obsidian Clipper] Previous runtime still alive, skipping init');
+			console.log('[Logseq Clipper] Previous runtime still alive, skipping init');
 			return;
 		}
 	} catch (e) {
-		console.log('[Obsidian Clipper] Previous runtime threw, re-initializing', e);
+		console.log('[Logseq Clipper] Previous runtime threw, re-initializing', e);
 	}
 
-	console.log('[Obsidian Clipper] Initializing content script');
+	console.log('[Logseq Clipper] Initializing content script');
 
-	window.obsidianClipperRuntimeCheck = () => browser.runtime?.id;
+	window.logseqClipperRuntimeCheck = () => browser.runtime?.id;
 
 	let isHighlighterMode = false;
-	const iframeId = 'obsidian-clipper-iframe';
-	const containerId = 'obsidian-clipper-container';
+	const iframeId = 'logseq-clipper-iframe';
+	const containerId = 'logseq-clipper-container';
 
 	function removeContainer(container: HTMLElement) {
 		container.classList.add('is-closing');
@@ -80,17 +80,17 @@ declare global {
 
 		// Add resize handle (left side only)
 		const handle = document.createElement('div');
-		handle.className = `obsidian-clipper-resize-handle obsidian-clipper-resize-handle-w`;
+		handle.className = `logseq-clipper-resize-handle logseq-clipper-resize-handle-w`;
 		container.appendChild(handle);
 		addResizeListener(container, handle, 'w');
 
 		const southHandle = document.createElement('div');
-		southHandle.className = `obsidian-clipper-resize-handle obsidian-clipper-resize-handle-s`;
+		southHandle.className = `logseq-clipper-resize-handle logseq-clipper-resize-handle-s`;
 		container.appendChild(southHandle);
 		addResizeListener(container, southHandle, 's');
 
 		const southWestHandle = document.createElement('div');
-		southWestHandle.className = 'obsidian-clipper-resize-handle obsidian-clipper-resize-handle-sw';
+		southWestHandle.className = 'logseq-clipper-resize-handle logseq-clipper-resize-handle-sw';
 		container.appendChild(southWestHandle);
 		addResizeListener(container, southWestHandle, 'sw');
 
@@ -118,7 +118,7 @@ declare global {
 
 			document.body.style.cursor = window.getComputedStyle(handle).cursor;
 
-			const iframe = container.querySelector('#obsidian-clipper-iframe');
+			const iframe = container.querySelector('#logseq-clipper-iframe');
 			if (iframe) iframe.classList.add('is-resizing');
 
 			document.onmousemove = (moveEvent) => {
@@ -161,7 +161,7 @@ declare global {
 
 			document.onmouseup = () => {
 				isResizing = false;
-				const iframe = container.querySelector('#obsidian-clipper-iframe');
+				const iframe = container.querySelector('#logseq-clipper-iframe');
 				if (iframe) iframe.classList.remove('is-resizing');
 				document.body.style.cursor = '';
 
@@ -507,7 +507,7 @@ declare global {
 	window.addEventListener('beforeunload', handlePageUnload);
 
 	// Listen for custom events from the reader script
-	document.addEventListener('obsidian-reader-init', async () => {
+	document.addEventListener('logseq-reader-init', async () => {
 		// Find the highlighter button
 		const button = document.querySelector('[data-action="toggle-highlighter"]');
 		if (button) {

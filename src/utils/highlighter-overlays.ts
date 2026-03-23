@@ -53,8 +53,8 @@ function isIgnoredElement(element: Element): boolean {
 	return (
 		element.tagName.toLowerCase() === 'html' ||
 		element.tagName.toLowerCase() === 'body' ||
-		element.classList.contains('obsidian-highlighter-menu') ||
-		element.closest('.obsidian-highlighter-menu') !== null ||
+		element.classList.contains('logseq-highlighter-menu') ||
+		element.closest('.logseq-highlighter-menu') !== null ||
 		isDisallowedTag
 	);
 }
@@ -96,7 +96,7 @@ export function handleMouseUp(event: MouseEvent | TouchEvent) {
 	if (selection && !selection.isCollapsed) {
 		handleTextSelection(selection);
 	} else {
-		if (target.classList.contains('obsidian-highlight-overlay')) {
+		if (target.classList.contains('logseq-highlight-overlay')) {
 			handleHighlightClick(event);
 		} else {
 			let elementToProcess: Element | null = target;
@@ -157,7 +157,7 @@ export function handleTouchMove(event: TouchEvent) {
 
 // Update event listeners for highlight overlays
 export function updateHighlightListeners() {
-	document.querySelectorAll('.obsidian-highlight-overlay').forEach((highlight) => {
+	document.querySelectorAll('.logseq-highlight-overlay').forEach((highlight) => {
 		highlight.removeEventListener('click', handleHighlightClick);
 		highlight.removeEventListener('touchend', handleHighlightClick);
 		highlight.addEventListener('click', handleHighlightClick);
@@ -229,7 +229,7 @@ function processRangeForOverlayRects(
 // Plan out the overlay rectangles depending on the type of highlight
 export function planHighlightOverlayRects(target: Element, highlight: AnyHighlightData, index: number) {
 	const existingOverlays = Array.from(
-		document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`),
+		document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`),
 	);
 	const tagName = target.tagName.toUpperCase(); // Get tagName early for P check
 
@@ -368,7 +368,7 @@ function createHighlightOverlayElement(
 	notes?: string[],
 ) {
 	const overlay = document.createElement('div');
-	overlay.className = 'obsidian-highlight-overlay';
+	overlay.className = 'logseq-highlight-overlay';
 	overlay.dataset.highlightIndex = index.toString();
 
 	overlay.style.position = 'absolute';
@@ -388,7 +388,7 @@ function createHighlightOverlayElement(
 	if (elementAtPoint) {
 		const bgColor = getEffectiveBackgroundColor(elementAtPoint as HTMLElement);
 		if (isDarkColor(bgColor)) {
-			overlay.classList.add('obsidian-highlight-overlay-dark');
+			overlay.classList.add('logseq-highlight-overlay-dark');
 		}
 	}
 
@@ -418,7 +418,7 @@ function updateHighlightOverlayPositions() {
 		const target = getElementByXPath(highlight.xpath);
 		if (target) {
 			const existingOverlays = document.querySelectorAll(
-				`.obsidian-highlight-overlay[data-highlight-index="${index}"]`,
+				`.logseq-highlight-overlay[data-highlight-index="${index}"]`,
 			);
 			if (existingOverlays.length > 0) {
 				removeExistingHighlightOverlays(index);
@@ -431,7 +431,7 @@ function updateHighlightOverlayPositions() {
 // Remove existing highlight overlays for a specific index
 function removeExistingHighlightOverlays(index: number) {
 	document
-		.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`)
+		.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`)
 		.forEach((el) => el.remove());
 }
 
@@ -450,11 +450,11 @@ const observer = new MutationObserver((mutations) => {
 			(mutation) =>
 				(mutation.type === 'childList' &&
 					mutation.target instanceof Element &&
-					!mutation.target.id.startsWith('obsidian-highlight')) ||
+					!mutation.target.id.startsWith('logseq-highlight')) ||
 				(mutation.type === 'attributes' &&
 					(mutation.attributeName === 'style' || mutation.attributeName === 'class') &&
 					mutation.target instanceof Element &&
-					!mutation.target.id.startsWith('obsidian-highlight')),
+					!mutation.target.id.startsWith('logseq-highlight')),
 		);
 		if (shouldUpdate) {
 			throttledUpdateHighlights();
@@ -512,7 +512,7 @@ function createOrUpdateHoverOverlay(target: Element) {
 
 	if (!hoverOverlay) {
 		hoverOverlay = document.createElement('div');
-		hoverOverlay.id = 'obsidian-highlight-hover-overlay';
+		hoverOverlay.id = 'logseq-highlight-hover-overlay';
 		document.body.appendChild(hoverOverlay);
 	}
 
@@ -526,7 +526,7 @@ function createOrUpdateHoverOverlay(target: Element) {
 	hoverOverlay.style.display = 'block';
 
 	// Remove 'is-hovering' class from all highlight overlays
-	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach((el) => {
+	document.querySelectorAll('.logseq-highlight-overlay.is-hovering').forEach((el) => {
 		el.classList.remove('is-hovering');
 	});
 
@@ -534,11 +534,11 @@ function createOrUpdateHoverOverlay(target: Element) {
 	hoverOverlay.classList.remove('on-highlight');
 
 	// Check if the target is a highlight overlay
-	if (target.classList.contains('obsidian-highlight-overlay')) {
+	if (target.classList.contains('logseq-highlight-overlay')) {
 		const index = target.getAttribute('data-highlight-index');
 		if (index) {
 			// Add 'is-hovering' class to all highlight overlays with the same index
-			document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`).forEach((el) => {
+			document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`).forEach((el) => {
 				el.classList.add('is-hovering');
 			});
 			// Add 'on-highlight' class to hover overlay
@@ -555,7 +555,7 @@ export function removeHoverOverlay() {
 	lastHoverTarget = null;
 
 	// Remove 'is-hovering' class from all highlight overlays
-	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach((el) => {
+	document.querySelectorAll('.logseq-highlight-overlay.is-hovering').forEach((el) => {
 		el.classList.remove('is-hovering');
 	});
 }
@@ -598,7 +598,7 @@ async function handleHighlightClick(event: Event) {
 
 // Remove all existing highlight overlays from the page
 export function removeExistingHighlights() {
-	const existingHighlights = document.querySelectorAll('.obsidian-highlight-overlay');
+	const existingHighlights = document.querySelectorAll('.logseq-highlight-overlay');
 	console.log('existingHighlights', existingHighlights.length);
 	if (existingHighlights.length > 0) {
 		existingHighlights.forEach((el) => el.remove());

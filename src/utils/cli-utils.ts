@@ -117,5 +117,5 @@ export async function openInObsidian(
 	}
 
 	await openViaUri(fileContent, noteName, path, behavior, silent);
-	return 'Opened in Obsidian';
+	return 'Opened in Logseq';
 }

@@ -4,12 +4,12 @@ import browser from './utils/browser-polyfill';
 // Initialize reader mode
 (function () {
 	// Check if the script has already been initialized
-	if (window.hasOwnProperty('obsidianReaderInitialized')) {
+	if (window.hasOwnProperty('logseqReaderInitialized')) {
 		return; // Exit if already initialized
 	}
 
 	// Mark as initialized
-	(window as any).obsidianReaderInitialized = true;
+	(window as any).logseqReaderInitialized = true;
 
 	// Listen for messages from the content script
 	browser.runtime.onMessage.addListener(
@@ -18,7 +18,7 @@ import browser from './utils/browser-polyfill';
 				(async () => {
 					try {
 						const isActive = await Reader.toggle(document);
-						document.documentElement.classList.toggle('obsidian-reader-active', isActive);
+						document.documentElement.classList.toggle('logseq-reader-active', isActive);
 						sendResponse({ success: true, isActive });
 					} catch (error: unknown) {
 						console.error('Error toggling reader mode:', error);

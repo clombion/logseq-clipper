@@ -13,7 +13,7 @@ if (browser.webRequest?.onBeforeSendHeaders) {
 	browser.webRequest.onBeforeSendHeaders.addListener(
 		(details) => {
 			const headers = (details.requestHeaders || []).filter((h) => h.name.toLowerCase() !== 'referer');
-			headers.push({ name: 'Referer', value: 'https://obsidian.md/' });
+			headers.push({ name: 'Referer', value: 'https://logseq.com/' });
 			return { requestHeaders: headers };
 		},
 		{
@@ -38,7 +38,7 @@ async function enableYouTubeEmbedRule(tabId: number): Promise<void> {
 						{
 							header: 'Referer',
 							operation: 'set' as any,
-							value: 'https://obsidian.md/',
+							value: 'https://logseq.com/',
 						},
 					],
 				},
@@ -77,7 +77,7 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 
 		// Attempt to send a message to the content script
 		await browser.tabs.sendMessage(tabId, { action: 'ping' });
-		console.log('[Obsidian Clipper] Content script ping succeeded');
+		console.log('[Logseq Clipper] Content script ping succeeded');
 	} catch (error) {
 		// If the error is about invalid URL, re-throw it
 		if (error instanceof Error && error.message.includes('invalid URL')) {
@@ -85,23 +85,23 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 		}
 
 		// If the message fails, the content script is not loaded, so inject it
-		console.log('[Obsidian Clipper] Ping failed, injecting content script...', error);
+		console.log('[Logseq Clipper] Ping failed, injecting content script...', error);
 		try {
 			// Try using the scripting API (Chrome)
 			if (browser.scripting) {
-				console.log('[Obsidian Clipper] Using scripting API');
+				console.log('[Logseq Clipper] Using scripting API');
 				await browser.scripting.executeScript({
 					target: { tabId: tabId },
 					files: ['content.js'],
 				});
 			} else {
-				console.log('[Obsidian Clipper] Using tabs.executeScript fallback');
+				console.log('[Logseq Clipper] Using tabs.executeScript fallback');
 				// Fallback to tabs.executeScript (Firefox)
 				await browser.tabs.executeScript(tabId, {
 					file: 'content.js',
 				});
 			}
-			console.log('[Obsidian Clipper] Injection completed, waiting for init...');
+			console.log('[Logseq Clipper] Injection completed, waiting for init...');
 
 			// Poll until the content script responds, rather than a fixed delay
 			let ready = false;
@@ -118,9 +118,9 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 			if (!ready) {
 				throw new Error('Content script did not respond after injection');
 			}
-			console.log('[Obsidian Clipper] Post-injection ping succeeded');
+			console.log('[Logseq Clipper] Post-injection ping succeeded');
 		} catch (injectError) {
-			console.error('[Obsidian Clipper] Injection or post-injection ping failed:', injectError);
+			console.error('[Logseq Clipper] Injection or post-injection ping failed:', injectError);
 			throw injectError;
 		}
 	}
@@ -439,18 +439,18 @@ browser.runtime.onMessage.addListener(
 					// Ensure content script is loaded before sending message
 					ensureContentScriptLoadedInBackground(tabId)
 						.then(() => {
-							console.log('[Obsidian Clipper] Sending message to tab:', message.action);
+							console.log('[Logseq Clipper] Sending message to tab:', message.action);
 							return browser.tabs.sendMessage(tabId, message);
 						})
 						.then((response) => {
 							console.log(
-								'[Obsidian Clipper] Tab response:',
+								'[Logseq Clipper] Tab response:',
 								response ? 'has content=' + !!(response as any).content : response,
 							);
 							sendResponse(response);
 						})
 						.catch((error) => {
-							console.error('[Obsidian Clipper] Error sending message to tab:', error);
+							console.error('[Logseq Clipper] Error sending message to tab:', error);
 							sendResponse({
 								success: false,
 								error: error instanceof Error ? error.message : String(error),
@@ -532,7 +532,7 @@ const debouncedUpdateContextMenu = debounce(async (tabId: number) => {
 			contexts: browser.Menus.ContextType[];
 		}[] = [
 			{
-				id: 'open-obsidian-clipper',
+				id: 'open-logseq-clipper',
 				title: 'Save this page',
 				contexts: ['page', 'selection', 'image', 'video', 'audio'],
 			},
@@ -588,7 +588,7 @@ const debouncedUpdateContextMenu = debounce(async (tabId: number) => {
 }, 100); // 100ms debounce time
 
 browser.contextMenus.onClicked.addListener(async (info, tab) => {
-	if (info.menuItemId === 'open-obsidian-clipper') {
+	if (info.menuItemId === 'open-logseq-clipper') {
 		browser.action.openPopup();
 	} else if (info.menuItemId === 'enter-highlighter' && tab && tab.id) {
 		await setHighlighterMode(tab.id, true);

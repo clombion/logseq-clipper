@@ -1,10 +1,9 @@
 {
 	"manifest_version": 3,
 	"default_locale": "en",
-	"name": "Obsidian Web Clipper",
-	"homepage_url": "https://obsidian.md/",
+	"name": "Logseq Web Clipper",
 	"version": "1.2.1",
-	"description": "Save and highlight web pages in a private and durable format that you can access offline. The official extension for Obsidian.",
+	"description": "Save and highlight web pages to Logseq in a private and durable format that you can access offline.",
 	"permissions": [
 		"activeTab",
 		"clipboardWrite",
