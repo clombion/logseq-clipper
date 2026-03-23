@@ -60,6 +60,7 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 				'Authorization': `Bearer ${config.token}`,
 			},
 			body: JSON.stringify({ method, args }),
+			signal: AbortSignal.timeout(60_000),
 		});
 	} catch (err) {
 		throw new LogseqConnectionError(err);
@@ -148,7 +149,12 @@ export async function getPageBlocksTree(config: LogseqApiConfig, pageTitle: stri
 	return await logseqApi(config, 'logseq.Editor.getPageBlocksTree', [pageTitle]);
 }
 
+const VALID_PROPERTY_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+
 export async function queryByProperty(config: LogseqApiConfig, property: string, value: string): Promise<any[]> {
+	if (!VALID_PROPERTY_NAME.test(property)) {
+		throw new Error(`Invalid property name: "${property}" — must match /^[a-zA-Z][a-zA-Z0-9_-]*$/`);
+	}
 	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 	const query = `(property ${property} "${escaped}")`;
 	return await logseqApi(config, 'logseq.DB.q', [query]);

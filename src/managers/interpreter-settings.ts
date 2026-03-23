@@ -548,8 +548,13 @@ async function showProviderModal(provider: Provider, index?: number) {
 					const message = getMessage('getApiKeyHere').replace('$1', selectedPreset.name);
 					apiKeyDescription.textContent = getMessage('providerApiKeyDescription') + ' ';
 					const linkElement = document.createElement('a');
-					if (selectedPreset.apiKeyUrl?.startsWith('https://')) {
-						linkElement.href = selectedPreset.apiKeyUrl;
+					try {
+						const parsed = new URL(selectedPreset.apiKeyUrl ?? '');
+						if (parsed.protocol === 'https:') {
+							linkElement.href = parsed.href;
+						}
+					} catch {
+						// Invalid URL — leave href unset
 					}
 					linkElement.target = '_blank';
 					linkElement.textContent = message;

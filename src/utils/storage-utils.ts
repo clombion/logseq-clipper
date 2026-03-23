@@ -198,11 +198,20 @@ export async function loadSettings(): Promise<Settings> {
 		const { providers: _removed, ...rest } = data.interpreter_settings;
 		await browser.storage.sync.set({ interpreter_settings: rest });
 		debugLog('Settings', 'Migrated providers from sync to local storage');
+	} else if (data.interpreter_settings?.providers) {
+		// Safety: if providers still exist in sync after a previous partial migration, clean up
+		const { providers: _removed, ...rest } = data.interpreter_settings;
+		await browser.storage.sync.set({ interpreter_settings: rest });
+		debugLog('Settings', 'Cleaned up stale providers from sync storage');
 	}
 	if (!localLogseq && data.logseq_settings) {
 		await browser.storage.local.set({ logseq_settings: data.logseq_settings });
 		await browser.storage.sync.remove('logseq_settings');
 		debugLog('Settings', 'Migrated logseq_settings from sync to local storage');
+	} else if (data.logseq_settings) {
+		// Safety: clean up stale logseq_settings from sync after partial migration
+		await browser.storage.sync.remove('logseq_settings');
+		debugLog('Settings', 'Cleaned up stale logseq_settings from sync storage');
 	}
 
 	debugLog('Settings', 'Loaded settings:', generalSettings);

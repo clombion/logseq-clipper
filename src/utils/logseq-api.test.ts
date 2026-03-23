@@ -148,6 +148,41 @@ describe('removeBlock', () => {
 	});
 });
 
+describe('queryByProperty', () => {
+	test('rejects invalid property names', async () => {
+		await expect(
+			queryByProperty(config, 'source"; DROP TABLE', 'value'),
+		).rejects.toThrow('Invalid property name');
+	});
+
+	test('rejects property names starting with number', async () => {
+		await expect(
+			queryByProperty(config, '123bad', 'value'),
+		).rejects.toThrow('Invalid property name');
+	});
+
+	test('accepts valid property names with hyphens and underscores', async () => {
+		mockFetch.mockReturnValue(jsonResponse([]));
+		await expect(
+			queryByProperty(config, 'destination-page', 'value'),
+		).resolves.not.toThrow();
+
+		mockFetch.mockReturnValue(jsonResponse([]));
+		await expect(
+			queryByProperty(config, 'content_hash', 'value'),
+		).resolves.not.toThrow();
+	});
+});
+
+describe('timeout', () => {
+	test('fetch is called with AbortSignal.timeout', async () => {
+		mockFetch.mockReturnValue(jsonResponse({ name: 'graph' }));
+		await checkConnection(config);
+		const fetchOptions = mockFetch.mock.calls[0][1];
+		expect(fetchOptions.signal).toBeDefined();
+	});
+});
+
 describe('error handling', () => {
 	test('401 throws LogseqAuthError', async () => {
 		mockFetch.mockReturnValue(errorResponse(401, 'Unauthorized'));
