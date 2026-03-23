@@ -66,8 +66,7 @@ export function initializeSidebar(): void {
 	const hamburgerMenu = document.getElementById('hamburger-menu');
 
 	if (sidebar) {
-		sidebar.addEventListener('click', (event) => {
-			const target = event.target as HTMLElement;
+		const activateSidebarItem = (target: HTMLElement) => {
 			if (
 				target.dataset.section === 'general' ||
 				target.dataset.section === 'properties' ||
@@ -84,6 +83,37 @@ export function initializeSidebar(): void {
 			}
 			if (hamburgerMenu) {
 				hamburgerMenu.classList.remove('is-active');
+			}
+		};
+
+		sidebar.addEventListener('click', (event) => {
+			activateSidebarItem(event.target as HTMLElement);
+		});
+
+		sidebar.addEventListener('keydown', (event) => {
+			const target = event.target as HTMLElement;
+			const key = (event as KeyboardEvent).key;
+
+			if (key === 'Enter' || key === ' ') {
+				event.preventDefault();
+				activateSidebarItem(target);
+				return;
+			}
+
+			if (key === 'ArrowDown' || key === 'ArrowUp') {
+				event.preventDefault();
+				const items = Array.from(sidebar.querySelectorAll<HTMLElement>('li[data-section]'));
+				const visibleItems = items.filter((item) => item.style.display !== 'none');
+				const currentIndex = visibleItems.indexOf(target);
+				if (currentIndex === -1) return;
+
+				let nextIndex: number;
+				if (key === 'ArrowDown') {
+					nextIndex = (currentIndex + 1) % visibleItems.length;
+				} else {
+					nextIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+				}
+				visibleItems[nextIndex]?.focus();
 			}
 		});
 	}
@@ -108,6 +138,7 @@ export function initializeSidebar(): void {
 		hamburgerMenu.addEventListener('click', () => {
 			settingsContainer.classList.toggle('sidebar-open');
 			hamburgerMenu.classList.toggle('is-active');
+			hamburgerMenu.setAttribute('aria-expanded', String(settingsContainer.classList.contains('sidebar-open')));
 		});
 	}
 }

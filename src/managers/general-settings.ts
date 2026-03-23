@@ -147,23 +147,56 @@ export function initializeGeneralSettings(): void {
 			const starRating = document.querySelector('.star-rating');
 			if (starRating) {
 				const stars = starRating.querySelectorAll('.star');
+
+				const selectRating = async (rating: number) => {
+					stars.forEach((s) => {
+						const r = parseInt(s.getAttribute('data-rating') || '0', 10);
+						if (r <= rating) {
+							s.classList.add('is-active');
+						} else {
+							s.classList.remove('is-active');
+						}
+						s.setAttribute('aria-checked', String(r === rating));
+					});
+					await handleRating(rating);
+
+					// Hide the rating section after rating
+					if (rateExtensionSection) {
+						rateExtensionSection.style.display = 'none';
+					}
+				};
+
 				stars.forEach((star) => {
 					star.addEventListener('click', async () => {
 						const rating = parseInt(star.getAttribute('data-rating') || '0', 10);
-						stars.forEach((s) => {
-							if (parseInt(s.getAttribute('data-rating') || '0', 10) <= rating) {
-								s.classList.add('is-active');
-							} else {
-								s.classList.remove('is-active');
-							}
-						});
-						await handleRating(rating);
-
-						// Hide the rating section after rating
-						if (rateExtensionSection) {
-							rateExtensionSection.style.display = 'none';
-						}
+						await selectRating(rating);
 					});
+				});
+
+				starRating.addEventListener('keydown', (event) => {
+					const target = event.target as HTMLElement;
+					const key = (event as KeyboardEvent).key;
+					const starArray = Array.from(stars) as HTMLElement[];
+					const currentIndex = starArray.indexOf(target);
+
+					if (key === 'Enter' || key === ' ') {
+						(event as KeyboardEvent).preventDefault();
+						const rating = parseInt(target.getAttribute('data-rating') || '0', 10);
+						selectRating(rating);
+						return;
+					}
+
+					if (key === 'ArrowRight' || key === 'ArrowLeft') {
+						(event as KeyboardEvent).preventDefault();
+						if (currentIndex === -1) return;
+						let nextIndex: number;
+						if (key === 'ArrowRight') {
+							nextIndex = (currentIndex + 1) % starArray.length;
+						} else {
+							nextIndex = (currentIndex - 1 + starArray.length) % starArray.length;
+						}
+						starArray[nextIndex]?.focus();
+					}
 				});
 			}
 		}

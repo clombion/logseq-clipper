@@ -11,13 +11,13 @@
 			
 			<div id="settings-container">
 				<div id="sidebar">
-					<ul>
+					<ul role="tablist">
 						<li class="sidebar-heading" data-i18n="settingsHeading">Settings</li>
-						<li data-section="general" class="active" data-i18n="general">General</li>
-						<li data-section="properties" data-i18n="properties">Properties</li>
-						<li data-section="highlighter" data-i18n="highlighter">Highlighter</li>
-						<li data-section="reader" data-i18n="reader" style="display: none;">Reader</li>
-						<li data-section="interpreter" data-i18n="interpreter">Interpreter</li>
+						<li data-section="general" class="active" role="tab" tabindex="0" data-i18n="general">General</li>
+						<li data-section="properties" role="tab" tabindex="0" data-i18n="properties">Properties</li>
+						<li data-section="highlighter" role="tab" tabindex="0" data-i18n="highlighter">Highlighter</li>
+						<li data-section="reader" role="tab" tabindex="0" data-i18n="reader" style="display: none;">Reader</li>
+						<li data-section="interpreter" role="tab" tabindex="0" data-i18n="interpreter">Interpreter</li>
 						<li class="sidebar-heading" data-i18n="templatesHeading">Templates</li>
 					</ul>
 					<button type="button" id="new-template-btn" class="mod-cta" data-i18n="newTemplate">New&nbsp;template</button>
@@ -69,7 +69,7 @@
 										</div>
 									</div>
 									<div class="setting-item-control">
-										<div class="star-rating">
+										<div class="star-rating" role="radiogroup" aria-label="Rate this extension">
 											<span class="star" data-rating="1" role="radio" tabindex="0" aria-checked="false" aria-label="1 star">★</span>
 											<span class="star" data-rating="2" role="radio" tabindex="0" aria-checked="false" aria-label="2 star">★</span>
 											<span class="star" data-rating="3" role="radio" tabindex="0" aria-checked="false" aria-label="3 star">★</span>
@@ -426,7 +426,7 @@
 								<button type="button" class="import-template-btn mh" data-i18n="import">Import</button>
 								<div class="menu-btn">
 									<button type="button" id="more-actions-btn" class="menu-toggle" data-i18n="more">More</button>
-									<div id="template-actions-menu" class="menu">
+									<div id="template-actions-menu" class="menu" role="menu">
 										<button type="button" class="menu-item" role="menuitem" id="duplicate-template-btn">
 											<div class="menu-item-icon">
 												<i data-lucide="copy-plus"></i>
