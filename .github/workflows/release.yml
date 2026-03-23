@@ -37,30 +37,35 @@ jobs:
       - name: Sign Firefox extension
         id: sign
         run: |
+          # Run signing, capture exit code instead of failing
+          set +e
           pnpm web-ext sign \
             --source-dir=dist_firefox \
             --artifacts-dir=web-ext-artifacts \
             --channel=unlisted \
             --api-key="${{ secrets.AMO_JWT_ISSUER }}" \
             --api-secret="${{ secrets.AMO_JWT_SECRET }}" \
-            --timeout=900000 \
-            2>&1 | tee sign-output.txt
+            --timeout=900000
+          SIGN_EXIT=$?
+          set -e
 
-          # Find the signed .xpi file
-          XPI_FILE=$(find web-ext-artifacts -name "*.xpi" | head -1)
-          if [ -z "$XPI_FILE" ]; then
-            echo "Warning: No .xpi file found, falling back to unsigned zip"
-            cd dist_firefox && zip -r ../logseq-web-clipper-firefox.zip . && cd ..
-            echo "signed=false" >> $GITHUB_OUTPUT
+          if [ $SIGN_EXIT -eq 0 ]; then
+            XPI_FILE=$(find web-ext-artifacts -name "*.xpi" | head -1)
+            if [ -n "$XPI_FILE" ]; then
+              cp "$XPI_FILE" logseq-web-clipper-firefox.xpi
+              echo "signed=true" >> $GITHUB_OUTPUT
+              echo "Signing succeeded: $XPI_FILE"
+            else
+              echo "Signing reported success but no .xpi found"
+              echo "signed=false" >> $GITHUB_OUTPUT
+            fi
           else
-            cp "$XPI_FILE" logseq-web-clipper-firefox.xpi
-            echo "signed=true" >> $GITHUB_OUTPUT
+            echo "Signing failed (exit $SIGN_EXIT), falling back to unsigned zip"
+            echo "signed=false" >> $GITHUB_OUTPUT
           fi
-        continue-on-error: true
 
-      # Fallback: unsigned zip if signing failed
-      - name: Package unsigned Firefox zip
-        if: steps.sign.outputs.signed != 'true'
+      # Always create unsigned zip as fallback
+      - name: Package Firefox zip
         run: cd dist_firefox && zip -r ../logseq-web-clipper-firefox.zip . && cd ..
 
       # Upload artifacts (available on every push)
@@ -70,12 +75,15 @@ jobs:
           path: logseq-web-clipper-chrome.zip
 
       - uses: actions/upload-artifact@v4
+        if: steps.sign.outputs.signed == 'true'
         with:
-          name: logseq-web-clipper-firefox
-          path: |
-            logseq-web-clipper-firefox.xpi
-            logseq-web-clipper-firefox.zip
-          if-no-files-found: ignore
+          name: logseq-web-clipper-firefox.xpi
+          path: logseq-web-clipper-firefox.xpi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logseq-web-clipper-firefox.zip
+          path: logseq-web-clipper-firefox.zip
 
       # On release: attach to GitHub release + update GitHub Pages
       - name: Get version
@@ -86,7 +94,7 @@ jobs:
       - name: Generate updates.json
         if: github.event_name == 'release' && steps.sign.outputs.signed == 'true'
         run: |
-          cat > updates.json << UPDATEEOF
+          cat > updates.json << 'UPDATEEOF'
           {
             "addons": {
               "logseq-clipper@clombion.github.io": {
@@ -119,3 +127,4 @@ jobs:
             logseq-web-clipper-chrome.zip
             logseq-web-clipper-firefox.xpi
             logseq-web-clipper-firefox.zip
+          fail_on_unmatched_files: false
