@@ -216,7 +216,7 @@ export async function sendToLLM(
 		let llmResponseContent: string;
 		if (provider.name.toLowerCase().includes('anthropic')) {
 			// Handle Anthropic's nested content structure
-			const textContent = data.content[0]?.text;
+			const textContent = data.content?.[0]?.text;
 			if (textContent) {
 				try {
 					// Try to parse the inner content first
@@ -561,6 +561,11 @@ export async function handleInterpreterUI(
 	_currentUrl: string,
 	modelConfig: ModelConfig,
 ): Promise<void> {
+	// If an interpreter operation is already in flight, await it first
+	// to prevent the single-slot promise from being overwritten
+	if (activeInterpreterPromise) {
+		await activeInterpreterPromise;
+	}
 	const work = handleInterpreterUIInternal(template, variables, _tabId, _currentUrl, modelConfig);
 	activeInterpreterPromise = work;
 	try {

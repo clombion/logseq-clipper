@@ -36,7 +36,7 @@ export async function checkDuplicate(url: string): Promise<{
 
 		if (results && results.length > 0) {
 			// Find the log entry that has source matching this URL
-			const logEntry = results.find((r) => r.properties?.source === url || r.properties?.source === url);
+			const logEntry = results.find((r) => r.properties?.source === url);
 			if (!logEntry) {
 				return { exists: false };
 			}
@@ -292,8 +292,19 @@ export async function updateExistingClip(
 
 	// Delete ALL old blocks (properties are on page entity via upsertBlockProperty)
 	debugLog('Save', `[${clipId}] deleting ${oldBlocks.length} old blocks`);
+	const deleteErrors: string[] = [];
 	for (const block of oldBlocks) {
-		await removeBlock(config, block.uuid);
+		try {
+			await removeBlock(config, block.uuid);
+		} catch {
+			deleteErrors.push(block.uuid);
+		}
+	}
+	if (deleteErrors.length > 0) {
+		debugLog('Save', `[${clipId}] failed to delete ${deleteErrors.length} old blocks: ${deleteErrors.join(', ')}`);
+		throw new Error(
+			`Updated content saved but ${deleteErrors.length} old blocks could not be removed. You may need to manually delete duplicate content on page '${pageTitle}'.`,
+		);
 	}
 
 	const contentHash = await computeContentHash(noteContent);
@@ -400,11 +411,15 @@ async function appendToClipLog(
 	if (logBlock.properties) {
 		// Properties are set by inserting a child block with property syntax
 		// or by using the block's properties directly via insertBatchBlock
-		const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(([key, value]) => ({
-			content: `${key}:: ${value}`,
-		}));
-		if (propChildren.length > 0) {
-			await insertBatchBlock(config, anchor.uuid, propChildren);
+		try {
+			const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(([key, value]) => ({
+				content: `${key}:: ${value}`,
+			}));
+			if (propChildren.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, propChildren);
+			}
+		} catch (propError) {
+			debugLog('Save', 'Failed to set some clip log properties:', propError);
 		}
 	}
 }
