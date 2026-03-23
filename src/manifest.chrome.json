@@ -48,7 +48,9 @@
 				"browser-polyfill.min.js",
 				"style.css",
 				"side-panel.html",
-				"flatten-shadow-dom.js"
+				"flatten-shadow-dom.js",
+				"setup.html",
+				"setup.js"
 			],
 			"extension_ids": ["*"],
 			"matches": ["*://*/*"]

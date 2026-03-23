@@ -615,8 +615,18 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 	}
 });
 
-browser.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(async (details) => {
 	debouncedUpdateContextMenu(-1); // Use a dummy tabId for initial creation
+
+	// On fresh install, open setup page if API token is not configured
+	if (details.reason === 'install') {
+		const data = await browser.storage.local.get('setupComplete');
+		if (!data.setupComplete) {
+			browser.tabs.create({
+				url: browser.runtime.getURL('setup.html'),
+			});
+		}
+	}
 });
 
 async function isSidePanelOpen(windowId: number): Promise<boolean> {

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Logseq Web Clipper — Setup</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body style="max-width: 600px; margin: 40px auto; padding: 0 20px;">
+	<h1>Logseq Web Clipper</h1>
+	<p>Connect to Logseq's HTTP API to start clipping web pages.</p>
+
+	<h2>Step 1: Enable the HTTP API server</h2>
+	<p>In Logseq, go to <strong>Settings → Features</strong> and enable <strong>HTTP APIs Server</strong>.</p>
+
+	<h2>Step 2: Start the server</h2>
+	<p>Click the <strong>API icon</strong> in Logseq's toolbar, then select <strong>Start Server</strong>.</p>
+	<p><em>Tip: Enable "Auto start server" in the API panel's Server configurations to start it automatically.</em></p>
+
+	<h2>Step 3: Create an authorization token</h2>
+	<p>In the API panel, go to <strong>Authorization tokens → Add new token</strong>. Enter a name and value, then paste the token value below.</p>
+
+	<div style="margin: 24px 0;">
+		<div style="margin-bottom: 12px;">
+			<label for="setup-token" style="display: block; margin-bottom: 4px; font-weight: 600;">API Token</label>
+			<input type="password" id="setup-token" placeholder="Paste your token here" style="width: 100%; padding: 8px;" autocomplete="off" />
+		</div>
+		<div style="margin-bottom: 12px;">
+			<label for="setup-port" style="display: block; margin-bottom: 4px; font-weight: 600;">API Port <span style="font-weight: normal; opacity: 0.6;">(default: 12315)</span></label>
+			<input type="number" id="setup-port" value="12315" min="1" max="65535" style="width: 120px; padding: 8px;" />
+		</div>
+		<div style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
+			<button id="test-btn" type="button" style="padding: 8px 16px;">Test connection</button>
+			<span id="test-status"></span>
+		</div>
+		<div style="margin-top: 16px;">
+			<button id="save-btn" type="button" disabled style="padding: 8px 24px; font-weight: 600;">Save & continue →</button>
+		</div>
+	</div>
+
+	<script src="browser-polyfill.min.js"></script>
+	<script src="setup.js"></script>
+</body>
+</html>
