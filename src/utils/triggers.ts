@@ -1,11 +1,10 @@
-import type { Template } from '../types/types';
+import type { SchemaOrgData, Template } from '../types/types';
 import { debugLog } from './debug';
 import { memoize, memoizeWithExpiration } from './memoize';
 
 // Modify the memoized function to handle regex patterns correctly
 const memoizedInternalMatchPattern = memoize(
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	(pattern: string, url: string, schemaOrgData: any): boolean => {
+	(pattern: string, url: string, schemaOrgData: SchemaOrgData): boolean => {
 		if (pattern.startsWith('schema:')) {
 			return matchSchemaPattern(pattern, schemaOrgData);
 		} else if (pattern.startsWith('/') && pattern.endsWith('/')) {
@@ -55,8 +54,7 @@ class Trie {
 		node.templates.push({ template, priority });
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	findLongestMatch(url: string, schemaOrgData: any): TriggerMatch | null {
+	findLongestMatch(url: string, schemaOrgData: SchemaOrgData): TriggerMatch | null {
 		let node = this.root;
 		let lastMatch: TriggerMatch | null = null;
 		for (const char of url) {
@@ -105,8 +103,7 @@ export function initializeTriggers(templates: Template[]): void {
 }
 
 const memoizedFindMatchingTemplate = memoizeWithExpiration(
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	async (url: string, getSchemaOrgData: () => Promise<any>): Promise<Template | undefined> => {
+	async (url: string, getSchemaOrgData: () => Promise<SchemaOrgData>): Promise<Template | undefined> => {
 		if (!isInitialized) {
 			console.warn('Triggers not initialized. Call initializeTriggers first.');
 			return undefined;
@@ -146,13 +143,11 @@ const memoizedFindMatchingTemplate = memoizeWithExpiration(
 
 export const findMatchingTemplate = memoizedFindMatchingTemplate;
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-export function matchPattern(pattern: string, url: string, schemaOrgData: any): boolean {
+export function matchPattern(pattern: string, url: string, schemaOrgData: SchemaOrgData): boolean {
 	return memoizedInternalMatchPattern(pattern, url, schemaOrgData);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
+function matchSchemaPattern(pattern: string, schemaOrgData: SchemaOrgData): boolean {
 	const [, schemaType, schemaKey, expectedValue] = pattern.match(/schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/) || [];
 
 	if (!schemaType && !schemaKey) return false;
@@ -168,8 +163,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 			}
 			return [schema];
 		})
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		.filter((schema: any) => {
+		.filter((schema) => {
 			if (!schema || typeof schema !== 'object') return false;
 			if (!schemaType) return true;
 			const types = Array.isArray(schema['@type']) ? schema['@type'] : [schema['@type']];
@@ -196,13 +190,12 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	return false;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function getSchemaValue(schemaData: any, key: string): any {
+function getSchemaValue(schemaData: unknown, key: string): unknown {
 	const keys = key.split('.');
-	let result = schemaData;
+	let result: unknown = schemaData;
 	for (const k of keys) {
 		if (result && typeof result === 'object' && k in result) {
-			result = result[k];
+			result = (result as Record<string, unknown>)[k];
 		} else {
 			return undefined;
 		}

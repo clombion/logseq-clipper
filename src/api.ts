@@ -4,7 +4,7 @@
 
 import DefuddleClass from 'defuddle';
 import { createMarkdownContent } from 'defuddle/full';
-import type { Property, Template } from './types/types';
+import type { Property, SchemaOrgData, Template } from './types/types';
 import { applyFilters } from './utils/filters';
 import type { AsyncResolver, RenderContext } from './utils/renderer';
 import {
@@ -54,8 +54,7 @@ export interface ClipResult {
 type DocLike = { querySelectorAll: (selector: string) => any };
 
 export function createAsyncResolver(doc: DocLike): AsyncResolver {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	return async (name: string, _context: RenderContext): Promise<any> => {
+	return async (name: string, _context: RenderContext) => {
 		if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
 			const extractHtml = name.startsWith('selectorHtml:');
 			const prefix = extractHtml ? 'selectorHtml:' : 'selector:';
@@ -103,16 +102,14 @@ function matchTriggerPattern(pattern: string, url: string): boolean {
 	return url.startsWith(pattern);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
+function matchSchemaPattern(pattern: string, schemaOrgData: SchemaOrgData): boolean {
 	const match = pattern.match(/^schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/);
 	if (!match) return false;
 	const [, schemaType, schemaKey, expectedValue] = match;
 	if (!schemaType && !schemaKey) return false;
 
 	const schemaArray = Array.isArray(schemaOrgData) ? schemaOrgData : [schemaOrgData];
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const flattened = schemaArray.flatMap((s: any) => (Array.isArray(s) ? s : [s]));
+	const flattened = schemaArray.flatMap((s) => (Array.isArray(s) ? s : [s]));
 
 	for (const schema of flattened) {
 		if (!schema || typeof schema !== 'object') continue;
@@ -122,9 +119,9 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 		}
 		if (schemaKey) {
 			const keys = schemaKey.split('.');
-			let val = schema;
+			let val: unknown = schema;
 			for (const k of keys) {
-				val = val && typeof val === 'object' && k in val ? val[k] : undefined;
+				val = val && typeof val === 'object' && k in val ? (val as Record<string, unknown>)[k] : undefined;
 			}
 			if (expectedValue) {
 				if (Array.isArray(val) ? val.includes(expectedValue) : val === expectedValue) return true;
@@ -142,8 +139,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
  * Find the first template whose triggers match the given URL (and optionally schema data).
  * URL prefix and regex triggers are checked first, then schema triggers.
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-export function matchTemplate(templates: Template[], url: string, schemaOrgData?: any): Template | undefined {
+export function matchTemplate(templates: Template[], url: string, schemaOrgData?: SchemaOrgData): Template | undefined {
 	// First pass: URL prefix and regex triggers
 	for (const template of templates) {
 		if (!template.triggers) continue;

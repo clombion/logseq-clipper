@@ -2,6 +2,7 @@
 // This module provides the main entry point for template compilation,
 // integrating the AST-based renderer with the variable processors.
 
+import type { TemplateValue } from '../types/types';
 import { applyFilterDirect } from './filters';
 import { type AsyncResolver, type RenderContext, render } from './renderer';
 import { processPrompt } from './variables/prompt';
@@ -29,8 +30,7 @@ export type SelectorProcessor = (match: string, currentUrl: string) => Promise<s
 export async function compileTemplate(
 	tabId: number,
 	text: string,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	variables: { [key: string]: any },
+	variables: { [key: string]: TemplateValue },
 	currentUrl: string,
 	customAsyncResolver?: AsyncResolver,
 	customSelectorProcessor?: SelectorProcessor,
@@ -41,8 +41,7 @@ export async function compileTemplate(
 	// Use provided resolver or default browser-based one
 	const asyncResolver =
 		customAsyncResolver ??
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		(async (name: string, ctx: RenderContext): Promise<any> => {
+		(async (name: string, ctx: RenderContext): Promise<TemplateValue> => {
 			if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
 				return resolveSelector(ctx.tabId!, name);
 			}
@@ -92,8 +91,7 @@ export async function compileTemplate(
 export async function processVariables(
 	tabId: number,
 	text: string,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	variables: { [key: string]: any },
+	variables: { [key: string]: TemplateValue },
 	currentUrl: string,
 	customSelectorProcessor?: SelectorProcessor,
 ): Promise<string> {

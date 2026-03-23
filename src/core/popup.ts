@@ -1,7 +1,7 @@
 import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
 import { initializeVariablesPanel, showVariables, updateVariablesPanel } from '../managers/inspect-variables';
 import { loadTemplates } from '../managers/template-manager';
-import type { Property, Template } from '../types/types';
+import type { Property, SchemaOrgData, Template } from '../types/types';
 import { isBlankPage, isValidUrl } from '../utils/active-tab-manager';
 import { addBrowserClassToHtml, detectBrowser } from '../utils/browser-detection';
 import browser from '../utils/browser-polyfill';
@@ -637,7 +637,7 @@ async function refreshFields(tabId: number, checkTemplateTriggers: boolean = tru
 		if (checkTemplateTriggers) {
 			const getSchemaOrgData = async () => {
 				const data = await extractionPromise;
-				return data?.schemaOrgData;
+				return data?.schemaOrgData ?? null;
 			};
 
 			const matchedTemplate = await findMatchingTemplate(tab.url, getSchemaOrgData);
@@ -831,8 +831,7 @@ async function fillTemplateFieldValues(
 	currentTabId: number,
 	template: Template | null,
 	variables: { [key: string]: string },
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	_schemaOrgData?: any,
+	_schemaOrgData?: SchemaOrgData,
 ) {
 	if (!template) return;
 

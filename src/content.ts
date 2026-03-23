@@ -1,5 +1,6 @@
 import Defuddle from 'defuddle';
 import { createMarkdownContent } from 'defuddle/full';
+import type { SchemaOrgData } from './types/types';
 import browser from './utils/browser-polyfill';
 import { debugLog } from './utils/debug';
 import { flattenShadowDom } from './utils/flatten-shadow-dom';
@@ -183,8 +184,7 @@ declare global {
 		content: string;
 		selectedHtml: string;
 		extractedContent: { [key: string]: string };
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		schemaOrgData: any;
+		schemaOrgData: SchemaOrgData;
 		fullHtml: string;
 		highlights: string[];
 		title: string;

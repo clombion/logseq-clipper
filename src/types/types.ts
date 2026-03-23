@@ -21,8 +21,20 @@ export interface ExtractedContent {
 	[key: string]: string;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-export type FilterFunction = (value: string, param?: string) => string | any[];
+export type TemplateValue = string | number | boolean | null | undefined | TemplateValueArray | TemplateValueRecord;
+export interface TemplateValueArray extends Array<TemplateValue> {}
+export interface TemplateValueRecord {
+	[key: string]: TemplateValue;
+}
+
+export interface SchemaOrgItem {
+	'@type'?: string | string[];
+	'@context'?: string;
+	[key: string]: unknown;
+}
+export type SchemaOrgData = SchemaOrgItem | SchemaOrgItem[] | null;
+
+export type FilterFunction = (value: string, param?: string) => string | TemplateValue[];
 
 export interface PromptVariable {
 	key: string;

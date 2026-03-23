@@ -1,3 +1,4 @@
+import type { TemplateValue } from '../../types/types';
 import { applyFilters } from '../filters';
 
 function splitListString(str: string): string[] {
@@ -17,7 +18,7 @@ function splitListString(str: string): string[] {
 
 export async function processSchema(
 	match: string,
-	variables: { [key: string]: string },
+	variables: { [key: string]: TemplateValue },
 	currentUrl: string,
 ): Promise<string> {
 	const [, fullSchemaKey] = match.match(/{{schema:(.*?)}}/) || [];
@@ -46,7 +47,7 @@ export async function processSchema(
 		}
 
 		try {
-			const rawValue = variables[`{{schema:${fullArrayKey}}}`] || '[]';
+			const rawValue = String(variables[`{{schema:${fullArrayKey}}}`] ?? '[]');
 
 			// Check if the raw value looks like any kind of list
 			if (rawValue.trim().match(/^(?:\d+\.|[-*•]\s)/m)) {
@@ -70,7 +71,7 @@ export async function processSchema(
 					} else {
 						const index = parseInt(indexOrStar ?? '0', 10);
 						schemaValue = arrayValue[index]
-							? getNestedProperty(arrayValue[index], propertyKey?.slice(1) ?? '')
+							? String(getNestedProperty(arrayValue[index], propertyKey?.slice(1) ?? '') ?? '')
 							: '';
 					}
 				}
@@ -87,19 +88,21 @@ export async function processSchema(
 				(key) => key.includes('@') && key.endsWith(`:${schemaKey}}}`),
 			);
 			if (matchingKey) {
-				schemaValue = variables[matchingKey] ?? '';
+				schemaValue = String(variables[matchingKey] ?? '');
 			}
 		}
 		// If no matching shorthand found or it's a full key
 		if (!schemaValue) {
-			schemaValue = variables[`{{schema:${schemaKey}}}`] || '';
+			schemaValue = String(variables[`{{schema:${schemaKey}}}`] ?? '');
 		}
 	}
 
 	return applyFilters(schemaValue, filtersString, currentUrl);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function getNestedProperty(obj: any, path: string): any {
-	return path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+function getNestedProperty(obj: unknown, path: string): unknown {
+	return path.split('.').reduce<unknown>((prev, curr) => {
+		if (prev && typeof prev === 'object') return (prev as Record<string, unknown>)[curr];
+		return undefined;
+	}, obj);
 }

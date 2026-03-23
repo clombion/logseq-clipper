@@ -1,11 +1,11 @@
+import type { TemplateValue } from '../../types/types';
 import { applyFilters } from '../filters';
 import { resolveVariable, valueToString } from '../resolver';
 
 // Function to process a simple variable (without special prefixes)
 export async function processSimpleVariable(
 	variableString: string,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	variables: { [key: string]: any },
+	variables: { [key: string]: TemplateValue },
 	currentUrl: string,
 ): Promise<string> {
 	const [variablePath, ...filterParts] = variableString.split('|').map((part) => part.trim());

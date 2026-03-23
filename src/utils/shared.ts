@@ -4,7 +4,7 @@
 // via parameters.
 
 import dayjs from 'dayjs';
-import type { Property } from '../types/types';
+import type { Property, SchemaOrgData } from '../types/types';
 import { escapeDoubleQuotes, getDomain, sanitizeFileName } from './string-utils';
 
 // ---------------------------------------------------------------------------
@@ -28,8 +28,7 @@ export interface BuildVariablesParams {
 	selection?: string;
 	selectionHtml?: string;
 	highlights?: string;
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	schemaOrgData?: any;
+	schemaOrgData?: SchemaOrgData;
 	metaTags?: { name?: string | null; property?: string | null; content: string | null }[];
 	extractedContent?: Record<string, string>;
 }
@@ -98,21 +97,21 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 // ---------------------------------------------------------------------------
 
 export function addSchemaOrgDataToVariables(
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	schemaData: any,
+	schemaData: SchemaOrgData | unknown,
 	variables: Record<string, string>,
 	prefix: string = '',
 ): void {
 	if (Array.isArray(schemaData)) {
-		schemaData.forEach((item, index) => {
+		schemaData.forEach((item: unknown, index: number) => {
 			if (!item || typeof item !== 'object') return;
-			if (item['@type']) {
-				if (Array.isArray(item['@type'])) {
-					item['@type'].forEach((type: string) => {
+			const record = item as Record<string, unknown>;
+			if (record['@type']) {
+				if (Array.isArray(record['@type'])) {
+					(record['@type'] as string[]).forEach((type: string) => {
 						addSchemaOrgDataToVariables(item, variables, `@${type}:`);
 					});
 				} else {
-					addSchemaOrgDataToVariables(item, variables, `@${item['@type']}:`);
+					addSchemaOrgDataToVariables(item, variables, `@${record['@type']}:`);
 				}
 			} else {
 				addSchemaOrgDataToVariables(item, variables, `[${index}]:`);
@@ -122,7 +121,7 @@ export function addSchemaOrgDataToVariables(
 		const objectKey = `{{schema:${prefix.replace(/\.$/, '')}}}`;
 		variables[objectKey] = JSON.stringify(schemaData);
 
-		Object.entries(schemaData).forEach(([key, value]) => {
+		Object.entries(schemaData as Record<string, unknown>).forEach(([key, value]) => {
 			if (key === '@type') return;
 
 			const variableKey = `{{schema:${prefix}${key}}}`;
@@ -130,7 +129,7 @@ export function addSchemaOrgDataToVariables(
 				variables[variableKey] = String(value);
 			} else if (Array.isArray(value)) {
 				variables[variableKey] = JSON.stringify(value);
-				value.forEach((item, index) => {
+				value.forEach((item: unknown, index: number) => {
 					addSchemaOrgDataToVariables(item, variables, `${prefix}${key}[${index}].`);
 				});
 			} else if (typeof value === 'object' && value !== null) {

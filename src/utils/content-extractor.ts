@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { createMarkdownContent } from 'defuddle/full';
-import type { ExtractedContent } from '../types/types';
+import type { ExtractedContent, SchemaOrgData } from '../types/types';
 import browser from './browser-polyfill';
 import { debugLog } from './debug';
 import { getElementByXPath, wrapElementWithMark, wrapTextWithMark } from './dom-utils';
@@ -37,8 +37,7 @@ interface ContentResponse {
 	content: string;
 	selectedHtml: string;
 	extractedContent: ExtractedContent;
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	schemaOrgData: any;
+	schemaOrgData: SchemaOrgData;
 	fullHtml: string;
 	highlights: AnyHighlightData[];
 	title: string;
@@ -114,8 +113,7 @@ export async function initializePageContent(
 	selectedHtml: string,
 	extractedContent: ExtractedContent,
 	currentUrl: string,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	schemaOrgData: any,
+	schemaOrgData: SchemaOrgData,
 	fullHtml: string,
 	highlights: AnyHighlightData[],
 	title: string,

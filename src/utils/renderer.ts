@@ -8,6 +8,7 @@
 // - Variable assignment (set)
 // - Whitespace control
 
+import type { TemplateValue } from '../types/types';
 import { applyFilterDirect as builtInApplyFilterDirect } from './filters';
 import {
 	type ASTNode,
@@ -44,16 +45,14 @@ const defaultApplyFilterDirect: ApplyFilterDirectFn = builtInApplyFilterDirect;
 /**
  * Function type for resolving variables asynchronously (e.g., selectors)
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-export type AsyncResolver = (name: string, context: RenderContext) => Promise<any>;
+export type AsyncResolver = (name: string, context: RenderContext) => Promise<TemplateValue>;
 
 /**
  * Context for rendering templates
  */
 export interface RenderContext {
 	/** Variables available in the template */
-	// biome-ignore lint/suspicious/noExplicitAny: template variables are dynamic
-	variables: Record<string, any>;
+	variables: Record<string, TemplateValue>;
 
 	/** Current URL for filter processing */
 	currentUrl: string;
@@ -65,8 +64,7 @@ export interface RenderContext {
 	asyncResolver?: AsyncResolver;
 
 	/** Custom filter functions (optional, merged with built-in filters) */
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	filters?: Record<string, (...args: any[]) => any>;
+	filters?: Record<string, (...args: TemplateValue[]) => TemplateValue>;
 
 	/** Custom applyFilterDirect implementation (optional, uses built-in if not provided) */
 	applyFilterDirect?: ApplyFilterDirectFn;
@@ -277,8 +275,9 @@ function formatFilterArgs(args: Expression[]): string {
 			}
 			return String(val);
 		}
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		return String((arg as any).value || (arg as any).name || '');
+		if ('value' in arg) return String((arg as unknown as LiteralExpression).value ?? '');
+		if ('name' in arg) return String((arg as unknown as IdentifierExpression).name ?? '');
+		return '';
 	});
 	if (formatted.length > 1) {
 		return `(${formatted.join(',')})`;
@@ -477,8 +476,7 @@ async function renderNodes(nodes: ASTNode[], state: RenderState): Promise<string
  */
 function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, state: RenderState): string {
 	// Handle trimLeft - trim trailing whitespace from previous output
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	if ('trimLeft' in node && (node as any).trimLeft && output.length > 0) {
+	if ('trimLeft' in node && (node as unknown as Record<string, unknown>).trimLeft && output.length > 0) {
 		output = trimTrailingWhitespace(output);
 	}
 
@@ -497,8 +495,7 @@ function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, sta
 // Expression Evaluation
 // ============================================================================
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateExpression(expr: Expression, state: RenderState): Promise<any> {
+async function evaluateExpression(expr: Expression, state: RenderState): Promise<TemplateValue> {
 	switch (expr.type) {
 		case 'literal':
 			return evaluateLiteral(expr);
@@ -527,13 +524,11 @@ async function evaluateExpression(expr: Expression, state: RenderState): Promise
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function evaluateLiteral(expr: LiteralExpression): any {
+function evaluateLiteral(expr: LiteralExpression): TemplateValue {
 	return expr.value;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState): Promise<any> {
+async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState): Promise<TemplateValue> {
 	const name = expr.name;
 
 	// Check for special prefixes that need async resolution or post-processing
@@ -565,8 +560,7 @@ async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState
 	return resolveVariable(name, state.context.variables);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateMember(expr: MemberExpression, state: RenderState): Promise<any> {
+async function evaluateMember(expr: MemberExpression, state: RenderState): Promise<TemplateValue> {
 	const object = await evaluateExpression(expr.object, state);
 	const property = await evaluateExpression(expr.property, state);
 
@@ -585,15 +579,14 @@ async function evaluateMember(expr: MemberExpression, state: RenderState): Promi
 	}
 
 	// Object property access
-	if (typeof object === 'object' && property !== undefined) {
-		return object[property];
+	if (typeof object === 'object' && object !== null && !Array.isArray(object) && property !== undefined) {
+		return (object as Record<string, TemplateValue>)[String(property)];
 	}
 
 	return undefined;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promise<any> {
+async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promise<TemplateValue> {
 	// Handle nullish coalescing with short-circuit evaluation
 	if (expr.operator === '??') {
 		const left = await evaluateExpression(expr.left, state);
@@ -613,13 +606,13 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 		case '!=':
 			return left !== right;
 		case '>':
-			return left > right;
+			return Number(left) > Number(right);
 		case '<':
-			return left < right;
+			return Number(left) < Number(right);
 		case '>=':
-			return left >= right;
+			return Number(left) >= Number(right);
 		case '<=':
-			return left <= right;
+			return Number(left) <= Number(right);
 		case 'contains':
 			return evaluateContains(left, right);
 		case 'and':
@@ -631,8 +624,7 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise<any> {
+async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise<TemplateValue> {
 	const argument = await evaluateExpression(expr.argument, state);
 
 	switch (expr.operator) {
@@ -643,13 +635,11 @@ async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-async function evaluateFilter(expr: FilterExpression, state: RenderState): Promise<any> {
+async function evaluateFilter(expr: FilterExpression, state: RenderState): Promise<TemplateValue> {
 	const value = await evaluateExpression(expr.value, state);
 
 	// Evaluate filter arguments
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const args: any[] = [];
+	const args: TemplateValue[] = [];
 	for (const arg of expr.args) {
 		let argValue = await evaluateExpression(arg, state);
 		// If a filter argument is an identifier that resolved to undefined,
@@ -698,8 +688,7 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	return applyFilterDirectFn(stringValue, expr.name, paramString, state.context.currentUrl);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function evaluateContains(left: any, right: any): boolean {
+function evaluateContains(left: TemplateValue, right: TemplateValue): boolean {
 	if (left === undefined || left === null) return false;
 	if (right === undefined || right === null) return false;
 
@@ -731,8 +720,7 @@ function evaluateContains(left: any, right: any): boolean {
  * Schema variables can be stored with full keys like {{schema:@Movie.genre}}
  * but referenced with shorthand like schema:genre.
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function resolveSchemaVariable(name: string, variables: Record<string, any>): any {
+function resolveSchemaVariable(name: string, variables: Record<string, TemplateValue>): TemplateValue {
 	// name is like "schema:genre" or "schema:@Movie.genre" or "schema:director[*].name"
 	const schemaKey = name.slice('schema:'.length);
 
@@ -768,8 +756,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
  * Resolve a schema key to its raw value from variables (before parsing).
  * Handles exact match, plain key, and shorthand resolution.
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): any {
+function resolveSchemaKey(schemaKey: string, variables: Record<string, TemplateValue>): TemplateValue {
 	const name = `schema:${schemaKey}`;
 
 	// Try exact match first with {{ }} wrapper
@@ -798,8 +785,7 @@ function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): an
 /**
  * Parse a schema value - if it's a JSON string, parse it to get the actual value.
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function parseSchemaValue(value: any): any {
+function parseSchemaValue(value: TemplateValue): TemplateValue {
 	if (typeof value === 'string') {
 		// Try to parse as JSON to get arrays/objects
 		if (value.startsWith('[') || value.startsWith('{')) {
@@ -813,8 +799,7 @@ function parseSchemaValue(value: any): any {
 	return value;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function resolveVariable(name: string, variables: Record<string, any>): any {
+function resolveVariable(name: string, variables: Record<string, TemplateValue>): TemplateValue {
 	const trimmed = name.trim();
 
 	// Try with {{ }} wrapper first (how variables are stored)
@@ -836,28 +821,44 @@ function resolveVariable(name: string, variables: Record<string, any>): any {
 	return undefined;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: TemplateValue, path: string): TemplateValue {
 	if (!path || !obj) return undefined;
 
 	const keys = path.split('.');
-	let value = obj;
+	let value: TemplateValue = obj;
 
 	for (const key of keys) {
 		if (value === undefined || value === null) return undefined;
+		if (typeof value !== 'object') return undefined;
+
+		if (Array.isArray(value)) {
+			// Handle bracket notation on arrays: items[0]
+			if (key.includes('[') && key.includes(']')) {
+				const match = key.match(/^([^[]*)\[([^\]]+)\]/);
+				if (match) {
+					const [, , indexStr] = match;
+					const index = parseInt(indexStr!, 10);
+					value = value[index] as TemplateValue;
+					continue;
+				}
+			}
+			return undefined;
+		}
+
+		const record = value as Record<string, TemplateValue>;
 
 		// Handle bracket notation: items[0]
 		if (key.includes('[') && key.includes(']')) {
 			const match = key.match(/^([^[]*)\[([^\]]+)\]/);
 			if (match) {
 				const [, arrayKey, indexStr] = match;
-				const baseValue = arrayKey ? value[arrayKey] : value;
+				const baseValue = arrayKey ? record[arrayKey] : value;
 				if (Array.isArray(baseValue)) {
 					const index = parseInt(indexStr!, 10);
-					value = baseValue[index];
-				} else if (baseValue && typeof baseValue === 'object') {
+					value = baseValue[index] as TemplateValue;
+				} else if (baseValue && typeof baseValue === 'object' && !Array.isArray(baseValue)) {
 					const cleanIndex = indexStr?.replace(/^["']|["']$/g, '') ?? '';
-					value = baseValue[cleanIndex];
+					value = (baseValue as Record<string, TemplateValue>)[cleanIndex];
 				} else {
 					return undefined;
 				}
@@ -866,10 +867,10 @@ function getNestedValue(obj: any, path: string): any {
 		}
 
 		// Try wrapped key first
-		if (value[`{{${key}}}`] !== undefined) {
-			value = value[`{{${key}}}`];
+		if (record[`{{${key}}}`] !== undefined) {
+			value = record[`{{${key}}}`];
 		} else {
-			value = value[key];
+			value = record[key];
 		}
 	}
 
@@ -908,8 +909,7 @@ function isQuotedString(str: string): boolean {
 /**
  * Check if a value is "truthy" for template conditionals
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function isTruthy(value: any): boolean {
+function isTruthy(value: TemplateValue): boolean {
 	if (value === undefined || value === null) return false;
 	if (value === '') return false;
 	if (value === 0) return false;
@@ -921,8 +921,7 @@ function isTruthy(value: any): boolean {
 /**
  * Convert any value to a string for output
  */
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function valueToString(value: any): string {
+function valueToString(value: TemplateValue): string {
 	if (value === undefined || value === null) {
 		return '';
 	}
@@ -944,8 +943,7 @@ function valueToString(value: any): string {
  */
 export async function renderTemplate(
 	template: string,
-	// biome-ignore lint/suspicious/noExplicitAny: template variables are dynamic
-	variables: Record<string, any>,
+	variables: Record<string, TemplateValue>,
 	currentUrl: string = '',
 ): Promise<string> {
 	const result = await render(template, { variables, currentUrl });
@@ -960,11 +958,9 @@ export async function renderTemplate(
  */
 export function createSelectorResolver(
 	tabId: number,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	sendMessage: (tabId: number, message: any) => Promise<any>,
+	sendMessage: (tabId: number, message: Record<string, TemplateValue>) => Promise<TemplateValue>,
 ): AsyncResolver {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	return async (name: string, _context: RenderContext): Promise<any> => {
+	return async (name: string, _context: RenderContext): Promise<TemplateValue> => {
 		const extractHtml = name.startsWith('selectorHtml:');
 		const prefix = extractHtml ? 'selectorHtml:' : 'selector:';
 		const selectorPart = name.slice(prefix.length);
@@ -982,7 +978,10 @@ export function createSelectorResolver(
 				extractHtml: extractHtml,
 			});
 
-			return response ? response.content : undefined;
+			if (response && typeof response === 'object' && !Array.isArray(response)) {
+				return (response as Record<string, TemplateValue>).content;
+			}
+			return undefined;
 		} catch (error) {
 			console.error('Error extracting content by selector:', error);
 			return undefined;
