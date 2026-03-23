@@ -1,4 +1,4 @@
-import { type IBatchBlock } from './logseq-api';
+import type { IBatchBlock } from './logseq-api';
 
 /**
  * Segment types produced by the parser.
@@ -50,12 +50,12 @@ function parseSegments(markdown: string): Segment[] {
 
 		// Fenced code block
 		if (/^(`{3,}|~{3,})/.test(line)) {
-			const fence = line.match(/^(`{3,}|~{3,})/)![1]!;
+			const fence = line.match(/^(`{3,}|~{3,})/)?.[1] ?? '```';
 			const codeLines: string[] = [line];
 			i++;
 			while (i < lines.length) {
 				codeLines.push(lines[i]!);
-				if (lines[i]!.trimEnd() === fence) {
+				if (lines[i]?.trimEnd() === fence) {
 					i++;
 					break;
 				}
@@ -67,7 +67,7 @@ function parseSegments(markdown: string): Segment[] {
 
 		// Heading
 		if (/^#{1,6}\s/.test(line)) {
-			const level = line.match(/^(#{1,6})\s/)![1]!.length;
+			const level = line.match(/^(#{1,6})\s/)?.[1]?.length ?? 1;
 			segments.push({ type: 'heading', level, raw: line });
 			i++;
 			continue;
@@ -76,7 +76,7 @@ function parseSegments(markdown: string): Segment[] {
 		// Table (line contains | and the next line is a separator row)
 		if (isTableStart(lines, i)) {
 			const tableLines: string[] = [];
-			while (i < lines.length && lines[i]!.trim() !== '' && lines[i]!.includes('|')) {
+			while (i < lines.length && lines[i]?.trim() !== '' && lines[i]?.includes('|')) {
 				tableLines.push(lines[i]!);
 				i++;
 			}
@@ -98,7 +98,11 @@ function parseSegments(markdown: string): Segment[] {
 		// Unordered or ordered list
 		if (isListItem(line)) {
 			const listLines: string[] = [];
-			while (i < lines.length && lines[i]!.trim() !== '' && (isListItem(lines[i]!) || isIndentedLine(lines[i]!))) {
+			while (
+				i < lines.length &&
+				lines[i]?.trim() !== '' &&
+				(isListItem(lines[i]!) || isIndentedLine(lines[i]!))
+			) {
 				listLines.push(lines[i]!);
 				i++;
 			}
@@ -110,7 +114,7 @@ function parseSegments(markdown: string): Segment[] {
 		const paraLines: string[] = [];
 		while (
 			i < lines.length &&
-			lines[i]!.trim() !== '' &&
+			lines[i]?.trim() !== '' &&
 			!/^#{1,6}\s/.test(lines[i]!) &&
 			!/^(`{3,}|~{3,})/.test(lines[i]!) &&
 			!/^>\s?/.test(lines[i]!) &&
@@ -138,7 +142,7 @@ function isIndentedLine(line: string): boolean {
 }
 
 function isTableStart(lines: string[], i: number): boolean {
-	if (!lines[i]!.includes('|')) return false;
+	if (!lines[i]?.includes('|')) return false;
 	// Check if next non-empty line is a separator row like |---|---|
 	if (i + 1 < lines.length && /^\|?\s*[-:]+[-|\s:]*$/.test(lines[i + 1]!)) {
 		return true;
@@ -158,23 +162,23 @@ function parseListItems(lines: string[]): ListItem[] {
 		const match = line.match(/^(\s*)([-*]\s|\d+\.\s)(.*)/);
 		if (!match) continue; // skip continuation lines for simplicity
 
-		const indent = match[1]!.length;
+		const indent = match[1]?.length ?? 0;
 		const content = match[3]!;
 
 		const item: ListItem = { content, children: [] };
 
 		// Pop stack until we find a parent with strictly less indent
-		while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
+		while (stack.length > 0 && (stack[stack.length - 1]?.indent ?? 0) >= indent) {
 			stack.pop();
 		}
 
 		if (stack.length === 0) {
 			root.push(item);
 		} else {
-			stack[stack.length - 1]!.item.children.push(item);
+			stack[stack.length - 1]?.item.children.push(item);
 		}
 
-		stack.push({ indent, item, children: item.children });
+		stack.push({ indent: indent ?? 0, item, children: item.children });
 	}
 
 	return root;
@@ -195,9 +199,11 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 		if (headingStack.length === 0) {
 			result.push(block);
 		} else {
-			const parent = headingStack[headingStack.length - 1]!.block;
-			if (!parent.children) parent.children = [];
-			parent.children.push(block);
+			const parentEntry = headingStack[headingStack.length - 1];
+			if (parentEntry) {
+				if (!parentEntry.block.children) parentEntry.block.children = [];
+				parentEntry.block.children.push(block);
+			}
 		}
 	}
 
@@ -206,7 +212,7 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 			const block: IBatchBlock = { content: seg.raw };
 
 			// Pop headings from stack that are same level or deeper
-			while (headingStack.length > 0 && headingStack[headingStack.length - 1]!.level >= seg.level) {
+			while (headingStack.length > 0 && (headingStack[headingStack.length - 1]?.level ?? 0) >= seg.level) {
 				headingStack.pop();
 			}
 
@@ -214,9 +220,11 @@ function buildHierarchy(segments: Segment[]): IBatchBlock[] {
 			if (headingStack.length === 0) {
 				result.push(block);
 			} else {
-				const parent = headingStack[headingStack.length - 1]!.block;
-				if (!parent.children) parent.children = [];
-				parent.children.push(block);
+				const parentEntry = headingStack[headingStack.length - 1];
+				if (parentEntry) {
+					if (!parentEntry.block.children) parentEntry.block.children = [];
+					parentEntry.block.children.push(block);
+				}
 			}
 
 			headingStack.push({ level: seg.level, block });

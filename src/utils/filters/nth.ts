@@ -9,13 +9,13 @@ export const validateNthParams = (param: string | undefined): ParamValidationRes
 	// Check for basis pattern (e.g., "1,2,3:7")
 	if (param.includes(':')) {
 		const [positions, basis] = param.split(':').map((p) => p.trim());
-		const nthValues = positions!.split(',').map((n) => parseInt(n.trim(), 10));
+		const nthValues = positions?.split(',').map((n) => parseInt(n.trim(), 10));
 		const basisSize = parseInt(basis!, 10);
 
-		if (nthValues.some((n) => isNaN(n) || n < 1)) {
+		if (!nthValues || nthValues.some((n) => Number.isNaN(n) || n < 1)) {
 			return { valid: false, error: 'positions must be positive numbers (e.g., nth:1,2,3:7)' };
 		}
-		if (isNaN(basisSize) || basisSize < 1) {
+		if (Number.isNaN(basisSize) || basisSize < 1) {
 			return { valid: false, error: 'basis must be a positive number (e.g., nth:1,2,3:7)' };
 		}
 		return { valid: true };
@@ -61,16 +61,16 @@ export const nth = (str: string, params?: string): string => {
 		// Check if we have a basis pattern (e.g., "1,2,3:7")
 		if (params.includes(':')) {
 			const [positions, basis] = params.split(':').map((p) => p.trim());
-			const nthValues = positions!
-				.split(',')
+			const nthValues = positions
+				?.split(',')
 				.map((n) => parseInt(n.trim(), 10))
-				.filter((n) => !isNaN(n) && n > 0);
+				.filter((n) => !Number.isNaN(n) && n > 0);
 			const basisSize = parseInt(basis!, 10);
 
 			return JSON.stringify(
 				data.filter((_, index) => {
 					const positionInGroup = (index % basisSize) + 1;
-					return nthValues.includes(positionInGroup);
+					return nthValues?.includes(positionInGroup) ?? false;
 				}),
 			);
 		}

@@ -64,7 +64,7 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${config.token}`,
+				Authorization: `Bearer ${config.token}`,
 			},
 			body: JSON.stringify({ method, args }),
 			signal: AbortSignal.timeout(60_000),
@@ -181,7 +181,7 @@ export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<
 	if (results && results.length > 0) {
 		// Query may return [null] entries for blocks with journal-day — find the actual page
 		for (const row of results) {
-			if (row[0] && row[0].name) {
+			if (row[0]?.name) {
 				return row[0]['original-name'] || row[0].name;
 			}
 		}

@@ -30,7 +30,7 @@ export const template = (input: string | any[], param?: string): string => {
 		try {
 			obj = JSON.parse(input);
 			debugLog('Template', 'Parsed input:', obj);
-		} catch (error) {
+		} catch (_error) {
 			debugLog('Template', 'Parsing failed, using input as is');
 			obj = [input];
 		}
@@ -59,7 +59,7 @@ function replaceTemplateVariables(obj: any, template: string): string {
 		try {
 			obj = parseObjectString(obj);
 			debugLog('Template', 'Parsed object:', obj);
-		} catch (error) {
+		} catch (_error) {
 			debugLog('Template', 'Failed to parse object string:', obj);
 		}
 		// Ensure str property is set for plain strings
@@ -96,15 +96,16 @@ function parseObjectString(str: string): any {
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const obj: any = {};
 	const regex = /(\w+):\s*("(?:\\.|[^"\\])*"|[^,}]+)/g;
-	let match;
+	let match: RegExpExecArray | null = regex.exec(str);
 
-	while ((match = regex.exec(str)) !== null) {
+	while (match !== null) {
 		let [, key, value] = match;
 		// Remove quotes from the value if it's a string
-		if (value!.startsWith('"') && value!.endsWith('"')) {
-			value = value!.slice(1, -1);
+		if (value?.startsWith('"') && value?.endsWith('"')) {
+			value = value?.slice(1, -1);
 		}
 		obj[key!] = value === 'undefined' ? undefined : value;
+		match = regex.exec(str);
 	}
 
 	return obj;

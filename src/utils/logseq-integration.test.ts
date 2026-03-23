@@ -12,20 +12,20 @@
  * Tests create and clean up their own data using a unique prefix.
  */
 
-import { describe, test, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { afterAll, afterEach, describe, expect, test } from 'vitest';
 import {
-	type LogseqApiConfig,
+	appendBlockInPage,
 	checkConnection,
 	createPage,
 	getPage,
-	appendBlockInPage,
-	prependBlockInPage,
-	insertBatchBlock,
 	getPageBlocksTree,
+	getTodayJournalPageName,
+	insertBatchBlock,
+	type LogseqApiConfig,
+	prependBlockInPage,
 	queryByProperty,
 	removeBlock,
 	upsertBlockProperty,
-	getTodayJournalPageName,
 } from './logseq-api';
 
 // --- Config ---
@@ -50,7 +50,7 @@ async function deletePage(name: string): Promise<void> {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${TOKEN}`,
+				Authorization: `Bearer ${TOKEN}`,
 			},
 			body: JSON.stringify({
 				method: 'logseq.Editor.deletePage',
@@ -70,7 +70,7 @@ async function isLogseqRunning(): Promise<boolean> {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${TOKEN}`,
+				Authorization: `Bearer ${TOKEN}`,
 			},
 			body: JSON.stringify({ method: 'logseq.App.getCurrentGraph', args: [] }),
 			signal: AbortSignal.timeout(2000),
@@ -93,7 +93,9 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		for (const uuid of createdBlockUuids) {
 			try {
 				await removeBlock(config, uuid);
-			} catch { /* best effort */ }
+			} catch {
+				/* best effort */
+			}
 		}
 		createdBlockUuids.length = 0;
 	});
@@ -118,7 +120,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 		const found = await getPage(config, pageName);
 		expect(found).not.toBeNull();
-		expect(found!.name).toBe(pageName.toLowerCase());
+		expect(found?.name).toBe(pageName.toLowerCase());
 	});
 
 	test('createPage is idempotent — returns existing page', async () => {
@@ -173,7 +175,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 		const tree = await getPageBlocksTree(config, pageName);
 		// Prepended block should be first (after any empty initial block)
-		const firstNonEmpty = tree.find(b => b.content.trim() !== '');
+		const firstNonEmpty = tree.find((b) => b.content.trim() !== '');
 		expect(firstNonEmpty?.content).toBe('Prepended block');
 	});
 
@@ -194,16 +196,16 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		]);
 
 		const tree = await getPageBlocksTree(config, pageName);
-		const parentBlock = tree.find(b => b.content === 'Parent block');
+		const parentBlock = tree.find((b) => b.content === 'Parent block');
 		expect(parentBlock).toBeDefined();
-		expect(parentBlock!.children).toBeDefined();
-		expect(parentBlock!.children!.length).toBeGreaterThanOrEqual(2);
+		expect(parentBlock?.children).toBeDefined();
+		expect(parentBlock?.children?.length).toBeGreaterThanOrEqual(2);
 
-		const child2 = parentBlock!.children!.find(c => c.content === 'Child 2');
+		const child2 = parentBlock?.children?.find((c) => c.content === 'Child 2');
 		expect(child2).toBeDefined();
-		expect(child2!.children).toBeDefined();
-		expect(child2!.children!.length).toBeGreaterThanOrEqual(1);
-		expect(child2!.children![0].content).toBe('Grandchild');
+		expect(child2?.children).toBeDefined();
+		expect(child2?.children?.length).toBeGreaterThanOrEqual(1);
+		expect(child2?.children?.[0].content).toBe('Grandchild');
 	});
 
 	test('upsertBlockProperty sets properties on a block', async () => {
@@ -215,13 +217,11 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		await upsertBlockProperty(config, block.uuid, 'test-key', 'test-value');
 
 		const tree = await getPageBlocksTree(config, pageName);
-		const propsBlock = tree.find(b => b.content.includes('Block with props'));
+		const propsBlock = tree.find((b) => b.content.includes('Block with props'));
 		expect(propsBlock).toBeDefined();
-		expect(propsBlock!.properties).toBeDefined();
+		expect(propsBlock?.properties).toBeDefined();
 		// Logseq camelCases property keys in the API response
-		expect(
-			propsBlock!.properties!['testKey'] || propsBlock!.properties!['test-key'],
-		).toBe('test-value');
+		expect(propsBlock?.properties?.testKey || propsBlock?.properties?.['test-key']).toBe('test-value');
 	});
 
 	test('upsertBlockProperty works on page UUID', async () => {
@@ -253,9 +253,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 	test('removeBlock silently handles non-existent UUID', async () => {
 		// Should not throw — Logseq returns null/200 for non-existent blocks
-		await expect(
-			removeBlock(config, '00000000-0000-0000-0000-000000000000'),
-		).resolves.not.toThrow();
+		await expect(removeBlock(config, '00000000-0000-0000-0000-000000000000')).resolves.not.toThrow();
 	});
 
 	test('getTodayJournalPageName returns a non-empty string', async () => {
@@ -275,7 +273,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		createdBlockUuids.push(block.uuid);
 
 		// Give Logseq a moment to index
-		await new Promise(resolve => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 500));
 
 		const results = await queryByProperty(config, 'test-prop', uniqueValue);
 		expect(results.length).toBeGreaterThanOrEqual(1);
@@ -283,9 +281,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 	test('queryByProperty handles special characters in value', async () => {
 		// Should not throw even with quotes in the value
-		await expect(
-			queryByProperty(config, 'source', 'https://example.com/path?q="test"'),
-		).resolves.not.toThrow();
+		await expect(queryByProperty(config, 'source', 'https://example.com/path?q="test"')).resolves.not.toThrow();
 	});
 
 	test('full append-daily flow: separator + metadata + children', async () => {
@@ -302,21 +298,23 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		createdBlockUuids.push(parent.uuid);
 
 		// Content as children
-		await insertBatchBlock(config, parent.uuid, [
-			{ content: 'Test content line 1' },
-			{ content: 'Test content line 2' },
-		], { sibling: false });
+		await insertBatchBlock(
+			config,
+			parent.uuid,
+			[{ content: 'Test content line 1' }, { content: 'Test content line 2' }],
+			{ sibling: false },
+		);
 
 		// Verify structure
 		const tree = await getPageBlocksTree(config, journalPage);
-		const metaBlock = tree.find(b => b.content.includes('resource:: Integration Test'));
+		const metaBlock = tree.find((b) => b.content.includes('resource:: Integration Test'));
 		expect(metaBlock).toBeDefined();
-		expect(metaBlock!.children).toBeDefined();
-		expect(metaBlock!.children!.length).toBeGreaterThanOrEqual(2);
-		expect(metaBlock!.children![0].content).toBe('Test content line 1');
+		expect(metaBlock?.children).toBeDefined();
+		expect(metaBlock?.children?.length).toBeGreaterThanOrEqual(2);
+		expect(metaBlock?.children?.[0].content).toBe('Test content line 1');
 
 		// Also clean up the separator (block before the metadata block)
-		const metaIndex = tree.findIndex(b => b.content.includes('resource:: Integration Test'));
+		const metaIndex = tree.findIndex((b) => b.content.includes('resource:: Integration Test'));
 		if (metaIndex > 0 && tree[metaIndex - 1].content.trim() === '') {
 			createdBlockUuids.push(tree[metaIndex - 1].uuid);
 		}

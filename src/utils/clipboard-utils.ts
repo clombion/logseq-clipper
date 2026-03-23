@@ -7,7 +7,7 @@ import { debugLog } from './debug';
 function isInIframe(): boolean {
 	try {
 		return window.self !== window.top;
-	} catch (e) {
+	} catch (_e) {
 		// If we can't access window.top due to cross-origin restrictions, we're likely in an iframe
 		return true;
 	}
@@ -41,7 +41,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 				text: text,
 			})) as { success: boolean; error?: string } | undefined;
 
-			if (response && response.success) {
+			if (response?.success) {
 				debugLog('Clipboard', 'Successfully copied to clipboard using content script fallback');
 				return true;
 			} else {

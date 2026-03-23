@@ -22,7 +22,7 @@ export const validateCalcParams = (param: string | undefined): ParamValidationRe
 
 	// Check that there's a number after the operator
 	const valueStr = operation.slice(operator === '**' ? 2 : 1);
-	if (!valueStr || isNaN(Number(valueStr))) {
+	if (!valueStr || Number.isNaN(Number(valueStr))) {
 		return { valid: false, error: 'requires a number after the operator (e.g., "+10")' };
 	}
 
@@ -37,7 +37,7 @@ export const calc = (str: string, param?: string): string => {
 	try {
 		// Convert input to number
 		const num = Number(str);
-		if (isNaN(num)) {
+		if (Number.isNaN(num)) {
 			console.error('Input is not a number:', str);
 			return str;
 		}
@@ -49,7 +49,7 @@ export const calc = (str: string, param?: string): string => {
 		const operator = operation.slice(0, 2) === '**' ? '**' : operation.charAt(0);
 		const value = Number(operation.slice(operator === '**' ? 2 : 1));
 
-		if (isNaN(value)) {
+		if (Number.isNaN(value)) {
 			console.error('Invalid calculation value:', operation);
 			return str;
 		}
@@ -70,7 +70,7 @@ export const calc = (str: string, param?: string): string => {
 				break;
 			case '**':
 			case '^':
-				result = Math.pow(num, value);
+				result = num ** value;
 				break;
 			default:
 				console.error('Invalid operator:', operator);

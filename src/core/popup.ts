@@ -1,29 +1,33 @@
-import dayjs from 'dayjs';
-import { Template, Property, PromptVariable } from '../types/types';
-import { incrementStat, addHistoryEntry, getClipHistory } from '../utils/storage-utils';
-import { saveToLogseq, checkDuplicate, updateExistingClip } from '../utils/logseq-note-creator';
-import { LogseqConnectionError, LogseqAuthError, LogseqApiError } from '../utils/logseq-api';
-import { generateFrontmatter, formatPropertyValue } from '../utils/shared';
-import { extractPageContent, initializePageContent } from '../utils/content-extractor';
-import { compileTemplate } from '../utils/template-compiler';
-import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
-import { findMatchingTemplate, initializeTriggers } from '../utils/triggers';
-import { getLocalStorage, setLocalStorage, loadSettings, generalSettings, Settings } from '../utils/storage-utils';
-import { escapeHtml, unescapeValue } from '../utils/string-utils';
-import { loadTemplates, createDefaultTemplate } from '../managers/template-manager';
-import browser from '../utils/browser-polyfill';
-import { addBrowserClassToHtml, detectBrowser } from '../utils/browser-detection';
-import { createElementWithClass } from '../utils/dom-utils';
-import { initializeInterpreter, handleInterpreterUI, collectPromptVariables } from '../utils/interpreter';
-import { adjustNoteNameHeight } from '../utils/ui-utils';
-import { debugLog } from '../utils/debug';
-import { showVariables, initializeVariablesPanel, updateVariablesPanel } from '../managers/inspect-variables';
+import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
+import { initializeVariablesPanel, showVariables, updateVariablesPanel } from '../managers/inspect-variables';
+import { loadTemplates } from '../managers/template-manager';
+import type { Property, Template } from '../types/types';
 import { isBlankPage, isValidUrl } from '../utils/active-tab-manager';
-import { memoizeWithExpiration } from '../utils/memoize';
+import { addBrowserClassToHtml, detectBrowser } from '../utils/browser-detection';
+import browser from '../utils/browser-polyfill';
+import { extractPageContent, initializePageContent } from '../utils/content-extractor';
 import { debounce } from '../utils/debounce';
-import { sanitizeFileName } from '../utils/string-utils';
+import { debugLog } from '../utils/debug';
+import { createElementWithClass } from '../utils/dom-utils';
 import { saveFile } from '../utils/file-utils';
-import { translatePage, getMessage, setupLanguageAndDirection } from '../utils/i18n';
+import { getMessage, setupLanguageAndDirection, translatePage } from '../utils/i18n';
+import { collectPromptVariables, handleInterpreterUI, initializeInterpreter } from '../utils/interpreter';
+import { LogseqApiError, LogseqAuthError, LogseqConnectionError } from '../utils/logseq-api';
+import { checkDuplicate, saveToLogseq, updateExistingClip } from '../utils/logseq-note-creator';
+import { memoizeWithExpiration } from '../utils/memoize';
+import { formatPropertyValue, generateFrontmatter } from '../utils/shared';
+import {
+	generalSettings,
+	getLocalStorage,
+	incrementStat,
+	loadSettings,
+	type Settings,
+	setLocalStorage,
+} from '../utils/storage-utils';
+import { sanitizeFileName, unescapeValue } from '../utils/string-utils';
+import { compileTemplate } from '../utils/template-compiler';
+import { findMatchingTemplate, initializeTriggers } from '../utils/triggers';
+import { adjustNoteNameHeight } from '../utils/ui-utils';
 
 interface ReaderModeResponse {
 	success: boolean;
@@ -48,7 +52,7 @@ const memoizedCompileTemplate = memoizeWithExpiration(
 	},
 	{
 		expirationMs: 5000,
-		keyFn: (tabId: number, template: string, variables: { [key: string]: string }, currentUrl: string) =>
+		keyFn: (tabId: number, template: string, _variables: { [key: string]: string }, currentUrl: string) =>
 			`${tabId}-${template}-${currentUrl}`,
 	},
 );
@@ -80,7 +84,7 @@ async function getTabInfo(tabId: number): Promise<{ id: number; url: string }> {
 		error?: string;
 	};
 	if (!response || !response.success || !response.tab) {
-		throw new Error((response && response.error) || 'Failed to get tab info');
+		throw new Error(response?.error || 'Failed to get tab info');
 	}
 	return response.tab;
 }
@@ -213,7 +217,7 @@ async function initializeExtension(tabId: number) {
 function setupMessageListeners() {
 	browser.runtime.onMessage.addListener(
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
+		(request: any, _sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
 			if (request.action === 'triggerQuickClip') {
 				handleClipLogseq()
 					.then(() => {
@@ -260,7 +264,7 @@ function setupMessageListeners() {
 	);
 }
 
-document.addEventListener('DOMContentLoaded', async function () {
+document.addEventListener('DOMContentLoaded', async () => {
 	loadedSettings = await loadSettings();
 	if (isIframe) {
 		document.documentElement.classList.add('is-embedded');
@@ -293,10 +297,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 					success?: boolean;
 					error?: string;
 				};
-				if (response && response.success) {
+				if (response?.success) {
 					window.close();
 					return; // Exit script after closing the window
-				} else if (response && response.error) {
+				} else if (response?.error) {
 					console.error('Error toggling iframe:', response.error);
 					// If there's an error, we'll fall through and open the normal popup.
 				}
@@ -320,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 		}
 		const settingsButton = document.getElementById('open-settings');
 		if (settingsButton) {
-			settingsButton.addEventListener('click', async function () {
+			settingsButton.addEventListener('click', async () => {
 				try {
 					await browser.runtime.sendMessage({ action: 'openOptionsPage' });
 					setTimeout(() => window.close(), 50);
@@ -380,7 +384,7 @@ function setupEventListeners(tabId: number) {
 	const noteNameField = document.getElementById('note-name-field') as HTMLTextAreaElement;
 	if (noteNameField) {
 		noteNameField.addEventListener('input', () => adjustNoteNameHeight(noteNameField));
-		noteNameField.addEventListener('keydown', function (e) {
+		noteNameField.addEventListener('keydown', (e) => {
 			if (e.key === 'Enter' && !e.shiftKey) {
 				e.preventDefault();
 			}
@@ -394,7 +398,7 @@ function setupEventListeners(tabId: number) {
 
 	const embeddedModeButton = document.getElementById('embedded-mode');
 	if (embeddedModeButton) {
-		embeddedModeButton.addEventListener('click', async function () {
+		embeddedModeButton.addEventListener('click', async () => {
 			try {
 				await browser.runtime.sendMessage({ action: 'getActiveTabAndToggleIframe' });
 				setTimeout(() => window.close(), 50);
@@ -408,7 +412,7 @@ function setupEventListeners(tabId: number) {
 	const moreDropdown = document.getElementById('more-dropdown');
 	const copyContentButton = document.getElementById('copy-content');
 	const saveDownloadsButton = document.getElementById('save-downloads');
-	const shareContentButton = document.getElementById('share-content');
+	const _shareContentButton = document.getElementById('share-content');
 
 	if (moreButton && moreDropdown) {
 		moreButton.addEventListener('click', (e) => {
@@ -445,7 +449,7 @@ function setupEventListeners(tabId: number) {
 	const shareButtons = document.querySelectorAll('.share-content');
 	if (shareButtons) {
 		shareButtons.forEach((button) => {
-			button.addEventListener('click', async (e) => {
+			button.addEventListener('click', async (_e) => {
 				// Get content synchronously
 				const properties = getPropertiesFromDOM();
 
@@ -455,50 +459,49 @@ function setupEventListeners(tabId: number) {
 				const frontmatter = buildFrontmatter(properties);
 				const noteContent = noteContentField.value;
 				Promise.resolve().then(() => {
-						const fileContent = frontmatter + noteContent;
+					const fileContent = frontmatter + noteContent;
 
-						// Call share directly from the click handler
-						const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
-						let fileName = noteNameField?.value || 'untitled';
-						fileName = sanitizeFileName(fileName);
-						if (!fileName.toLowerCase().endsWith('.md')) {
-							fileName += '.md';
+					// Call share directly from the click handler
+					const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
+					let fileName = noteNameField?.value || 'untitled';
+					fileName = sanitizeFileName(fileName);
+					if (!fileName.toLowerCase().endsWith('.md')) {
+						fileName += '.md';
+					}
+
+					if (navigator.share && navigator.canShare) {
+						const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
+						const file = new File([blob], fileName, { type: 'text/markdown;charset=utf-8' });
+
+						const shareData = {
+							files: [file],
+							text: 'Shared from Logseq Web Clipper',
+						};
+
+						if (navigator.canShare(shareData)) {
+							const pathField = document.getElementById('path-name-field') as HTMLInputElement;
+							const path = pathField?.value || '';
+
+							navigator
+								.share(shareData)
+								.then(async () => {
+									const tabInfo = await getCurrentTabInfo();
+									await incrementStat('share', path, tabInfo.url, tabInfo.title);
+									const moreDropdown = document.getElementById('more-dropdown');
+									const moreBtn = document.getElementById('more-btn');
+									if (moreDropdown) {
+										moreDropdown.classList.remove('show');
+									}
+									if (moreBtn) {
+										moreBtn.setAttribute('aria-expanded', 'false');
+									}
+								})
+								.catch((error) => {
+									console.error('Error sharing:', error);
+								});
 						}
-
-						if (navigator.share && navigator.canShare) {
-							const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
-							const file = new File([blob], fileName, { type: 'text/markdown;charset=utf-8' });
-
-							const shareData = {
-								files: [file],
-								text: 'Shared from Logseq Web Clipper',
-							};
-
-							if (navigator.canShare(shareData)) {
-								const pathField = document.getElementById('path-name-field') as HTMLInputElement;
-								const path = pathField?.value || '';
-
-								navigator
-									.share(shareData)
-									.then(async () => {
-										const tabInfo = await getCurrentTabInfo();
-										await incrementStat('share', path, tabInfo.url, tabInfo.title);
-										const moreDropdown = document.getElementById('more-dropdown');
-										const moreBtn = document.getElementById('more-btn');
-										if (moreDropdown) {
-											moreDropdown.classList.remove('show');
-										}
-										if (moreBtn) {
-											moreBtn.setAttribute('aria-expanded', 'false');
-										}
-									})
-									.catch((error) => {
-										console.error('Error sharing:', error);
-									});
-							}
-						}
-					},
-				);
+					}
+				});
 			});
 		});
 	}
@@ -579,7 +582,7 @@ function showError(messageKey: string): void {
 		document.body.classList.add('has-error');
 	}
 }
-function clearError(): void {
+function _clearError(): void {
 	const errorMessage = document.querySelector('.error-message') as HTMLElement;
 	const clipper = document.querySelector('.clipper') as HTMLElement;
 
@@ -592,7 +595,7 @@ function clearError(): void {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function logError(message: string, error?: any): void {
+function _logError(message: string, error?: any): void {
 	console.error(message, error);
 	showError(message);
 }
@@ -783,7 +786,7 @@ function buildTemplateFieldsSkeleton(template: Template | null) {
 	}
 
 	// Replace the existing element
-	if (existingTemplateProperties && existingTemplateProperties.parentNode) {
+	if (existingTemplateProperties?.parentNode) {
 		existingTemplateProperties.parentNode.replaceChild(newTemplateProperties, existingTemplateProperties);
 		existingTemplateProperties.remove();
 	}
@@ -843,7 +846,7 @@ async function fillTemplateFieldValues(
 	template: Template | null,
 	variables: { [key: string]: string },
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	schemaOrgData?: any,
+	_schemaOrgData?: any,
 ) {
 	if (!template) return;
 
@@ -988,12 +991,12 @@ function updateMetadataToggleState(isCollapsed: boolean) {
 	}
 }
 
-async function getReplacedTemplate(
+async function _getReplacedTemplate(
 	template: Template,
 	variables: { [key: string]: string },
 	tabId: number,
 	currentUrl: string,
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 ): Promise<any> {
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const replacedTemplate: any = {
@@ -1058,7 +1061,7 @@ async function toggleHighlighterMode(tabId: number) {
 			tabId: tabId,
 		})) as { success: boolean; isActive: boolean; error?: string };
 
-		if (response && response.success) {
+		if (response?.success) {
 			const isNowActive = response.isActive;
 			updateHighlighterModeUI(isNowActive);
 
@@ -1096,7 +1099,7 @@ async function toggleReaderMode(tabId: number) {
 			tabId: tabId,
 		})) as ReaderModeResponse;
 
-		if (response && response.success) {
+		if (response?.success) {
 			const readerButton = document.getElementById('reader-mode');
 			if (readerButton) {
 				const isActive = response.isActive ?? false;
@@ -1151,7 +1154,7 @@ async function handleSaveToDownloads() {
 		const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
 		const pathField = document.getElementById('path-name-field') as HTMLInputElement;
 
-		let fileName = noteNameField?.value || 'untitled';
+		const fileName = noteNameField?.value || 'untitled';
 		const path = pathField?.value || '';
 
 		const properties = getPropertiesFromDOM();
@@ -1165,7 +1168,7 @@ async function handleSaveToDownloads() {
 			fileName,
 			mimeType: 'text/markdown',
 			tabId: currentTabId,
-			onError: (error) => showError('failedToSaveFile'),
+			onError: (_error) => showError('failedToSaveFile'),
 		});
 
 		const tabInfo = await getCurrentTabInfo();
@@ -1269,7 +1272,7 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 			if (dup.exists) {
 				const action = confirm(
 					`This URL was already clipped${dup.clippedAt ? ` on ${dup.clippedAt}` : ''} to page '${dup.pageTitle}'. ` +
-					`Press OK to update existing, or Cancel to create new.`
+						`Press OK to update existing, or Cancel to create new.`,
 				);
 				if (action) {
 					await updateExistingClip(dup.pageTitle!, noteContent, properties, currentUrl);

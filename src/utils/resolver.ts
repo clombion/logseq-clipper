@@ -106,7 +106,7 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 	try {
 		const response = (await browser.tabs.sendMessage(tabId, {
 			action: 'extractContent',
-			selector: selector!.replace(/\\"/g, '"'),
+			selector: selector?.replace(/\\"/g, '"'),
 			attribute: attribute,
 			extractHtml: extractHtml,
 		})) as { content: string | string[] };
@@ -124,7 +124,7 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 // biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: any }): any {
 	// Try direct lookup: {{schema:@type}}
-	let value = variables[`{{${schemaKey}}}`];
+	const value = variables[`{{${schemaKey}}}`];
 	if (value !== undefined) {
 		return value;
 	}
@@ -159,7 +159,7 @@ export function getNestedValue(obj: any, path: string): any {
 
 		// Handle bracket notation for array access: items[0]
 		if (key.includes('[') && key.includes(']')) {
-			const match = key.match(/^([^\[]*)\[([^\]]+)\]/);
+			const match = key.match(/^([^[]*)\[([^\]]+)\]/);
 			if (match) {
 				const [, arrayKey, indexStr] = match;
 				const baseValue = arrayKey ? value[arrayKey] : value;
@@ -169,7 +169,7 @@ export function getNestedValue(obj: any, path: string): any {
 				}
 				// Also handle object bracket notation: obj["key"]
 				if (baseValue && typeof baseValue === 'object') {
-					return baseValue[indexStr!.replace(/^["']|["']$/g, '')];
+					return baseValue[indexStr?.replace(/^["']|["']$/g, '') ?? ''];
 				}
 				return undefined;
 			}

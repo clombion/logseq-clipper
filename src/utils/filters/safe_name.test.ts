@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { safe_name, validateSafeNameParams } from './safe_name';
 
 describe('safe_name filter', () => {

@@ -72,7 +72,7 @@ export function updateToggleState(container: HTMLElement, checkbox: HTMLInputEle
 
 export function adjustNoteNameHeight(textarea: HTMLTextAreaElement): void {
 	textarea.style.minHeight = '2rem';
-	textarea.style.minHeight = textarea.scrollHeight + 'px';
+	textarea.style.minHeight = `${textarea.scrollHeight}px`;
 }
 
 export function initializeSettingToggle(

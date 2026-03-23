@@ -1,10 +1,10 @@
-import { Template, Property, PropertyType } from '../types/types';
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
+import type { PropertyType, Template } from '../types/types';
 import browser from '../utils/browser-polyfill';
+import { debugLog } from '../utils/debug';
+import { getMessage } from '../utils/i18n';
 import { generalSettings } from '../utils/storage-utils';
 import { addPropertyType } from './property-types-manager';
-import { getMessage } from '../utils/i18n';
-import { debugLog } from '../utils/debug';
 
 export let templates: Template[] = [];
 export let editingTemplateIndex = -1;

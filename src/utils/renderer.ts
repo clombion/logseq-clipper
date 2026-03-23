@@ -8,23 +8,23 @@
 // - Variable assignment (set)
 // - Whitespace control
 
-import {
-	ASTNode,
-	TextNode,
-	VariableNode,
-	IfNode,
-	ForNode,
-	SetNode,
-	Expression,
-	LiteralExpression,
-	IdentifierExpression,
-	BinaryExpression,
-	UnaryExpression,
-	FilterExpression,
-	MemberExpression,
-	parse,
-} from './parser';
 import { applyFilterDirect as builtInApplyFilterDirect } from './filters';
+import {
+	type ASTNode,
+	type BinaryExpression,
+	type Expression,
+	type FilterExpression,
+	type ForNode,
+	type IdentifierExpression,
+	type IfNode,
+	type LiteralExpression,
+	type MemberExpression,
+	parse,
+	type SetNode,
+	type TextNode,
+	type UnaryExpression,
+	type VariableNode,
+} from './parser';
 
 // Filter application function type for direct invocation (already-parsed filter name and params)
 type ApplyFilterDirectFn = (
@@ -609,9 +609,9 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 
 	switch (expr.operator) {
 		case '==':
-			return left == right;
+			return left === right;
 		case '!=':
-			return left != right;
+			return left !== right;
 		case '>':
 			return left > right;
 		case '<':
@@ -661,8 +661,8 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	}
 
 	// Check for custom filters first
-	if (state.context.filters && state.context.filters[expr.name]) {
-		return state.context.filters[expr.name]!(value, ...args);
+	if (state.context.filters?.[expr.name]) {
+		return state.context.filters[expr.name]?.(value, ...args);
 	}
 
 	const stringValue = valueToString(value);
@@ -709,7 +709,7 @@ function evaluateContains(left: any, right: any): boolean {
 			if (typeof item === 'string' && typeof right === 'string') {
 				return item.toLowerCase() === right.toLowerCase();
 			}
-			return item == right;
+			return item === right;
 		});
 	}
 
@@ -848,7 +848,7 @@ function getNestedValue(obj: any, path: string): any {
 
 		// Handle bracket notation: items[0]
 		if (key.includes('[') && key.includes(']')) {
-			const match = key.match(/^([^\[]*)\[([^\]]+)\]/);
+			const match = key.match(/^([^[]*)\[([^\]]+)\]/);
 			if (match) {
 				const [, arrayKey, indexStr] = match;
 				const baseValue = arrayKey ? value[arrayKey] : value;
@@ -856,7 +856,8 @@ function getNestedValue(obj: any, path: string): any {
 					const index = parseInt(indexStr!, 10);
 					value = baseValue[index];
 				} else if (baseValue && typeof baseValue === 'object') {
-					value = baseValue[indexStr!.replace(/^["']|["']$/g, '')];
+					const cleanIndex = indexStr?.replace(/^["']|["']$/g, '') ?? '';
+					value = baseValue[cleanIndex];
 				} else {
 					return undefined;
 				}
@@ -963,7 +964,7 @@ export function createSelectorResolver(
 	sendMessage: (tabId: number, message: any) => Promise<any>,
 ): AsyncResolver {
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	return async (name: string, context: RenderContext): Promise<any> => {
+	return async (name: string, _context: RenderContext): Promise<any> => {
 		const extractHtml = name.startsWith('selectorHtml:');
 		const prefix = extractHtml ? 'selectorHtml:' : 'selector:';
 		const selectorPart = name.slice(prefix.length);
@@ -976,7 +977,7 @@ export function createSelectorResolver(
 		try {
 			const response = await sendMessage(tabId, {
 				action: 'extractContent',
-				selector: selector!.replace(/\\"/g, '"'),
+				selector: selector?.replace(/\\"/g, '"'),
 				attribute: attribute,
 				extractHtml: extractHtml,
 			});

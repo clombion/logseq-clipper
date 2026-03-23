@@ -4,7 +4,7 @@ export function flattenShadowDom(doc: Document): Promise<void> {
 	let found = false;
 	const all = doc.querySelectorAll('*');
 	for (let i = 0; i < all.length; i++) {
-		if (all[i]!.shadowRoot) {
+		if (all[i]?.shadowRoot) {
 			found = true;
 			break;
 		}

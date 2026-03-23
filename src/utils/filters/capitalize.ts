@@ -22,7 +22,7 @@ export const capitalize = (input: string): string => {
 		const parsed = JSON.parse(input);
 		const capitalized = parseAndCapitalize(parsed);
 		return JSON.stringify(capitalized);
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat the input as a simple string
 		return capitalizeString(input);
 	}

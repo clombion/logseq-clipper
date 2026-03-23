@@ -1,14 +1,14 @@
-import { PropertyType } from '../types/types';
-import { generalSettings, saveSettings } from '../utils/storage-utils';
+import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
+import type { PropertyType } from '../types/types';
+import { debugLog } from '../utils/debug';
 import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
-import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
-import { templates } from './template-manager';
-import { refreshPropertyNameSuggestions } from './template-ui';
-import { unescapeValue } from '../utils/string-utils';
-import { showImportModal } from '../utils/import-modal';
 import { saveFile } from '../utils/file-utils';
 import { getMessage } from '../utils/i18n';
-import { debugLog } from '../utils/debug';
+import { showImportModal } from '../utils/import-modal';
+import { generalSettings, saveSettings } from '../utils/storage-utils';
+import { unescapeValue } from '../utils/string-utils';
+import { templates } from './template-manager';
+import { refreshPropertyNameSuggestions } from './template-ui';
 
 export function initializePropertyTypesManager(): void {
 	ensureTagsProperty();
@@ -80,7 +80,7 @@ function countPropertyUsage(): Record<string, number> {
 	return usageCounts;
 }
 
-function createPropertyTypeListItem(propertyType: PropertyType, usageCount: number, isUsed: boolean): HTMLElement {
+function createPropertyTypeListItem(propertyType: PropertyType, usageCount: number, _isUsed: boolean): HTMLElement {
 	const listItem = createElementWithClass('div', 'property-editor');
 
 	const propertySelectDiv = createElementWithClass('div', 'property-select');
@@ -218,7 +218,9 @@ async function importTypesFromJson(jsonContent: string): Promise<void> {
 		}
 	} catch (error) {
 		console.error('Error parsing types.json:', error);
-		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
+		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+			cause: error,
+		});
 	}
 }
 
@@ -298,7 +300,10 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 		generalSettings.propertyTypes.push(newPropertyType);
 		await saveSettings();
 	} else if (existingPropertyType.type !== type || existingPropertyType.defaultValue !== defaultValue) {
-		debugLog('PropertyTypes', `Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`);
+		debugLog(
+			'PropertyTypes',
+			`Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`,
+		);
 		existingPropertyType.type = type;
 		if (defaultValue !== null && defaultValue !== '') {
 			existingPropertyType.defaultValue = defaultValue;
@@ -315,11 +320,14 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 export async function updatePropertyType(name: string, newType: string, newDefaultValue?: string): Promise<void> {
 	const index = generalSettings.propertyTypes.findIndex((p) => p.name === name);
 	if (index !== -1) {
-		generalSettings.propertyTypes[index]!.type = newType;
-		if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
-			generalSettings.propertyTypes[index]!.defaultValue = newDefaultValue;
-		} else {
-			delete generalSettings.propertyTypes[index]!.defaultValue;
+		const propertyType = generalSettings.propertyTypes[index];
+		if (propertyType) {
+			propertyType.type = newType;
+			if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
+				propertyType.defaultValue = newDefaultValue;
+			} else {
+				delete propertyType.defaultValue;
+			}
 		}
 	} else {
 		const newPropertyType: PropertyType = { name, type: newType };

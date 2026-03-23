@@ -1,13 +1,13 @@
 export const number_format = (input: string, param?: string): string => {
 	const formatNumber = (num: number, decimals: number, decPoint: string, thousandsSep: string): string => {
 		const parts = num.toFixed(decimals).split('.');
-		parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep);
+		parts[0] = parts[0]?.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep) ?? '';
 		return parts.join(decPoint);
 	};
 
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const processValue = (value: any, decimals: number, decPoint: string, thousandsSep: string): any => {
-		if (typeof value === 'number' || (typeof value === 'string' && !isNaN(parseFloat(value)))) {
+		if (typeof value === 'number' || (typeof value === 'string' && !Number.isNaN(parseFloat(value)))) {
 			const num = typeof value === 'string' ? parseFloat(value) : value;
 			return formatNumber(num, decimals, decPoint, thousandsSep);
 		} else if (Array.isArray(value)) {
@@ -66,11 +66,11 @@ export const number_format = (input: string, param?: string): string => {
 			}
 
 			if (params.length >= 1) decimals = parseInt(params[0]!, 10);
-			if (params.length >= 2) decPoint = unescapeString(params[1]!.replace(/^["'](.*)["']$/, '$1'));
-			if (params.length >= 3) thousandsSep = unescapeString(params[2]!.replace(/^["'](.*)["']$/, '$1'));
+			if (params.length >= 2) decPoint = unescapeString(params[1]?.replace(/^["'](.*)["']$/, '$1') ?? '');
+			if (params.length >= 3) thousandsSep = unescapeString(params[2]?.replace(/^["'](.*)["']$/, '$1') ?? '');
 		}
 
-		if (isNaN(decimals)) decimals = 0;
+		if (Number.isNaN(decimals)) decimals = 0;
 
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		let parsedInput: any;

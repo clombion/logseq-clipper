@@ -16,14 +16,12 @@ export const wikilink = (str: string, param?: string): string => {
 
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const processObject = (obj: any): string[] => {
-			return Object.entries(obj)
-				.map(([key, value]) => {
-					if (typeof value === 'object' && value !== null) {
-						return processObject(value);
-					}
-					return `[[${key}|${value}]]`;
-				})
-				.flat();
+			return Object.entries(obj).flatMap(([key, value]) => {
+				if (typeof value === 'object' && value !== null) {
+					return processObject(value);
+				}
+				return `[[${key}|${value}]]`;
+			});
 		};
 
 		if (Array.isArray(data)) {
@@ -37,7 +35,7 @@ export const wikilink = (str: string, param?: string): string => {
 		} else if (typeof data === 'object' && data !== null) {
 			return JSON.stringify(processObject(data));
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat it as a single string
 		return alias ? `[[${str}|${alias}]]` : `[[${str}]]`;
 	}

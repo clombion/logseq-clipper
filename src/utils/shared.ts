@@ -3,9 +3,9 @@
 // storage-utils, browser globals). All browser-dependent behavior is injected
 // via parameters.
 
-import { sanitizeFileName, getDomain, escapeDoubleQuotes } from './string-utils';
-import { Property } from '../types/types';
 import dayjs from 'dayjs';
+import type { Property } from '../types/types';
+import { escapeDoubleQuotes, getDomain, sanitizeFileName } from './string-utils';
 
 // ---------------------------------------------------------------------------
 // Variable building
@@ -58,7 +58,7 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 		'{{highlights}}': params.highlights || '',
 		'{{image}}': params.image || '',
 		'{{noteName}}': noteName.trim(),
-		'{{published}}': (params.published || '').split(',')[0]!.trim(),
+		'{{published}}': (params.published || '').split(',')[0]?.trim() ?? '',
 		'{{site}}': (params.site || '').trim(),
 		'{{title}}': (params.title || '').trim(),
 		'{{url}}': currentUrl.trim(),
@@ -153,7 +153,7 @@ export function generateFrontmatter(properties: Property[], propertyTypes: Recor
 	for (const property of properties) {
 		const trimmedName = property.name.trim();
 		const needsQuotes =
-			/[:\s\{\}\[\],&*#?|<>=!%@\\-]/.test(trimmedName) ||
+			/[:\s{}[\],&*#?|<>=!%@-]/.test(trimmedName) ||
 			/^\d/.test(trimmedName) ||
 			/^(true|false|null|yes|no|on|off)$/i.test(trimmedName);
 		const propertyKey = needsQuotes
@@ -175,7 +175,7 @@ export function generateFrontmatter(properties: Property[], propertyTypes: Recor
 						items = property.value.split(',').map((item) => item.trim());
 					}
 				} else {
-					items = property.value.split(/,(?![^\[]*\]\])/).map((item) => item.trim());
+					items = property.value.split(/,(?![^[]*\]\])/).map((item) => item.trim());
 				}
 				items = items.filter((item) => item !== '');
 				if (items.length > 0) {

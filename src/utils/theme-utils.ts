@@ -1,19 +1,19 @@
 export function isDarkMode(): boolean {
 	// Check for Safari-specific properties
 	if ('safari' in window) {
-		// @ts-ignore
+		// @ts-expect-error
 		if (window.safari.darkMode === true) {
 			return true;
 		}
 	}
 
 	// Check for native macOS dark mode
-	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+	if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
 		return true;
 	}
 
 	// Check if the browser supports color-scheme
-	if (window.matchMedia && window.matchMedia('(color-scheme: dark)').matches) {
+	if (window.matchMedia?.('(color-scheme: dark)').matches) {
 		return true;
 	}
 
@@ -25,7 +25,9 @@ export function isDarkMode(): boolean {
 	// Check for dark background color
 	const bodyColor = window.getComputedStyle(document.body).backgroundColor;
 	const colors = bodyColor.match(/\d+/g)?.map(Number) || [255, 255, 255];
-	const r = colors[0]!, g = colors[1]!, b = colors[2]!;
+	const r = colors[0]!,
+		g = colors[1]!,
+		b = colors[2]!;
 	if (r + g + b < 384) {
 		// Threshold for considering it "dark"
 		return true;

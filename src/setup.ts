@@ -1,5 +1,5 @@
 import browser from './utils/browser-polyfill';
-import { checkConnection, LogseqApiConfig } from './utils/logseq-api';
+import { checkConnection, type LogseqApiConfig } from './utils/logseq-api';
 
 document.addEventListener('DOMContentLoaded', () => {
 	const tokenInput = document.getElementById('setup-token') as HTMLInputElement;

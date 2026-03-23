@@ -1,5 +1,4 @@
 import { updateUrl } from '../utils/routing';
-import { generalSettings } from '../utils/storage-utils';
 import { updatePromptContextVisibility } from './interpreter-settings';
 import { initializePropertyTypesManager } from './property-types-manager';
 
@@ -9,8 +8,12 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	const sections = document.querySelectorAll('.settings-section');
 	const sidebarItems = document.querySelectorAll('#sidebar li[data-section]');
 
-	sections.forEach((s) => s.classList.remove('active'));
-	sidebarItems.forEach((item) => item.classList.remove('active'));
+	sections.forEach((s) => {
+		s.classList.remove('active');
+	});
+	sidebarItems.forEach((item) => {
+		item.classList.remove('active');
+	});
 
 	const selectedSection = document.getElementById(`${section}-section`);
 	const selectedSidebarItem = document.querySelector(`#sidebar li[data-section="${section}"]`);
@@ -38,13 +41,15 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	updatePromptContextVisibility();
 }
 
-function updateSidebarActiveState(activeSection: string): void {
-	document.querySelectorAll('#sidebar li').forEach((item) => item.classList.remove('active'));
+function _updateSidebarActiveState(activeSection: string): void {
+	document.querySelectorAll('#sidebar li').forEach((item) => {
+		item.classList.remove('active');
+	});
 	const activeItem = document.querySelector(`#sidebar li[data-section="${activeSection}"]`);
 	if (activeItem) activeItem.classList.add('active');
 }
 
-function updateTemplateListActiveState(templateId: string): void {
+function _updateTemplateListActiveState(templateId: string): void {
 	const templateListItems = document.querySelectorAll('#template-list li');
 	templateListItems.forEach((item) => {
 		item.classList.remove('active');
@@ -87,7 +92,7 @@ export function initializeSidebar(): void {
 		templateList.addEventListener('click', (event) => {
 			const target = event.target as HTMLElement;
 			const listItem = target.closest('li') as HTMLElement;
-			if (listItem && listItem.dataset.id) {
+			if (listItem?.dataset.id) {
 				showSettingsSection('templates', listItem.dataset.id);
 				if (settingsContainer) {
 					settingsContainer.classList.remove('sidebar-open');

@@ -4,18 +4,18 @@
 
 import DefuddleClass from 'defuddle';
 import { createMarkdownContent } from 'defuddle/full';
-import { compileTemplate, SelectorProcessor } from './utils/template-compiler';
-import { AsyncResolver, RenderContext } from './utils/renderer';
+import type { Property, Template } from './types/types';
 import { applyFilters } from './utils/filters';
+import type { AsyncResolver, RenderContext } from './utils/renderer';
 import {
 	buildVariables,
-	generateFrontmatter,
 	extractContentBySelector,
-	selectorContentToString,
 	formatPropertyValue,
+	generateFrontmatter,
+	selectorContentToString,
 } from './utils/shared';
 import { sanitizeFileName } from './utils/string-utils';
-import { Template, Property } from './types/types';
+import { compileTemplate, type SelectorProcessor } from './utils/template-compiler';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -65,7 +65,7 @@ export function createAsyncResolver(doc: DocLike): AsyncResolver {
 			const selector = attrMatch ? attrMatch[1] : selectorPart;
 			const attribute = attrMatch ? attrMatch[2] : undefined;
 
-			return extractContentBySelector(doc, selector!.replace(/\\"/g, '"'), attribute, extractHtml);
+			return extractContentBySelector(doc, selector?.replace(/\\"/g, '"') ?? '', attribute, extractHtml);
 		}
 		return undefined;
 	};
@@ -79,9 +79,9 @@ export function createSelectorProcessor(doc: DocLike): SelectorProcessor {
 
 		const [, selectorType, rawSelector, attribute, filtersString] = matches;
 		const extractHtml = selectorType === 'selectorHtml';
-		const selector = rawSelector!.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+		const selector = rawSelector?.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
-		const content = extractContentBySelector(doc, selector, attribute, extractHtml);
+		const content = extractContentBySelector(doc, selector ?? '', attribute, extractHtml);
 		const contentString = selectorContentToString(content);
 
 		return filtersString ? applyFilters(contentString, filtersString, currentUrl) : contentString;
@@ -267,4 +267,4 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 }
 
 // Re-export types that consumers may need
-export type { Template, Property } from './types/types';
+export type { Property, Template } from './types/types';

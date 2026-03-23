@@ -30,13 +30,13 @@ export async function processSchema(
 	let schemaValue = '';
 
 	// Check if we're dealing with a nested array access
-	const nestedArrayMatch = schemaKey!.match(/(.*?)\[(\*|\d+)\](.*)/);
+	const nestedArrayMatch = schemaKey?.match(/(.*?)\[(\*|\d+)\](.*)/);
 	if (nestedArrayMatch) {
 		const [, arrayKey, indexOrStar, propertyKey] = nestedArrayMatch;
 
 		// Handle shorthand notation for nested arrays
 		let fullArrayKey = arrayKey;
-		if (!arrayKey!.includes('@')) {
+		if (!arrayKey?.includes('@')) {
 			const matchingKey = Object.keys(variables).find(
 				(key) => key.includes('@') && key.endsWith(`:${arrayKey}}}`),
 			);
@@ -54,7 +54,7 @@ export async function processSchema(
 				if (indexOrStar === '*') {
 					schemaValue = JSON.stringify(list);
 				} else {
-					const index = parseInt(indexOrStar!, 10);
+					const index = parseInt(indexOrStar ?? '0', 10);
 					schemaValue = list[index] || '';
 				}
 			} else {
@@ -63,12 +63,14 @@ export async function processSchema(
 				if (Array.isArray(arrayValue)) {
 					if (indexOrStar === '*') {
 						schemaValue = JSON.stringify(
-							arrayValue.map((item) => getNestedProperty(item, propertyKey!.slice(1))).filter(Boolean),
+							arrayValue
+								.map((item) => getNestedProperty(item, propertyKey?.slice(1) ?? ''))
+								.filter(Boolean),
 						);
 					} else {
-						const index = parseInt(indexOrStar!, 10);
+						const index = parseInt(indexOrStar ?? '0', 10);
 						schemaValue = arrayValue[index]
-							? getNestedProperty(arrayValue[index], propertyKey!.slice(1))
+							? getNestedProperty(arrayValue[index], propertyKey?.slice(1) ?? '')
 							: '';
 					}
 				}
@@ -80,12 +82,12 @@ export async function processSchema(
 		}
 	} else {
 		// Handle non-array schemas
-		if (!schemaKey!.includes('@')) {
+		if (!schemaKey?.includes('@')) {
 			const matchingKey = Object.keys(variables).find(
 				(key) => key.includes('@') && key.endsWith(`:${schemaKey}}}`),
 			);
 			if (matchingKey) {
-				schemaValue = variables[matchingKey]!;
+				schemaValue = variables[matchingKey] ?? '';
 			}
 		}
 		// If no matching shorthand found or it's a full key
@@ -99,5 +101,5 @@ export async function processSchema(
 
 // biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 function getNestedProperty(obj: any, path: string): any {
-	return path.split('.').reduce((prev, curr) => prev && prev[curr], obj);
+	return path.split('.').reduce((prev, curr) => prev?.[curr], obj);
 }

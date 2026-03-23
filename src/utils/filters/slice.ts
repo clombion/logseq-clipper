@@ -11,7 +11,7 @@ export const validateSliceParams = (param: string | undefined): ParamValidationR
 	}
 
 	for (const part of parts) {
-		if (part !== '' && isNaN(parseInt(part, 10))) {
+		if (part !== '' && Number.isNaN(parseInt(part, 10))) {
 			return { valid: false, error: `"${part}" is not a valid number` };
 		}
 	}
@@ -36,10 +36,10 @@ export const slice = (str: string, param?: string): string => {
 		.map((p) => {
 			if (p === '') return undefined;
 			const num = parseInt(p, 10);
-			return isNaN(num) ? undefined : num;
+			return Number.isNaN(num) ? undefined : num;
 		});
 
-	let value;
+	let value: unknown;
 	try {
 		value = JSON.parse(str);
 	} catch (error) {

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface Message {
 	message: string;
@@ -98,8 +98,8 @@ Example response:
 				if (response.status === 429) {
 					const retryAfter = response.headers.get('retry-after');
 					const waitTime = retryAfter
-						? parseInt(retryAfter) * 1000
-						: this.requestInterval * Math.pow(2, retryCount);
+						? parseInt(retryAfter, 10) * 1000
+						: this.requestInterval * 2 ** retryCount;
 					console.log(
 						`  ⏳ Rate limited, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
 					);
@@ -116,7 +116,7 @@ Example response:
 			return data.choices[0].message.content;
 		} catch (error) {
 			if (retryCount < this.maxRetries) {
-				const waitTime = this.requestInterval * Math.pow(2, retryCount);
+				const waitTime = this.requestInterval * 2 ** retryCount;
 				console.log(
 					`  ⏳ Request failed, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
 				);
@@ -149,7 +149,7 @@ Example response:
 		});
 
 		// Add batch to chat history
-		this.chatHistories[targetLanguage]!.push({
+		this.chatHistories[targetLanguage]?.push({
 			role: 'user',
 			content: `Translate these messages to ${targetLanguage}. Respond with a valid JSON object where keys match the input keys and values are the translations. Format the response as a single line without pretty-printing:\n\n${batchPrompt}`,
 		});
@@ -174,7 +174,7 @@ Example response:
 			}
 
 			// Add response to chat history
-			this.chatHistories[targetLanguage]!.push({
+			this.chatHistories[targetLanguage]?.push({
 				role: 'assistant',
 				content: JSON.stringify(translations),
 			});
@@ -213,7 +213,7 @@ Example response:
 	}
 
 	// Process all locales
-	async processLocales(srcDir: string, targetLocale?: string): Promise<void> {
+	async processLocales(_srcDir: string, targetLocale?: string): Promise<void> {
 		console.log('\n🌍 Starting localization process...');
 
 		// Read source (English) messages
@@ -249,7 +249,7 @@ Example response:
 			try {
 				localeMessages = JSON.parse(await fs.promises.readFile(localeFile, 'utf-8'));
 				console.log(`  📂 Found existing translations for ${locale}`);
-			} catch (error) {
+			} catch (_error) {
 				console.log(`  ⚠️  No existing translations found for ${locale}, creating new file`);
 			}
 
@@ -262,7 +262,7 @@ Example response:
 				for (let i = 0; i < missingKeys.length; i += this.batchSize) {
 					const batch = missingKeys.slice(i, i + this.batchSize).map((key) => ({
 						key,
-						message: sortedSourceMessages[key]!.message,
+						message: sortedSourceMessages[key]?.message ?? '',
 					}));
 
 					// Try twice before falling back to source messages
@@ -273,14 +273,14 @@ Example response:
 							// Add translations to localeMessages
 							Object.entries(translations).forEach(([key, translation]) => {
 								localeMessages[key] = {
-									message: translation,
-									...(sortedSourceMessages[key]!.placeholders && {
-										placeholders: sortedSourceMessages[key]!.placeholders,
+									message: translation ?? '',
+									...(sortedSourceMessages[key]?.placeholders && {
+										placeholders: sortedSourceMessages[key]?.placeholders,
 									}),
 								};
 							});
 							break; // Success - exit retry loop
-						} catch (error) {
+						} catch (_error) {
 							if (attempt === 1) {
 								console.log(`  ⚠️ First attempt failed, retrying batch...`);
 								continue;

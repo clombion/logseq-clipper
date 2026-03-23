@@ -33,10 +33,10 @@ export const fragment_link = (str: string, param?: string): string[] => {
 
 	const createTextFragmentUrl = (selectedText: SelectedText): string => {
 		const { start, end } = extractTextFragmentParts(selectedText);
-		const encodedEnd = end ? ',' + encodeURIComponent(end) : '';
+		const encodedEnd = end ? `,${encodeURIComponent(end)}` : '';
 		const textFragment = encodeURIComponent(start) + encodedEnd;
 
-		return '#:~:text=' + textFragment;
+		return `#:~:text=${textFragment}`;
 	};
 
 	try {
@@ -56,7 +56,7 @@ export const fragment_link = (str: string, param?: string): string[] => {
 		} else if (typeof data === 'object' && data !== null) {
 			// Maybe useful for other filters
 			return Object.entries(data).map(
-				([key, value]) => `${value} [${linktext}](${currentUrl}${createTextFragmentUrl(String(value))})`,
+				([_key, value]) => `${value} [${linktext}](${currentUrl}${createTextFragmentUrl(String(value))})`,
 			);
 		} else if (typeof data === 'string') {
 			// If user pass a string

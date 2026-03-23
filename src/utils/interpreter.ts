@@ -1,12 +1,12 @@
-import { generalSettings, saveSettings } from './storage-utils';
-import { PromptVariable, Template, ModelConfig } from '../types/types';
-import { compileTemplate } from './template-compiler';
-import { applyFilters } from './filters';
-import { formatDuration } from './string-utils';
-import { adjustNoteNameHeight } from './ui-utils';
+import type { ModelConfig, PromptVariable, Template } from '../types/types';
 import { debugLog } from './debug';
+import { applyFilters } from './filters';
 import { getMessage } from './i18n';
+import { generalSettings, saveSettings } from './storage-utils';
+import { formatDuration } from './string-utils';
+import { compileTemplate } from './template-compiler';
 import { updateTokenCount } from './token-counter';
+import { adjustNoteNameHeight } from './ui-utils';
 
 const RATE_LIMIT_RESET_TIME = 60000; // 1 minute in milliseconds
 let lastRequestTime = 0;
@@ -16,10 +16,10 @@ const eventListeners = new WeakMap<HTMLElement, { [key: string]: EventListener }
 
 export async function sendToLLM(
 	promptContext: string,
-	content: string,
+	_content: string,
 	promptVariables: PromptVariable[],
 	model: ModelConfig,
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 ): Promise<{ promptResponses: any[] }> {
 	debugLog('Interpreter', 'Sending request to LLM...');
 
@@ -193,7 +193,8 @@ export async function sendToLLM(
 		const responseText = await response.text();
 		debugLog('Interpreter', `Raw ${provider.name} response:`, responseText);
 
-		let data;
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic API response parsing
+		let data: Record<string, any>;
 		try {
 			data = JSON.parse(responseText);
 		} catch (error) {
@@ -278,7 +279,7 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 					// Replace curly quotes
 					.replace(/[""]/g, '\\"')
 					// Remove any bad control characters
-					.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '')
+					.replace(new RegExp('[\u0000-\u0008\u000B-\u001F\u007F-\u009F]', 'g'), '')
 					// Remove any whitespace between quotes and colons
 					.replace(/"\s*:/g, '":')
 					.replace(/:\s*"/g, ':"')
@@ -301,30 +302,33 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 
 			// Try parsing with minimal sanitization first
 			try {
-				const minimalSanitized = jsonMatch[0]!
-					.replace(/[""]/g, '"')
+				const minimalSanitized = jsonMatch[0]
+					?.replace(/[""]/g, '"')
 					.replace(/\r\n/g, '\\n')
 					.replace(/\n/g, '\\n');
 				parsedResponse = JSON.parse(minimalSanitized);
-			} catch (minimalError) {
+			} catch (_minimalError) {
 				// If minimal sanitization fails, try full sanitization
 				const sanitizedMatch = sanitizeJsonString(jsonMatch[0]!);
 				debugLog('Interpreter', 'Fully sanitized match:', sanitizedMatch);
 
 				try {
 					parsedResponse = JSON.parse(sanitizedMatch);
-				} catch (fullError) {
+				} catch (_fullError) {
 					// Last resort: try to manually rebuild the JSON structure
 					const prompts_responses: { [key: string]: string } = {};
 
 					// Extract each prompt response separately
-					promptVariables.forEach((variable, index) => {
+					promptVariables.forEach((_variable, index) => {
 						const promptKey = `prompt_${index + 1}`;
 						const promptRegex = new RegExp(`"${promptKey}"\\s*:\\s*"([^]*?)(?:"\\s*,|"\\s*})`, 'g');
 						const match = promptRegex.exec(jsonMatch[0]!);
 						if (match) {
-							let content = match[1]!.replace(/"/g, '\\"').replace(/\r\n/g, '\\n').replace(/\n/g, '\\n');
-							prompts_responses[promptKey] = content;
+							const content = match[1]
+								?.replace(/"/g, '\\"')
+								.replace(/\r\n/g, '\\n')
+								.replace(/\n/g, '\\n');
+							prompts_responses[promptKey] = content ?? '';
 						}
 					});
 
@@ -372,7 +376,7 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 export function collectPromptVariables(template: Template | null): PromptVariable[] {
 	const promptMap = new Map<string, PromptVariable>();
 	const promptRegex = /{{(?:prompt:)?"([\s\S]*?)"(\|.*?)?}}/g;
-	let match;
+	let match: RegExpExecArray | null;
 
 	function addPrompt(prompt: string, filters: string) {
 		if (!promptMap.has(prompt)) {
@@ -382,16 +386,20 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 	}
 
 	if (template?.noteContentFormat) {
-		while ((match = promptRegex.exec(template.noteContentFormat)) !== null) {
-			addPrompt(match[1]!, match[2] || '');
+		match = promptRegex.exec(template.noteContentFormat);
+		while (match !== null) {
+			addPrompt(match[1] ?? '', match[2] || '');
+			match = promptRegex.exec(template.noteContentFormat);
 		}
 	}
 
 	if (template?.properties) {
 		for (const property of template.properties) {
-			let propertyValue = property.value;
-			while ((match = promptRegex.exec(propertyValue)) !== null) {
-				addPrompt(match[1]!, match[2] || '');
+			const propertyValue = property.value;
+			match = promptRegex.exec(propertyValue);
+			while (match !== null) {
+				addPrompt(match[1] ?? '', match[2] || '');
+				match = promptRegex.exec(propertyValue);
 			}
 		}
 	}
@@ -399,9 +407,11 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 	const allInputs = document.querySelectorAll('input, textarea');
 	allInputs.forEach((input) => {
 		if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-			let inputValue = input.value;
-			while ((match = promptRegex.exec(inputValue)) !== null) {
-				addPrompt(match[1]!, match[2] || '');
+			const inputValue = input.value;
+			match = promptRegex.exec(inputValue);
+			while (match !== null) {
+				addPrompt(match[1] ?? '', match[2] || '');
+				match = promptRegex.exec(inputValue);
 			}
 		}
 	});
@@ -422,7 +432,7 @@ export async function initializeInterpreter(
 
 	function removeOldListeners(element: HTMLElement, eventType: string) {
 		const listeners = eventListeners.get(element);
-		if (listeners && listeners[eventType]) {
+		if (listeners?.[eventType]) {
 			element.removeEventListener(eventType, listeners[eventType]);
 		}
 	}
@@ -516,7 +526,7 @@ export async function initializeInterpreter(
 			const lastSelectedModel = enabledModels.find((model) => model.id === generalSettings.interpreterModel);
 
 			if (!lastSelectedModel && enabledModels.length > 0) {
-				generalSettings.interpreterModel = enabledModels[0]!.id;
+				generalSettings.interpreterModel = enabledModels[0]?.id ?? '';
 				await saveSettings();
 				modelSelect.value = generalSettings.interpreterModel;
 			}
@@ -527,8 +537,8 @@ export async function initializeInterpreter(
 export async function handleInterpreterUI(
 	template: Template,
 	variables: { [key: string]: string },
-	tabId: number,
-	currentUrl: string,
+	_tabId: number,
+	_currentUrl: string,
 	modelConfig: ModelConfig,
 ): Promise<void> {
 	const interpreterContainer = document.getElementById('interpreter');

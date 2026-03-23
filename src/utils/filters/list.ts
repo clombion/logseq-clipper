@@ -55,7 +55,7 @@ export const list = (input: string | any[], param?: string): string => {
 	const processArray = (arr: any[], type: ListType, depth: number = 0): string => {
 		return arr
 			.map((item, index) => {
-				let itemType = type;
+				const itemType = type;
 				if (type === 'numbered' || type === 'numbered-task') {
 					const number = index + 1;
 					return processListItem(item, itemType, depth).replace(/^\d+/, number.toString());

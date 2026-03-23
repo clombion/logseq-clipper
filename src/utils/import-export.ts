@@ -1,17 +1,17 @@
-import { Template } from '../types/types';
-import { templates, saveTemplateSettings, editingTemplateIndex, loadTemplates } from '../managers/template-manager';
-import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
-import { sanitizeFileName } from './string-utils';
-import { generalSettings, loadSettings } from '../utils/storage-utils';
-import { addPropertyType, updatePropertyTypesList } from '../managers/property-types-manager';
-import { hideModal } from '../utils/modal-utils';
-import { showImportModal } from './import-modal';
-import browser from '../utils/browser-polyfill';
-import { saveFile } from './file-utils';
-import { copyToClipboardWithFeedback } from './clipboard-utils';
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
-import { getMessage } from './i18n';
+import { addPropertyType, updatePropertyTypesList } from '../managers/property-types-manager';
+import { editingTemplateIndex, loadTemplates, saveTemplateSettings, templates } from '../managers/template-manager';
+import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
+import type { Template } from '../types/types';
+import browser from '../utils/browser-polyfill';
+import { hideModal } from '../utils/modal-utils';
+import { generalSettings, loadSettings } from '../utils/storage-utils';
+import { copyToClipboardWithFeedback } from './clipboard-utils';
 import { debugLog } from './debug';
+import { saveFile } from './file-utils';
+import { getMessage } from './i18n';
+import { showImportModal } from './import-modal';
+import { sanitizeFileName } from './string-utils';
 
 const SCHEMA_VERSION = '0.1.0';
 
@@ -114,9 +114,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 				debugLog('ImportExport', 'Processed template properties:', importedTemplate.properties);
 
 				// Keep the context if it exists in the imported template
-				if (importedTemplate.context) {
-					importedTemplate.context = importedTemplate.context;
-				}
+				// context is preserved as-is from the imported template
 
 				let newName = importedTemplate.name as string;
 				let counter = 1;
@@ -159,20 +157,20 @@ function validateImportedTemplate(template: Partial<Template>): boolean {
 
 	const isDailyNote = template.behavior === 'append-daily' || template.behavior === 'prepend-daily';
 
-	const hasRequiredFields = requiredFields.every((field) => template.hasOwnProperty(field));
+	const hasRequiredFields = requiredFields.every((field) => Object.hasOwn(template, field));
 	const hasValidProperties =
 		Array.isArray(template.properties) &&
-		template.properties!.every(
+		template.properties?.every(
 			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 			(prop: any) =>
-				prop.hasOwnProperty('name') &&
-				prop.hasOwnProperty('value') &&
-				(!prop.hasOwnProperty('type') || validTypes.includes(prop.type)),
+				Object.hasOwn(prop, 'name') &&
+				Object.hasOwn(prop, 'value') &&
+				(!Object.hasOwn(prop, 'type') || validTypes.includes(prop.type)),
 		);
 
 	// Check for noteNameFormat and path only if it's not a daily note template
 	const hasValidNoteNameAndPath =
-		isDailyNote || (template.hasOwnProperty('noteNameFormat') && template.hasOwnProperty('path'));
+		isDailyNote || (Object.hasOwn(template, 'noteNameFormat') && Object.hasOwn(template, 'path'));
 
 	// Add optional check for context
 	const hasValidContext = !template.context || typeof template.context === 'string';
@@ -180,16 +178,16 @@ function validateImportedTemplate(template: Partial<Template>): boolean {
 	return hasRequiredFields && hasValidProperties && hasValidNoteNameAndPath && hasValidContext;
 }
 
-function preventDefaults(e: Event): void {
+function _preventDefaults(e: Event): void {
 	e.preventDefault();
 	e.stopPropagation();
 }
 
-function handleDrop(e: DragEvent): void {
+function _handleDrop(e: DragEvent): void {
 	const dt = e.dataTransfer;
 	const files = dt?.files;
 
-	if (files && files.length) {
+	if (files?.length) {
 		handleFiles(files);
 	}
 }
@@ -211,7 +209,10 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 	if (importedTemplate.properties) {
 		debugLog('ImportExport', 'Processing properties:', importedTemplate.properties);
 		for (const prop of importedTemplate.properties) {
-			debugLog('ImportExport', `Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`);
+			debugLog(
+				'ImportExport',
+				`Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`,
+			);
 			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			if (!existingPropertyType) {
 				// Only add the property type if it doesn't exist
@@ -365,7 +366,7 @@ export async function exportAllSettings(): Promise<void> {
 				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 				(exportData as any).interpreter_settings.providers.map(
 					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-					({ apiKey, ...rest }: any) => rest
+					({ apiKey, ...rest }: any) => rest,
 				);
 		}
 

@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock core/popup (imported by storage-utils but not used by loadSettings)
 vi.mock('core/popup', () => ({

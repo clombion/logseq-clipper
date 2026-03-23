@@ -1,12 +1,12 @@
-import browser from './utils/browser-polyfill';
-import * as highlighter from './utils/highlighter';
-import { loadSettings, generalSettings } from './utils/storage-utils';
 import Defuddle from 'defuddle';
-import { getDomain } from './utils/string-utils';
-import { extractContentBySelector as extractContentBySelectorShared } from './utils/shared';
 import { createMarkdownContent } from 'defuddle/full';
-import { flattenShadowDom } from './utils/flatten-shadow-dom';
+import browser from './utils/browser-polyfill';
 import { debugLog } from './utils/debug';
+import { flattenShadowDom } from './utils/flatten-shadow-dom';
+import * as highlighter from './utils/highlighter';
+import { extractContentBySelector as extractContentBySelectorShared } from './utils/shared';
+import { generalSettings, loadSettings } from './utils/storage-utils';
+import { getDomain } from './utils/string-utils';
 
 declare global {
 	interface Window {
@@ -15,7 +15,7 @@ declare global {
 }
 
 // IIFE to scope variables and allow safe re-execution
-(function () {
+(() => {
 	// Prevent duplicate initialization on the same page. After an extension
 	// update the previous content script's runtime context is invalidated,
 	// but window-level flags persist. We detect this by calling a function
@@ -104,7 +104,7 @@ declare global {
 			startY: number,
 			startWidth: number,
 			startHeight: number,
-			startLeft: number,
+			_startLeft: number,
 			startTop: number;
 
 		handle.onmousedown = (e) => {
@@ -114,7 +114,7 @@ declare global {
 			startY = e.clientY;
 			startWidth = container.offsetWidth;
 			startHeight = container.offsetHeight;
-			startLeft = container.offsetLeft;
+			_startLeft = container.offsetLeft;
 			startTop = container.offsetTop;
 
 			document.body.style.cursor = window.getComputedStyle(handle).cursor;
@@ -128,8 +128,8 @@ declare global {
 				const dx = moveEvent.clientX - startX;
 				const dy = moveEvent.clientY - startY;
 
-				const minWidth = parseInt(container.style.minWidth) || 200;
-				const minHeight = parseInt(container.style.minHeight) || 200;
+				const minWidth = parseInt(container.style.minWidth, 10) || 200;
+				const minHeight = parseInt(container.style.minHeight, 10) || 200;
 
 				if (direction.includes('e')) {
 					let newWidth = startWidth + dx;
@@ -231,7 +231,7 @@ declare global {
 			try {
 				document.execCommand('copy');
 				sendResponse({ success: true });
-			} catch (err) {
+			} catch (_err) {
 				sendResponse({ success: false });
 			}
 			document.body.removeChild(textArea);
@@ -291,10 +291,14 @@ declare global {
 				const doc = parser.parseFromString(document.documentElement.outerHTML, 'text/html');
 
 				// Remove all script and style elements
-				doc.querySelectorAll('script, style').forEach((el) => el.remove());
+				doc.querySelectorAll('script, style').forEach((el) => {
+					el.remove();
+				});
 
 				// Remove style attributes from all elements
-				doc.querySelectorAll('*').forEach((el) => el.removeAttribute('style'));
+				doc.querySelectorAll('*').forEach((el) => {
+					el.removeAttribute('style');
+				});
 
 				// Convert all relative URLs to absolute
 				doc.querySelectorAll('[src], [href]').forEach((element) => {
@@ -308,9 +312,9 @@ declare global {
 								.map((src) => {
 									const [url, size] = src.trim().split(' ');
 									try {
-										const absoluteUrl = new URL(url!, document.baseURI).href;
-										return `${absoluteUrl}${size ? ' ' + size : ''}`;
-									} catch (e) {
+										const absoluteUrl = new URL(url ?? '', document.baseURI).href;
+										return `${absoluteUrl}${size ? ` ${size}` : ''}`;
+									} catch (_e) {
 										return src;
 									}
 								})
@@ -325,7 +329,7 @@ declare global {
 							try {
 								const absoluteUrl = new URL(value, document.baseURI).href;
 								element.setAttribute(attr, absoluteUrl);
-							} catch (e) {
+							} catch (_e) {
 								console.warn(`Failed to process ${attr} URL:`, value);
 							}
 						}
@@ -431,7 +435,7 @@ declare global {
 				}
 
 				if (elementToHighlight) {
-					const xpath = highlighter.getElementXPath(elementToHighlight);
+					const _xpath = highlighter.getElementXPath(elementToHighlight);
 					highlighter.highlightElement(elementToHighlight);
 				} else {
 					console.warn('Could not find element to highlight. Info:', request.targetElementInfo);
@@ -515,7 +519,7 @@ declare global {
 		const button = document.querySelector('[data-action="toggle-highlighter"]');
 		if (button) {
 			// Handle highlighter button clicks
-			button.addEventListener('click', async (e) => {
+			button.addEventListener('click', async (_e) => {
 				try {
 					// First try to get the tab ID from the background script
 					const response = await browser.runtime.sendMessage({ action: 'ensureContentScriptLoaded' });

@@ -39,7 +39,9 @@ export const remove_html = (html: string, params: string = ''): string => {
 		}
 
 		// Convert HTMLCollection to Array if necessary
-		Array.from(elements).forEach((el) => el.parentNode?.removeChild(el));
+		Array.from(elements).forEach((el) => {
+			el.parentNode?.removeChild(el);
+		});
 	});
 
 	// Serialize back to HTML

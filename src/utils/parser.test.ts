@@ -1,18 +1,18 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
+	type ASTNode,
+	type BinaryExpression,
+	type Expression,
+	type FilterExpression,
+	type ForNode,
+	type IdentifierExpression,
+	type IfNode,
+	type LiteralExpression,
 	parse,
-	ASTNode,
-	TextNode,
-	VariableNode,
-	IfNode,
-	ForNode,
-	SetNode,
-	Expression,
-	LiteralExpression,
-	IdentifierExpression,
-	BinaryExpression,
-	UnaryExpression,
-	FilterExpression,
+	type SetNode,
+	type TextNode,
+	type UnaryExpression,
+	type VariableNode,
 } from './parser';
 
 // Type guards
@@ -193,7 +193,7 @@ describe('Parser', () => {
 			const ifNode = result.ast[0] as IfNode;
 			expect(ifNode.consequent).toHaveLength(1);
 			expect(ifNode.alternate).toHaveLength(1);
-			expect((ifNode.alternate![0] as TextNode).value).toBe('no');
+			expect((ifNode.alternate?.[0] as TextNode).value).toBe('no');
 		});
 
 		test('parses if-elseif-else statement', () => {

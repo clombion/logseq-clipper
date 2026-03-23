@@ -25,7 +25,7 @@ export function showModal(modal: HTMLElement | null): void {
 
 		// Focus the first focusable element in the modal
 		const focusable = modal.querySelector<HTMLElement>(
-			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
 		);
 		if (focusable) {
 			focusable.focus();
@@ -45,7 +45,9 @@ export function hideModal(modal: HTMLElement | null): void {
 
 		// Remove escape key handler if it exists
 		if (modal.dataset.escapeHandler === 'true') {
-			const handler = (modal as unknown as Record<string, unknown>).escapeHandler as ((e: KeyboardEvent) => void) | undefined;
+			const handler = (modal as unknown as Record<string, unknown>).escapeHandler as
+				| ((e: KeyboardEvent) => void)
+				| undefined;
 			if (handler) {
 				document.removeEventListener('keydown', handler);
 				delete (modal as unknown as Record<string, unknown>).escapeHandler;

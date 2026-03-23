@@ -1,9 +1,8 @@
+import type { HistoryEntry, ModelConfig, PropertyType, Provider, Rating, Settings } from '../types/types';
 import browser from './browser-polyfill';
-import { Settings, ModelConfig, PropertyType, HistoryEntry, Provider, Rating } from '../types/types';
 import { debugLog } from './debug';
-import { copyToClipboard } from 'core/popup';
 
-export type { Settings, ModelConfig, PropertyType, HistoryEntry, Provider, Rating };
+export type { HistoryEntry, ModelConfig, PropertyType, Provider, Rating, Settings };
 
 export let generalSettings: Settings = {
 	openBehavior: 'popup',

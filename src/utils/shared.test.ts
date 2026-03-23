@@ -1,10 +1,10 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	buildVariables,
-	BuildVariablesParams,
-	generateFrontmatter,
-	extractContentBySelector,
 	addSchemaOrgDataToVariables,
+	type BuildVariablesParams,
+	buildVariables,
+	extractContentBySelector,
+	generateFrontmatter,
 } from './shared';
 
 // ---------------------------------------------------------------------------

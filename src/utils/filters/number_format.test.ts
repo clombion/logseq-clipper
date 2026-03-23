@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { number_format } from './number_format';
 
 describe('number_format filter', () => {

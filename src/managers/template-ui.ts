@@ -1,28 +1,29 @@
-import { Template, Property } from '../types/types';
+import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
+import type { Template } from '../types/types';
+import { debugLog } from '../utils/debug';
+import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
+import { handleDragEnd, handleDragOver, handleDragStart, handleDrop } from '../utils/drag-and-drop';
+import { getMessage } from '../utils/i18n';
+import { parse, validateFilters, validateVariables } from '../utils/parser';
+import { updateUrl } from '../utils/routing';
+import { generalSettings } from '../utils/storage-utils';
+import { escapeValue, unescapeValue } from '../utils/string-utils';
+import { updatePromptContextVisibility } from './interpreter-settings';
+import { updatePropertyType } from './property-types-manager';
+import { showSettingsSection } from './settings-section-ui';
 import {
 	deleteTemplate,
-	templates,
 	editingTemplateIndex,
+	loadTemplates,
 	saveTemplateSettings,
 	setEditingTemplateIndex,
-	loadTemplates,
+	templates,
 } from './template-manager';
-import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
-import { escapeValue, unescapeValue } from '../utils/string-utils';
-import { generalSettings } from '../utils/storage-utils';
-import { updateUrl } from '../utils/routing';
-import { handleDragStart, handleDragOver, handleDrop, handleDragEnd } from '../utils/drag-and-drop';
-import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
-import { updatePromptContextVisibility } from './interpreter-settings';
-import { showSettingsSection } from './settings-section-ui';
-import { updatePropertyType } from './property-types-manager';
-import { getMessage } from '../utils/i18n';
-import { parse, validateVariables, validateFilters } from '../utils/parser';
-import { debugLog } from '../utils/debug';
-let hasUnsavedChanges = false;
+
+let _hasUnsavedChanges = false;
 
 export function resetUnsavedChanges(): void {
-	hasUnsavedChanges = false;
+	_hasUnsavedChanges = false;
 }
 
 export function updateTemplateList(loadedTemplates?: Template[]): void {
@@ -68,11 +69,11 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 
 		li.addEventListener('touchstart', (e) => {
 			touchStartTime = Date.now();
-			touchStartY = e.touches[0]!.clientY;
+			touchStartY = e.touches[0]?.clientY ?? 0;
 		});
 
 		li.addEventListener('touchend', (e) => {
-			const touchEndY = e.changedTouches[0]!.clientY;
+			const touchEndY = e.changedTouches[0]?.clientY ?? 0;
 			const touchDuration = Date.now() - touchStartTime;
 			const touchDistance = Math.abs(touchEndY - touchStartY);
 
@@ -224,14 +225,13 @@ export function showTemplateEditor(template: Template | null): void {
 	refreshPropertyNameSuggestions();
 
 	if (editingTemplate && Array.isArray(editingTemplate.properties)) {
-		editingTemplate.properties.forEach((property) =>
-			addPropertyToEditor(property.name, property.value, property.id),
-		);
+		editingTemplate.properties.forEach((property) => {
+			addPropertyToEditor(property.name, property.value, property.id);
+		});
 	}
 
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
-	if (triggersTextarea)
-		triggersTextarea.value = editingTemplate && editingTemplate.triggers ? editingTemplate.triggers.join('\n') : '';
+	if (triggersTextarea) triggersTextarea.value = editingTemplate?.triggers ? editingTemplate.triggers.join('\n') : '';
 
 	showSettingsSection('templates', editingTemplate.id);
 
@@ -545,10 +545,10 @@ export function updateTemplateFromForm(): void {
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
 	if (triggersTextarea) template.triggers = triggersTextarea.value.split('\n').filter(Boolean);
 
-	hasUnsavedChanges = true;
+	_hasUnsavedChanges = true;
 }
 
-function clearTemplateEditor(): void {
+function _clearTemplateEditor(): void {
 	setEditingTemplateIndex(-1);
 	const templateEditorTitle = document.getElementById('template-editor-title');
 	const templateName = document.getElementById('template-name') as HTMLInputElement;

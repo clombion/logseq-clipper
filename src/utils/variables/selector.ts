@@ -1,7 +1,7 @@
 import browser from '../browser-polyfill';
+import { debugLog } from '../debug';
 import { applyFilters } from '../filters';
 import { selectorContentToString } from '../shared';
-import { debugLog } from '../debug';
 
 /**
  * Resolve a selector and return the raw content (array or string).
@@ -23,7 +23,7 @@ export async function resolveSelector(tabId: number, selectorExpr: string): Prom
 	const extractHtml = selectorType === 'selectorHtml';
 
 	// Unescape any escaped quotes and normalize whitespace in the selector
-	const selector = rawSelector!.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+	const selector = rawSelector?.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
 	try {
 		const response = (await browser.tabs.sendMessage(tabId, {
@@ -53,7 +53,7 @@ export async function processSelector(tabId: number, match: string, currentUrl: 
 	const extractHtml = selectorType === 'selectorHtml';
 
 	// Unescape any escaped quotes and normalize whitespace in the selector
-	const selector = rawSelector!.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+	const selector = rawSelector?.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
 	try {
 		const response = (await browser.tabs.sendMessage(tabId, {
@@ -63,12 +63,12 @@ export async function processSelector(tabId: number, match: string, currentUrl: 
 			extractHtml: extractHtml,
 		})) as { content: string };
 
-		let content = response ? response.content : '';
+		const content = response ? response.content : '';
 
 		const contentString = selectorContentToString(content);
 
 		debugLog('ContentExtractor', 'Applying filters:', { selector, filterString: filtersString });
-		const filteredContent = applyFilters(contentString, filtersString!, currentUrl);
+		const filteredContent = applyFilters(contentString, filtersString ?? '', currentUrl);
 
 		return filteredContent;
 	} catch (error) {

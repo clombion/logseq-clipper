@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { strip_attr } from './strip_attr';
 
 describe('strip_attr filter', () => {

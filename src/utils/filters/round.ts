@@ -7,7 +7,7 @@ export const validateRoundParams = (param: string | undefined): ParamValidationR
 	}
 
 	const num = parseInt(param, 10);
-	if (isNaN(num)) {
+	if (Number.isNaN(num)) {
 		return { valid: false, error: 'decimal places must be a number (e.g., round:2)' };
 	}
 
@@ -23,7 +23,7 @@ export const round = (input: string, param?: string): string => {
 		if (decimalPlaces === undefined) {
 			return Math.round(num);
 		}
-		const factor = Math.pow(10, decimalPlaces);
+		const factor = 10 ** decimalPlaces;
 		return Math.round(num * factor) / factor;
 	};
 
@@ -33,7 +33,7 @@ export const round = (input: string, param?: string): string => {
 			return roundNumber(value, decimalPlaces);
 		} else if (typeof value === 'string') {
 			const num = parseFloat(value);
-			return isNaN(num) ? value : roundNumber(num, decimalPlaces).toString();
+			return Number.isNaN(num) ? value : roundNumber(num, decimalPlaces).toString();
 		} else if (Array.isArray(value)) {
 			return value.map((item) => processValue(item, decimalPlaces));
 		} else if (typeof value === 'object' && value !== null) {
@@ -49,7 +49,7 @@ export const round = (input: string, param?: string): string => {
 
 	try {
 		const decimalPlaces = param ? parseInt(param, 10) : undefined;
-		if (param !== undefined && isNaN(Number(param))) {
+		if (param !== undefined && Number.isNaN(Number(param))) {
 			return input; // Return the original input if the parameter is not a valid number
 		}
 

@@ -18,29 +18,25 @@ export const image = (str: string, param?: string): string | string[] => {
 
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const processObject = (obj: any): string[] => {
-			return Object.entries(obj)
-				.map(([key, value]) => {
-					if (typeof value === 'object' && value !== null) {
-						return processObject(value);
-					}
-					return `![${escapeMarkdown(String(value))}](${escapeMarkdown(key)})`;
-				})
-				.flat();
+			return Object.entries(obj).flatMap(([key, value]) => {
+				if (typeof value === 'object' && value !== null) {
+					return processObject(value);
+				}
+				return `![${escapeMarkdown(String(value))}](${escapeMarkdown(key)})`;
+			});
 		};
 
 		if (Array.isArray(data)) {
-			return data
-				.map((item) => {
-					if (typeof item === 'object' && item !== null) {
-						return processObject(item);
-					}
-					return item ? `![${altText}](${escapeMarkdown(String(item))})` : '';
-				})
-				.flat();
+			return data.flatMap((item) => {
+				if (typeof item === 'object' && item !== null) {
+					return processObject(item);
+				}
+				return item ? `![${altText}](${escapeMarkdown(String(item))})` : '';
+			});
 		} else if (typeof data === 'object' && data !== null) {
 			return processObject(data);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat it as a single URL string
 		return `![${altText}](${escapeMarkdown(str)})`;
 	}

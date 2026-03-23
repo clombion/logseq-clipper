@@ -1,9 +1,9 @@
 import { initializeIcons } from '../icons/icons';
-import { debounce } from '../utils/debounce';
-import { Template } from '../types/types';
-import { getMessage } from '../utils/i18n';
+import type { Template } from '../types/types';
 import { copyToClipboard } from '../utils/clipboard-utils';
+import { debounce } from '../utils/debounce';
 import { debugLog } from '../utils/debug';
+import { getMessage } from '../utils/i18n';
 
 let variablesPanel: HTMLElement;
 let currentTemplate: Template | null;
@@ -150,8 +150,9 @@ export async function showVariables(isUpdate: boolean = false) {
 						'input, button, [tabindex]:not([tabindex="-1"]), .clickable-icon, .chevron-icon',
 					);
 					if (focusable.length === 0) return;
-					const first = focusable[0]!;
-					const last = focusable[focusable.length - 1]!;
+					const first = focusable[0];
+					const last = focusable[focusable.length - 1];
+					if (!first || !last) return;
 					if (e.shiftKey && document.activeElement === first) {
 						e.preventDefault();
 						last.focus();
@@ -269,9 +270,9 @@ function highlightText(element: HTMLElement, searchTerm: string) {
 
 	// Split text and create text nodes with mark elements
 	let lastIndex = 0;
-	let match;
+	let match: RegExpExecArray | null = regex.exec(originalText);
 
-	while ((match = regex.exec(originalText)) !== null) {
+	while (match !== null) {
 		// Add text before match
 		if (match.index > lastIndex) {
 			const textNode = document.createTextNode(originalText.slice(lastIndex, match.index));
@@ -284,6 +285,7 @@ function highlightText(element: HTMLElement, searchTerm: string) {
 		element.appendChild(mark);
 
 		lastIndex = match.index + match[0].length;
+		match = regex.exec(originalText);
 	}
 
 	// Add remaining text

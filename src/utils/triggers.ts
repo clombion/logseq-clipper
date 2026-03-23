@@ -1,6 +1,6 @@
-import { Template } from '../types/types';
-import { memoize, memoizeWithExpiration } from './memoize';
+import type { Template } from '../types/types';
 import { debugLog } from './debug';
+import { memoize, memoizeWithExpiration } from './memoize';
 
 // Modify the memoized function to handle regex patterns correctly
 const memoizedInternalMatchPattern = memoize(
@@ -63,7 +63,7 @@ class Trie {
 			if (!node.children.has(char)) break;
 			node = node.children.get(char)!;
 			if (node.templates.length > 0) {
-				const matchingTemplate = node.templates.find((t) =>
+				const matchingTemplate = node.templates.find((_t) =>
 					memoizedInternalMatchPattern(url.slice(0, url.indexOf(char) + 1), url, schemaOrgData),
 				);
 				if (matchingTemplate) {

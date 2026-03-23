@@ -1,22 +1,21 @@
+import type { Property, Template } from '../types/types';
+import { debugLog } from './debug';
 import {
-	type LogseqApiConfig,
-	type IBatchBlock,
-	type LogseqBlock,
-	createPage,
-	getPage,
 	appendBlockInPage,
-	prependBlockInPage,
-	insertBatchBlock,
+	createPage,
+	getTodayJournalPageName as fetchTodayJournalPage,
+	getPage,
 	getPageBlocksTree,
+	type IBatchBlock,
+	insertBatchBlock,
+	type LogseqApiConfig,
+	prependBlockInPage,
 	queryByProperty,
 	removeBlock,
 	upsertBlockProperty,
-	getTodayJournalPageName as fetchTodayJournalPage,
 } from './logseq-api';
 import { markdownToBlocks } from './markdown-to-blocks';
 import { generalSettings } from './storage-utils';
-import { debugLog } from './debug';
-import { type Property, type Template } from '../types/types';
 
 function getApiConfig(): LogseqApiConfig {
 	return {
@@ -37,20 +36,15 @@ export async function checkDuplicate(url: string): Promise<{
 
 		if (results && results.length > 0) {
 			// Find the log entry that has source matching this URL
-			const logEntry = results.find(
-				(r) => r.properties?.source === url || r.properties?.['source'] === url,
-			);
+			const logEntry = results.find((r) => r.properties?.source === url || r.properties?.source === url);
 			if (!logEntry) {
 				return { exists: false };
 			}
 
 			const pageTitle = logEntry.content?.match(/\[\[(.+?)\]\]/)?.[1];
 			const destinationPage =
-				logEntry.properties?.['destination-page'] ??
-				logEntry.properties?.destinationPage ??
-				pageTitle;
-			const clippedAt =
-				logEntry.properties?.['clipped-at'] ?? logEntry.properties?.clippedAt;
+				logEntry.properties?.['destination-page'] ?? logEntry.properties?.destinationPage ?? pageTitle;
+			const clippedAt = logEntry.properties?.['clipped-at'] ?? logEntry.properties?.clippedAt;
 
 			if (!pageTitle && !destinationPage) {
 				return { exists: false };
@@ -60,7 +54,10 @@ export async function checkDuplicate(url: string): Promise<{
 			if (destinationPage) {
 				const page = await getPage(config, destinationPage);
 				if (!page) {
-					debugLog('Dedup', `Log entry found for ${url} but destination page '${destinationPage}' no longer exists`);
+					debugLog(
+						'Dedup',
+						`Log entry found for ${url} but destination page '${destinationPage}' no longer exists`,
+					);
 					return { exists: false };
 				}
 			}
@@ -106,7 +103,10 @@ export async function saveToLogseq(
 		.map(([key, value]) => `${key}:: ${value}`)
 		.join('\n');
 
-	debugLog('Save', `[${clipId}] behavior=${behavior} page='${noteName}' blocks=${blocks.length} props=${Object.keys(propsObj).length}`);
+	debugLog(
+		'Save',
+		`[${clipId}] behavior=${behavior} page='${noteName}' blocks=${blocks.length} props=${Object.keys(propsObj).length}`,
+	);
 
 	// Helper: insert content blocks as children of a parent block
 	const insertContentAsChildren = async (parentUuid: string) => {
@@ -120,12 +120,12 @@ export async function saveToLogseq(
 	// Used when metadataContent is empty — mirrors the 'create' flow pattern.
 	const insertContentDirectlyOnPage = async (pageName: string) => {
 		if (blocks.length > 0) {
-			const anchor = await appendBlockInPage(config, pageName, blocks[0]!.content);
+			const anchor = await appendBlockInPage(config, pageName, blocks[0]?.content ?? '');
 			if (!anchor?.uuid) {
 				throw new Error(`Failed to create block on page '${pageName}'`);
 			}
 			debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
-			const children = blocks[0]!.children ?? [];
+			const children = blocks[0]?.children ?? [];
 			if (children.length > 0) {
 				await insertBatchBlock(config, anchor.uuid, children);
 			}
@@ -155,12 +155,12 @@ export async function saveToLogseq(
 
 			// Insert content blocks directly on the page
 			if (blocks.length > 0) {
-				const anchor = await appendBlockInPage(config, noteName, blocks[0]!.content);
+				const anchor = await appendBlockInPage(config, noteName, blocks[0]?.content ?? '');
 				if (!anchor?.uuid) {
 					throw new Error(`Failed to create block on page '${noteName}'`);
 				}
 				debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
-				const children = blocks[0]!.children ?? [];
+				const children = blocks[0]?.children ?? [];
 				if (children.length > 0) {
 					await insertBatchBlock(config, anchor.uuid, children);
 				}
@@ -270,17 +270,17 @@ export async function updateExistingClip(
 	}
 
 	// Snapshot old content blocks BEFORE inserting new ones
-	const oldBlocks = await getPageBlocksTree(config, pageTitle) ?? [];
+	const oldBlocks = (await getPageBlocksTree(config, pageTitle)) ?? [];
 	debugLog('Save', `[${clipId}] old blocks: ${oldBlocks.length}, inserting new content`);
 
 	// Insert new content
 	const blocks = markdownToBlocks(noteContent);
 	if (blocks.length > 0) {
-		const anchor = await appendBlockInPage(config, pageTitle, blocks[0]!.content);
+		const anchor = await appendBlockInPage(config, pageTitle, blocks[0]?.content ?? '');
 		if (!anchor?.uuid) {
 			throw new Error(`Failed to insert new content on page '${pageTitle}'`);
 		}
-		const children = blocks[0]!.children ?? [];
+		const children = blocks[0]?.children ?? [];
 		if (children.length > 0) {
 			await insertBatchBlock(config, anchor.uuid, children);
 		}
@@ -366,7 +366,6 @@ function mergeValidatedSettings(jsonString: string): void {
 	}
 }
 
-
 async function appendToClipLog(
 	title: string,
 	url: string,
@@ -384,7 +383,7 @@ async function appendToClipLog(
 		'destination-page': destinationPage,
 	};
 	if (replaces) {
-		logBlockProps['replaces'] = replaces;
+		logBlockProps.replaces = replaces;
 	}
 
 	const displayTitle = title || destinationPage;
@@ -401,9 +400,9 @@ async function appendToClipLog(
 	if (logBlock.properties) {
 		// Properties are set by inserting a child block with property syntax
 		// or by using the block's properties directly via insertBatchBlock
-		const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(
-			([key, value]) => ({ content: `${key}:: ${value}` })
-		);
+		const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(([key, value]) => ({
+			content: `${key}:: ${value}`,
+		}));
 		if (propChildren.length > 0) {
 			await insertBatchBlock(config, anchor.uuid, propChildren);
 		}

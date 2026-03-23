@@ -1,23 +1,29 @@
-import { initializeIcons } from '../icons/icons';
-import { getCommands } from '../utils/hotkeys';
-import { initializeToggles, updateToggleState, initializeSettingToggle } from '../utils/ui-utils';
-import { generalSettings, loadSettings, saveSettings, setLocalStorage, getLocalStorage, Rating } from '../utils/storage-utils';
-import { checkConnection } from '../utils/logseq-api';
-import { detectBrowser } from '../utils/browser-detection';
-import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
-import { createDefaultTemplate, getTemplates, saveTemplateSettings } from '../managers/template-manager';
-import { updateTemplateList, showTemplateEditor } from '../managers/template-ui';
-import { exportAllSettings, importAllSettings } from '../utils/import-export';
-import { Template } from '../types/types';
-import { exportHighlights } from './highlights-manager';
-import { getMessage, setupLanguageAndDirection } from '../utils/i18n';
-import { debounce } from '../utils/debounce';
-import browser from '../utils/browser-polyfill';
-import { createUsageChart, aggregateUsageData } from '../utils/charts';
-import { getClipHistory } from '../utils/storage-utils';
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import { showModal, hideModal } from '../utils/modal-utils';
+import { createDefaultTemplate, getTemplates, saveTemplateSettings } from '../managers/template-manager';
+import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
+import type { Template } from '../types/types';
+import { detectBrowser } from '../utils/browser-detection';
+import browser from '../utils/browser-polyfill';
+import { aggregateUsageData, createUsageChart } from '../utils/charts';
+import { debounce } from '../utils/debounce';
+import { createElementWithClass } from '../utils/dom-utils';
+import { getCommands } from '../utils/hotkeys';
+import { getMessage, setupLanguageAndDirection } from '../utils/i18n';
+import { exportAllSettings, importAllSettings } from '../utils/import-export';
+import { checkConnection } from '../utils/logseq-api';
+import { hideModal, showModal } from '../utils/modal-utils';
+import {
+	generalSettings,
+	getClipHistory,
+	getLocalStorage,
+	loadSettings,
+	type Rating,
+	saveSettings,
+	setLocalStorage,
+} from '../utils/storage-utils';
+import { initializeSettingToggle, initializeToggles } from '../utils/ui-utils';
+import { exportHighlights } from './highlights-manager';
 
 dayjs.extend(weekOfYear);
 
@@ -36,7 +42,7 @@ export async function setShortcutInstructions() {
 		const browser = await detectBrowser();
 		// Clear content
 		shortcutInstructionsElement.textContent = '';
-		shortcutInstructionsElement.appendChild(document.createTextNode(getMessage('shortcutInstructionsIntro') + ' '));
+		shortcutInstructionsElement.appendChild(document.createTextNode(`${getMessage('shortcutInstructionsIntro')} `));
 
 		// Browser-specific instructions
 		let instructionsText = '';
@@ -71,13 +77,13 @@ export async function setShortcutInstructions() {
 			// Split text around the URL placeholder and add strong element
 			const parts = instructionsText.split('$URL');
 			if (parts.length === 2) {
-				shortcutInstructionsElement.appendChild(document.createTextNode(parts[0]!));
+				shortcutInstructionsElement.appendChild(document.createTextNode(parts[0] ?? ''));
 
 				const strongElement = document.createElement('strong');
 				strongElement.textContent = url;
 				shortcutInstructionsElement.appendChild(strongElement);
 
-				shortcutInstructionsElement.appendChild(document.createTextNode(parts[1]!));
+				shortcutInstructionsElement.appendChild(document.createTextNode(parts[1] ?? ''));
 			} else {
 				// Fallback if no placeholder found
 				shortcutInstructionsElement.appendChild(document.createTextNode(instructionsText));
@@ -102,7 +108,7 @@ async function initializeVersionDisplay(): Promise<void> {
 	// Only add update listener for browsers that support it
 	const currentBrowser = await detectBrowser();
 	if (currentBrowser !== 'safari' && currentBrowser !== 'mobile-safari' && browser.runtime.onUpdateAvailable) {
-		browser.runtime.onUpdateAvailable.addListener((details) => {
+		browser.runtime.onUpdateAvailable.addListener((_details) => {
 			if (updateAvailable && usingLatestVersion) {
 				updateAvailable.style.display = 'block';
 				usingLatestVersion.style.display = 'none';
@@ -143,9 +149,9 @@ export function initializeGeneralSettings(): void {
 				const stars = starRating.querySelectorAll('.star');
 				stars.forEach((star) => {
 					star.addEventListener('click', async () => {
-						const rating = parseInt(star.getAttribute('data-rating') || '0');
+						const rating = parseInt(star.getAttribute('data-rating') || '0', 10);
 						stars.forEach((s) => {
-							if (parseInt(s.getAttribute('data-rating') || '0') <= rating) {
+							if (parseInt(s.getAttribute('data-rating') || '0', 10) <= rating) {
 								s.classList.add('is-active');
 							} else {
 								s.classList.remove('is-active');

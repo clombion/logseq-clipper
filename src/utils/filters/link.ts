@@ -22,14 +22,12 @@ export const link = (str: string, param?: string): string => {
 
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		const processObject = (obj: any): string[] => {
-			return Object.entries(obj)
-				.map(([key, value]) => {
-					if (typeof value === 'object' && value !== null) {
-						return processObject(value);
-					}
-					return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
-				})
-				.flat();
+			return Object.entries(obj).flatMap(([key, value]) => {
+				if (typeof value === 'object' && value !== null) {
+					return processObject(value);
+				}
+				return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
+			});
 		};
 
 		if (Array.isArray(data)) {
@@ -43,7 +41,7 @@ export const link = (str: string, param?: string): string => {
 		} else if (typeof data === 'object' && data !== null) {
 			return processObject(data).join('\n');
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat it as a single URL string
 		return `[${linkText}](${encodeUrl(escapeMarkdown(str))})`;
 	}

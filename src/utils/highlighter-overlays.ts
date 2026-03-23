@@ -1,18 +1,18 @@
+import { debugLog } from './debug';
+import { getElementByXPath, isDarkColor } from './dom-utils';
 import {
+	type AnyHighlightData,
+	applyHighlights,
 	handleTextSelection,
 	highlightElement,
-	AnyHighlightData,
 	highlights,
 	isApplyingHighlights,
-	sortHighlights,
-	applyHighlights,
 	saveHighlights,
-	updateHighlights,
+	sortHighlights,
 	updateHighlighterMenu,
+	updateHighlights,
 } from './highlighter';
 import { throttle } from './throttle';
-import { getElementByXPath, isDarkColor } from './dom-utils';
-import { debugLog } from './debug';
 
 let hoverOverlay: HTMLElement | null = null;
 let touchStartX: number = 0;
@@ -335,7 +335,7 @@ function mergeHighlightOverlayRects(
 	index: number,
 	notes?: string[],
 ) {
-	let mergedRects: DOMRect[] = [];
+	const mergedRects: DOMRect[] = [];
 	let currentRect: DOMRect | null = null;
 
 	for (let i = 0; i < rects.length; i++) {
@@ -375,7 +375,7 @@ function mergeHighlightOverlayRects(
 function createHighlightOverlayElement(
 	rect: DOMRect,
 	content: string,
-	isText: boolean = false,
+	_isText: boolean = false,
 	index: number,
 	notes?: string[],
 ) {
@@ -429,9 +429,8 @@ function updateHighlightOverlayPositions() {
 	highlights.forEach((highlight, index) => {
 		const target = getElementByXPath(highlight.xpath);
 		if (target) {
-			const hasExisting = document.querySelectorAll(
-				`.logseq-highlight-overlay[data-highlight-index="${index}"]`,
-			).length > 0;
+			const hasExisting =
+				document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`).length > 0;
 			updates.push({ target, highlight, index, hasExisting });
 		}
 	});
@@ -447,9 +446,9 @@ function updateHighlightOverlayPositions() {
 
 // Remove existing highlight overlays for a specific index
 function removeExistingHighlightOverlays(index: number) {
-	document
-		.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`)
-		.forEach((el) => el.remove());
+	document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`).forEach((el) => {
+		el.remove();
+	});
 }
 
 const throttledUpdateHighlights = throttle(() => {
@@ -581,7 +580,7 @@ export function removeHoverOverlay() {
 async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) {
 	event.stopPropagation();
 	event.preventDefault(); // Prevent default touch behavior
-	const overlay = overlayElement ?? event.currentTarget as HTMLElement;
+	const overlay = overlayElement ?? (event.currentTarget as HTMLElement);
 
 	try {
 		if (!overlay || !overlay.dataset) {
@@ -594,8 +593,8 @@ async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) 
 			return;
 		}
 
-		const highlightIndex = parseInt(index);
-		if (isNaN(highlightIndex) || highlightIndex < 0 || highlightIndex >= highlights.length) {
+		const highlightIndex = parseInt(index, 10);
+		if (Number.isNaN(highlightIndex) || highlightIndex < 0 || highlightIndex >= highlights.length) {
 			console.warn(`Invalid highlight index: ${index}`);
 			return;
 		}
@@ -618,6 +617,8 @@ export function removeExistingHighlights() {
 	const existingHighlights = document.querySelectorAll('.logseq-highlight-overlay');
 	debugLog('HighlighterOverlays', 'existingHighlights', existingHighlights.length);
 	if (existingHighlights.length > 0) {
-		existingHighlights.forEach((el) => el.remove());
+		existingHighlights.forEach((el) => {
+			el.remove();
+		});
 	}
 }

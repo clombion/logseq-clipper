@@ -1,9 +1,9 @@
 import browser from 'webextension-polyfill';
+import { isBlankPage, isValidUrl, updateCurrentActiveTab } from './utils/active-tab-manager';
 import { detectBrowser } from './utils/browser-detection';
-import { updateCurrentActiveTab, isValidUrl, isBlankPage } from './utils/active-tab-manager';
-import { TextHighlightData } from './utils/highlighter';
 import { debounce } from './utils/debounce';
 import { debugLog } from './utils/debug';
+import type { TextHighlightData } from './utils/highlighter';
 
 const YOUTUBE_EMBED_RULE_ID = 9001;
 
@@ -62,11 +62,11 @@ async function disableYouTubeEmbedRule(): Promise<void> {
 	});
 }
 
-let sidePanelOpenWindows: Set<number> = new Set();
-let highlighterModeState: { [tabId: number]: boolean } = {};
-let hasHighlights = false;
+const sidePanelOpenWindows: Set<number> = new Set();
+const highlighterModeState: { [tabId: number]: boolean } = {};
+let _hasHighlights = false;
 let isContextMenuCreating = false;
-let popupPorts: { [tabId: number]: browser.Runtime.Port } = {};
+const popupPorts: { [tabId: number]: browser.Runtime.Port } = {};
 
 async function ensureContentScriptLoadedInBackground(tabId: number): Promise<void> {
 	try {
@@ -154,7 +154,7 @@ async function initialize() {
 
 // Check if a popup is open for a given tab
 function isPopupOpen(tabId: number): boolean {
-	return popupPorts.hasOwnProperty(tabId);
+	return Object.hasOwn(popupPorts, tabId);
 }
 
 browser.runtime.onConnect.addListener((port) => {
@@ -173,7 +173,7 @@ browser.runtime.onConnect.addListener((port) => {
 async function sendMessageToPopup(tabId: number, message: any): Promise<void> {
 	if (isPopupOpen(tabId)) {
 		try {
-			await popupPorts[tabId]!.postMessage(message);
+			await popupPorts[tabId]?.postMessage(message);
 		} catch (error) {
 			console.warn(`Error sending message to popup for tab ${tabId}:`, error);
 		}
@@ -200,7 +200,7 @@ browser.runtime.onMessage.addListener(
 				// Use content script to copy to clipboard
 				browser.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
 					const currentTab = tabs[0];
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						try {
 							const response = await browser.tabs.sendMessage(currentTab.id, {
 								action: 'copy-text-to-clipboard',
@@ -273,14 +273,14 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'sidePanelOpened') {
-				if (sender.tab && sender.tab.windowId) {
+				if (sender.tab?.windowId) {
 					sidePanelOpenWindows.add(sender.tab.windowId);
 					updateCurrentActiveTab(sender.tab.windowId);
 				}
 			}
 
 			if (typedRequest.action === 'sidePanelClosed') {
-				if (sender.tab && sender.tab.windowId) {
+				if (sender.tab?.windowId) {
 					sidePanelOpenWindows.delete(sender.tab.windowId);
 				}
 			}
@@ -294,18 +294,18 @@ browser.runtime.onMessage.addListener(
 				}
 			}
 
-			if (typedRequest.action === 'highlightsCleared' && sender.tab) {
-				hasHighlights = false;
-				debouncedUpdateContextMenu(sender.tab.id!);
+			if (typedRequest.action === 'highlightsCleared' && sender.tab?.id != null) {
+				_hasHighlights = false;
+				debouncedUpdateContextMenu(sender.tab.id);
 			}
 
 			if (
 				typedRequest.action === 'updateHasHighlights' &&
-				sender.tab &&
+				sender.tab?.id != null &&
 				typedRequest.hasHighlights !== undefined
 			) {
-				hasHighlights = typedRequest.hasHighlights;
-				debouncedUpdateContextMenu(sender.tab.id!);
+				_hasHighlights = typedRequest.hasHighlights;
+				debouncedUpdateContextMenu(sender.tab.id);
 			}
 
 			if (typedRequest.action === 'getHighlighterMode') {
@@ -339,8 +339,9 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'toggleReaderMode' && typedRequest.tabId) {
-				injectReaderScript(typedRequest.tabId).then(() => {
-					browser.tabs.sendMessage(typedRequest.tabId!, { action: 'toggleReaderMode' }).then(sendResponse);
+				const readerTabId = typedRequest.tabId;
+				injectReaderScript(readerTabId).then(() => {
+					browser.tabs.sendMessage(readerTabId, { action: 'toggleReaderMode' }).then(sendResponse);
 				});
 				return true;
 			}
@@ -348,7 +349,7 @@ browser.runtime.onMessage.addListener(
 			if (typedRequest.action === 'getActiveTabAndToggleIframe') {
 				browser.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
 					const currentTab = tabs[0];
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						try {
 							// Check if the URL is valid before trying to inject content script
 							if (!currentTab.url || !isValidUrl(currentTab.url) || isBlankPage(currentTab.url)) {
@@ -389,7 +390,7 @@ browser.runtime.onMessage.addListener(
 									!tab.url.startsWith('moz-extension://'),
 							) || allActiveTabs[0];
 					}
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						sendResponse({ tabId: currentTab.id });
 					} else {
 						sendResponse({ error: 'No active tab found' });
@@ -456,7 +457,7 @@ browser.runtime.onMessage.addListener(
 								'Background',
 								'Tab response:',
 								// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-								response ? 'has content=' + !!(response as any).content : response,
+								response ? `has content=${!!(response as any).content}` : response,
 							);
 							sendResponse(response);
 						})
@@ -531,7 +532,7 @@ const debouncedUpdateContextMenu = debounce(async (tabId: number) => {
 		if (currentTabId === -1) {
 			const tabs = await browser.tabs.query({ active: true, currentWindow: true });
 			if (tabs.length > 0) {
-				currentTabId = tabs[0]!.id!;
+				currentTabId = tabs[0]?.id ?? -1;
 			}
 		}
 
@@ -743,7 +744,7 @@ async function highlightSelection(tabId: number, info: browser.Menus.OnClickData
 		isActive: true,
 		highlightData,
 	});
-	hasHighlights = true;
+	_hasHighlights = true;
 	debouncedUpdateContextMenu(tabId);
 }
 
@@ -759,7 +760,7 @@ async function highlightElement(tabId: number, info: browser.Menus.OnClickData) 
 			pageUrl: info.pageUrl,
 		},
 	});
-	hasHighlights = true;
+	_hasHighlights = true;
 	debouncedUpdateContextMenu(tabId);
 }
 

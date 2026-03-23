@@ -1,18 +1,18 @@
+import { addBrowserClassToHtml, detectBrowser } from './browser-detection';
 import browser from './browser-polyfill';
-import { getElementXPath, getElementByXPath } from './dom-utils';
+import { debugLog } from './debug';
+import { getElementByXPath, getElementXPath } from './dom-utils';
 import {
-	handleMouseUp,
 	handleMouseMove,
-	removeHoverOverlay,
-	updateHighlightListeners,
+	handleMouseUp,
+	handleTouchMove,
+	handleTouchStart,
 	planHighlightOverlayRects,
 	removeExistingHighlights,
-	handleTouchStart,
-	handleTouchMove,
+	removeHoverOverlay,
+	updateHighlightListeners,
 } from './highlighter-overlays';
-import { detectBrowser, addBrowserClassToHtml } from './browser-detection';
 import { generalSettings, loadSettings } from './storage-utils';
-import { debugLog } from './debug';
 
 // Throttle mousemove via requestAnimationFrame to avoid firing on every pixel
 let rafId: number | null = null;
@@ -79,7 +79,7 @@ export type AnyHighlightData = TextHighlightData | ElementHighlightData | Comple
 export let highlights: AnyHighlightData[] = [];
 export let isApplyingHighlights = false;
 let lastAppliedHighlights: string = '';
-let originalLinkClickHandlers: WeakMap<HTMLElement, (event: MouseEvent) => void> = new WeakMap();
+const originalLinkClickHandlers: WeakMap<HTMLElement, (event: MouseEvent) => void> = new WeakMap();
 
 interface HistoryAction {
 	type: 'add' | 'remove';
@@ -87,7 +87,7 @@ interface HistoryAction {
 	newHighlights: AnyHighlightData[];
 }
 
-let highlightHistory: HistoryAction[] = [];
+const highlightHistory: HistoryAction[] = [];
 let redoHistory: HistoryAction[] = [];
 const MAX_HISTORY_LENGTH = 30;
 
@@ -299,7 +299,7 @@ export function createHighlighterMenu() {
 		// Add clear highlights button
 		const clearButton = document.createElement('button');
 		clearButton.id = 'logseq-clear-highlights';
-		clearButton.textContent = highlightText + ' ';
+		clearButton.textContent = `${highlightText} `;
 
 		// Add trash icon
 		const trashSvg = createSVG({
@@ -462,7 +462,11 @@ export function highlightElement(element: Element, notes?: string[]) {
 			targetElement = parentTable;
 		} else {
 			// If a cell/row is not within a table, do not highlight.
-			debugLog('Highlighter', 'Table cell/row targeted, but no parent table found. Not highlighting:', originalTagName);
+			debugLog(
+				'Highlighter',
+				'Table cell/row targeted, but no parent table found. Not highlighting:',
+				originalTagName,
+			);
 			return;
 		}
 	}
@@ -544,12 +548,13 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 		},
 	});
 
-	let currentTextNode;
-	while ((currentTextNode = textNodeIterator.nextNode())) {
+	let currentTextNode: Node | null = textNodeIterator.nextNode();
+	while (currentTextNode) {
 		const block = getClosestAllowedBlock(currentTextNode);
 		if (block) {
 			uniqueParentBlocks.add(block);
 		}
+		currentTextNode = textNodeIterator.nextNode();
 	}
 
 	// Sort the blocks in document order to process them correctly
@@ -620,7 +625,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 					xpath: getElementXPath(blockElement),
 					content: selectedTextContent,
 					type: 'text',
-					id: Date.now().toString() + '_' + i, // Unique ID for the batch
+					id: `${Date.now().toString()}_${i}`, // Unique ID for the batch
 					startOffset: getTextOffset(
 						blockElement,
 						currentBlockSelectionRange.startContainer,
@@ -688,7 +693,9 @@ function sanitizeAndPreserveFormatting(html: string): string {
 	const doc = parser.parseFromString(html, 'text/html');
 
 	// Remove any script tags
-	doc.querySelectorAll('script').forEach((el) => el.remove());
+	doc.querySelectorAll('script').forEach((el) => {
+		el.remove();
+	});
 
 	// Get the body content and serialize it back
 	const serializer = new XMLSerializer();
@@ -711,20 +718,22 @@ function sanitizeAndPreserveFormatting(html: string): string {
 function balanceTags(html: string): string {
 	const openingTags: string[] = [];
 	const regex = /<\/?([a-z]+)[^>]*>/gi;
-	let match;
+	let match: RegExpExecArray | null = regex.exec(html);
 
-	while ((match = regex.exec(html)) !== null) {
-		if (match[0]!.startsWith('</')) {
+	while (match !== null) {
+		if (match[0]?.startsWith('</')) {
 			// Closing tag
 			const lastOpenTag = openingTags.pop();
-			if (lastOpenTag !== match[1]!.toLowerCase()) {
+			if (lastOpenTag !== match[1]?.toLowerCase()) {
 				// Mismatched tag, add it back
 				if (lastOpenTag) openingTags.push(lastOpenTag);
 			}
 		} else {
 			// Opening tag
-			openingTags.push(match[1]!.toLowerCase());
+			const tagName = match[1]?.toLowerCase();
+			if (tagName) openingTags.push(tagName);
 		}
+		match = regex.exec(html);
 	}
 
 	// Close any remaining open tags
@@ -813,7 +822,7 @@ export function sortHighlights() {
 }
 
 // Get the vertical position of an element
-function getElementVerticalPosition(element: Element): number {
+function _getElementVerticalPosition(element: Element): number {
 	return element.getBoundingClientRect().top + window.scrollY;
 }
 
@@ -850,7 +859,7 @@ function mergeOverlappingHighlights(
 	existingHighlights: AnyHighlightData[],
 	newHighlight: AnyHighlightData,
 ): AnyHighlightData[] {
-	let mergedHighlights: AnyHighlightData[] = [];
+	const mergedHighlights: AnyHighlightData[] = [];
 	let merged = false;
 
 	for (const existing of existingHighlights) {
@@ -1144,9 +1153,10 @@ function findFirstTextNode(element: Element): Text | null {
 function findLastTextNode(element: Element): Text | null {
 	const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
 	let lastNode = null;
-	let currentNode;
-	while ((currentNode = treeWalker.nextNode())) {
+	let currentNode: Node | null = treeWalker.nextNode();
+	while (currentNode) {
 		lastNode = currentNode;
+		currentNode = treeWalker.nextNode();
 	}
 	return lastNode as Text | null;
 }

@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { strip_tags } from './strip_tags';
 
 describe('strip_tags filter', () => {

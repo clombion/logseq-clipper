@@ -1,16 +1,16 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+	appendBlockInPage,
 	checkConnection,
 	createPage,
 	getPage,
-	appendBlockInPage,
 	insertBatchBlock,
+	type LogseqApiConfig,
+	LogseqApiError,
+	LogseqAuthError,
+	LogseqConnectionError,
 	queryByProperty,
 	removeBlock,
-	LogseqConnectionError,
-	LogseqAuthError,
-	LogseqApiError,
-	LogseqApiConfig,
 } from './logseq-api';
 
 const config: LogseqApiConfig = { port: 12315, token: 'test-token' };
@@ -175,27 +175,19 @@ describe('removeBlock', () => {
 
 describe('queryByProperty', () => {
 	test('rejects invalid property names', async () => {
-		await expect(
-			queryByProperty(config, 'source"; DROP TABLE', 'value'),
-		).rejects.toThrow('Invalid property name');
+		await expect(queryByProperty(config, 'source"; DROP TABLE', 'value')).rejects.toThrow('Invalid property name');
 	});
 
 	test('rejects property names starting with number', async () => {
-		await expect(
-			queryByProperty(config, '123bad', 'value'),
-		).rejects.toThrow('Invalid property name');
+		await expect(queryByProperty(config, '123bad', 'value')).rejects.toThrow('Invalid property name');
 	});
 
 	test('accepts valid property names with hyphens and underscores', async () => {
 		mockFetch.mockReturnValue(jsonResponse([]));
-		await expect(
-			queryByProperty(config, 'destination-page', 'value'),
-		).resolves.not.toThrow();
+		await expect(queryByProperty(config, 'destination-page', 'value')).resolves.not.toThrow();
 
 		mockFetch.mockReturnValue(jsonResponse([]));
-		await expect(
-			queryByProperty(config, 'content_hash', 'value'),
-		).resolves.not.toThrow();
+		await expect(queryByProperty(config, 'content_hash', 'value')).resolves.not.toThrow();
 	});
 });
 
@@ -236,10 +228,12 @@ describe('error handling', () => {
 	});
 
 	test('error-in-200: response with serialized Error object (string stack) throws LogseqApiError', async () => {
-		mockFetch.mockReturnValue(jsonResponse({
-			message: 'Invalid target: nil',
-			stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
-		}));
+		mockFetch.mockReturnValue(
+			jsonResponse({
+				message: 'Invalid target: nil',
+				stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
+			}),
+		);
 
 		await expect(getPage(config, 'Test')).rejects.toThrow(LogseqApiError);
 		try {

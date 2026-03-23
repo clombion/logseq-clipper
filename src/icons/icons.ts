@@ -11,6 +11,7 @@ import {
 	Clock,
 	Copy,
 	CopyPlus,
+	createIcons,
 	Ellipsis,
 	FileDown,
 	Files,
@@ -28,8 +29,6 @@ import {
 	Trash2,
 	X,
 } from 'lucide';
-
-import { createIcons } from 'lucide';
 
 export const icons = {
 	AlertTriangle,
@@ -62,7 +61,7 @@ export const icons = {
 	X,
 };
 
-export function initializeIcons(root: HTMLElement | Document = document) {
+export function initializeIcons(_root: HTMLElement | Document = document) {
 	createIcons({
 		icons,
 		attrs: {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html id="popup">
+<html lang="en" id="popup">
 	<head>
 		<title data-i18n="extensionName">Logseq Web Clipper</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -60,16 +60,16 @@
 					<div class="interpreter-controls">
 						<label for="model-select" class="sr-only">Model</label>
 						<select id="model-select" style="display: none;"></select>
-						<button id="interpret-btn" data-i18n="interpret"></button>
+						<button type="button" id="interpret-btn" data-i18n="interpret"></button>
 						<span id="interpreter-timer" style="display: none;"></span>
 					</div>
 					<div id="token-counter" class="token-counter"></div>
 					<div id="interpreter-error" style="display: none;" aria-live="assertive"></div>
 				</div>
 				<div class="action-buttons" id="action-buttons">
-					<button id="clip-btn" class="mod-cta"><!-- Text set by determineMainAction --></button>
+					<button type="button" id="clip-btn" class="mod-cta"><!-- Text set by determineMainAction --></button>
 					<div class="menu-btn">
-						<button id="more-btn" aria-expanded="false" aria-controls="more-dropdown" aria-label="More actions"><i data-lucide="chevron-down" aria-hidden="true"></i></button>
+						<button type="button" id="more-btn" aria-expanded="false" aria-controls="more-dropdown" aria-label="More actions"><i data-lucide="chevron-down" aria-hidden="true"></i></button>
 						<div class="menu" id="more-dropdown">
 							<div class="secondary-actions">
 								<!-- Secondary actions will be populated by ts -->

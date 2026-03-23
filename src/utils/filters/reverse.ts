@@ -16,7 +16,7 @@ export const reverse = (str: string): string => {
 			const reversedObject = Object.fromEntries(reversedEntries);
 			return JSON.stringify(reversedObject);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If not valid JSON, treat as string
 		return str.split('').reverse().join('');
 	}

@@ -16,8 +16,8 @@ export const callout = (str: string, param?: string): string => {
 		if (params.length > 0) type = params[0] || type;
 		if (params.length > 1) title = params[1] || title;
 		if (params.length > 2) {
-			if (params[2]!.toLowerCase() === 'true') foldState = '-';
-			else if (params[2]!.toLowerCase() === 'false') foldState = '+';
+			if (params[2]?.toLowerCase() === 'true') foldState = '-';
+			else if (params[2]?.toLowerCase() === 'false') foldState = '+';
 		}
 	}
 

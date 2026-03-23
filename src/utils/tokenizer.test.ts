@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest';
-import { tokenize, Token, TokenType } from './tokenizer';
+import { describe, expect, test } from 'vitest';
+import { type Token, type TokenType, tokenize } from './tokenizer';
 
 // Helper functions
 function getTypes(tokens: Token[]): TokenType[] {

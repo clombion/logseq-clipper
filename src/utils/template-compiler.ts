@@ -2,12 +2,12 @@
 // This module provides the main entry point for template compilation,
 // integrating the AST-based renderer with the variable processors.
 
-import { render, RenderContext, AsyncResolver } from './renderer';
 import { applyFilterDirect } from './filters';
-import { processSimpleVariable } from './variables/simple';
-import { processSelector, resolveSelector } from './variables/selector';
-import { processSchema } from './variables/schema';
+import { type AsyncResolver, type RenderContext, render } from './renderer';
 import { processPrompt } from './variables/prompt';
+import { processSchema } from './variables/schema';
+import { processSelector, resolveSelector } from './variables/selector';
+import { processSimpleVariable } from './variables/simple';
 
 /**
  * A function that processes a selector match string and returns the result.
@@ -99,11 +99,11 @@ export async function processVariables(
 ): Promise<string> {
 	const regex = /{{([\s\S]*?)}}/g;
 	let result = text;
-	let match;
+	let match: RegExpExecArray | null = regex.exec(result);
 
-	while ((match = regex.exec(result)) !== null) {
+	while (match !== null) {
 		const fullMatch = match[0];
-		const trimmedMatch = match[1]!.trim();
+		const trimmedMatch = match[1]?.trim() ?? '';
 
 		let replacement: string;
 
@@ -123,6 +123,7 @@ export async function processVariables(
 
 		result = result.substring(0, match.index) + replacement + result.substring(match.index + fullMatch.length);
 		regex.lastIndex = match.index + replacement.length;
+		match = regex.exec(result);
 	}
 
 	return result;
