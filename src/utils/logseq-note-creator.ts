@@ -360,14 +360,15 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 
 function mergeValidatedSettings(jsonString: string): void {
 	try {
-		const parsed = JSON.parse(jsonString);
+		const parsed: unknown = JSON.parse(jsonString);
 		if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+			const record = parsed as Record<string, unknown>;
 			const allowedKeys = Object.keys(generalSettings);
 			// biome-ignore lint/suspicious/noExplicitAny: dynamic settings validation
 			const validated: Record<string, any> = {};
 			for (const key of allowedKeys) {
-				if (key in parsed) {
-					validated[key] = parsed[key];
+				if (key in record) {
+					validated[key] = record[key];
 				}
 			}
 			Object.assign(generalSettings, validated);

@@ -60,7 +60,7 @@ export async function processSchema(
 				}
 			} else {
 				// Handle as JSON
-				const arrayValue = JSON.parse(rawValue);
+				const arrayValue: unknown = JSON.parse(rawValue);
 				if (Array.isArray(arrayValue)) {
 					if (indexOrStar === '*') {
 						schemaValue = JSON.stringify(

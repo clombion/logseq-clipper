@@ -367,9 +367,9 @@ async function renderFor(node: ForNode, state: RenderState): Promise<string> {
 		let iterableArray = iterableValue;
 		if (!Array.isArray(iterableArray) && typeof iterableArray === 'string') {
 			try {
-				const parsed = JSON.parse(iterableArray);
-				if (Array.isArray(parsed)) {
-					iterableArray = parsed;
+				const raw: unknown = JSON.parse(iterableArray);
+				if (Array.isArray(raw)) {
+					iterableArray = raw;
 				}
 			} catch {
 				// Not valid JSON, fall through to error below
@@ -790,7 +790,8 @@ function parseSchemaValue(value: TemplateValue): TemplateValue {
 		// Try to parse as JSON to get arrays/objects
 		if (value.startsWith('[') || value.startsWith('{')) {
 			try {
-				return JSON.parse(value);
+				const raw: unknown = JSON.parse(value);
+				return raw as TemplateValue;
 			} catch {
 				return value;
 			}

@@ -169,7 +169,12 @@ export function generateFrontmatter(properties: Property[], propertyTypes: Recor
 				let items: string[];
 				if (property.value.trim().startsWith('["') && property.value.trim().endsWith('"]')) {
 					try {
-						items = JSON.parse(property.value);
+						const raw: unknown = JSON.parse(property.value);
+						if (Array.isArray(raw)) {
+							items = raw as string[];
+						} else {
+							items = property.value.split(',').map((item) => item.trim());
+						}
 					} catch {
 						items = property.value.split(',').map((item) => item.trim());
 					}

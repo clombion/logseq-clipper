@@ -112,8 +112,10 @@ Example response:
 			// Reset the request interval on successful response
 			this.requestInterval = 2000; // Reset to base interval
 
-			const data = await response.json();
-			return data.choices[0].message.content;
+			const data: unknown = await response.json();
+			const record = data as Record<string, unknown>;
+			const choices = record.choices as { message: { content: string } }[];
+			return choices[0]!.message.content;
 		} catch (error) {
 			if (retryCount < this.maxRetries) {
 				const waitTime = this.requestInterval * 2 ** retryCount;
@@ -161,7 +163,11 @@ Example response:
 			let translations: { [key: string]: string };
 			try {
 				const cleanJson = response.replace(/```json\n?|\n?```/g, '').trim();
-				translations = JSON.parse(cleanJson);
+				const raw: unknown = JSON.parse(cleanJson);
+				if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+					throw new Error('Expected JSON object response');
+				}
+				translations = raw as { [key: string]: string };
 
 				const missingKeys = messages.filter(({ key }) => !translations[key]);
 				if (missingKeys.length > 0) {
@@ -219,7 +225,8 @@ Example response:
 		// Read source (English) messages
 		console.log(`📖 Reading source messages from ${this.sourceLocale}...`);
 		const sourceFile = path.join(this.localesDir, this.sourceLocale, 'messages.json');
-		const sourceMessages: Messages = JSON.parse(await fs.promises.readFile(sourceFile, 'utf-8'));
+		const rawSource: unknown = JSON.parse(await fs.promises.readFile(sourceFile, 'utf-8'));
+		const sourceMessages = rawSource as Messages;
 		console.log(`✓ Found ${Object.keys(sourceMessages).length} source messages`);
 
 		// Sort source messages
@@ -247,7 +254,8 @@ Example response:
 			let localeMessages: Messages = {};
 
 			try {
-				localeMessages = JSON.parse(await fs.promises.readFile(localeFile, 'utf-8'));
+				const rawLocale: unknown = JSON.parse(await fs.promises.readFile(localeFile, 'utf-8'));
+				localeMessages = rawLocale as Messages;
 				console.log(`  📂 Found existing translations for ${locale}`);
 			} catch (_error) {
 				console.log(`  ⚠️  No existing translations found for ${locale}, creating new file`);

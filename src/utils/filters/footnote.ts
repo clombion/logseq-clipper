@@ -5,11 +5,11 @@ export const footnote = (str: string): string => {
 	}
 
 	try {
-		const data = JSON.parse(str);
+		const data: unknown = JSON.parse(str);
 		if (Array.isArray(data)) {
 			return data.map((item, index) => `[^${index + 1}]: ${item}`).join('\n\n');
 		} else if (typeof data === 'object' && data !== null) {
-			return Object.entries(data)
+			return Object.entries(data as Record<string, unknown>)
 				.map(([key, value]) => {
 					const footnoteId = key
 						.replace(/([a-z])([A-Z])/g, '$1-$2')

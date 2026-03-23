@@ -203,7 +203,12 @@ export async function sendToLLM(
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic API response parsing
 		let data: Record<string, any>;
 		try {
-			data = JSON.parse(responseText);
+			const raw: unknown = JSON.parse(responseText);
+			if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+				throw new Error('Expected JSON object response');
+			}
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic API response parsing
+			data = raw as Record<string, any>;
 		} catch (error) {
 			console.error('Error parsing JSON response:', error);
 			throw new Error(`Failed to parse response from ${provider.name}`, { cause: error });
@@ -220,7 +225,7 @@ export async function sendToLLM(
 			if (textContent) {
 				try {
 					// Try to parse the inner content first
-					const parsed = JSON.parse(textContent);
+					const parsed: unknown = JSON.parse(textContent);
 					llmResponseContent = JSON.stringify(parsed);
 				} catch {
 					// If parsing fails, use the raw text
@@ -233,7 +238,7 @@ export async function sendToLLM(
 			const messageContent = data.message?.content;
 			if (messageContent) {
 				try {
-					const parsed = JSON.parse(messageContent);
+					const parsed: unknown = JSON.parse(messageContent);
 					llmResponseContent = JSON.stringify(parsed);
 				} catch {
 					llmResponseContent = messageContent;
@@ -281,7 +286,8 @@ function tryDirectParse(content: string): LLMResponse | null {
 	try {
 		const sanitized = sanitizeJsonString(content);
 		debugLog('Interpreter', 'Trying direct parse');
-		return JSON.parse(sanitized);
+		const raw: unknown = JSON.parse(sanitized);
+		return raw as LLMResponse;
 	} catch {
 		return null;
 	}
@@ -296,7 +302,8 @@ function tryExtractedMinimalSanitize(content: string): LLMResponse | null {
 			.replace(/\r\n/g, '\\n')
 			.replace(/\n/g, '\\n');
 		debugLog('Interpreter', 'Trying extracted JSON with minimal sanitization');
-		return JSON.parse(sanitized);
+		const raw: unknown = JSON.parse(sanitized);
+		return raw as LLMResponse;
 	} catch {
 		return null;
 	}
@@ -308,7 +315,8 @@ function tryExtractedFullSanitize(content: string): LLMResponse | null {
 	try {
 		const sanitized = sanitizeJsonString(jsonMatch[0]);
 		debugLog('Interpreter', 'Trying extracted JSON with full sanitization');
-		return JSON.parse(sanitized);
+		const raw: unknown = JSON.parse(sanitized);
+		return raw as LLMResponse;
 	} catch {
 		return null;
 	}
@@ -332,7 +340,8 @@ function tryRegexRebuild(content: string, promptVariables: PromptVariable[]): LL
 		}
 		debugLog('Interpreter', 'Trying regex key extraction rebuild');
 		const rebuilt = JSON.stringify({ prompts_responses });
-		return JSON.parse(rebuilt);
+		const raw: unknown = JSON.parse(rebuilt);
+		return raw as LLMResponse;
 	} catch {
 		return null;
 	}

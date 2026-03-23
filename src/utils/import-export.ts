@@ -15,6 +15,10 @@ import { sanitizeFileName } from './string-utils';
 
 const SCHEMA_VERSION = '0.1.0';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 // Add these type definitions at the top
 interface StorageData {
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
@@ -79,7 +83,11 @@ export function importTemplate(input?: HTMLInputElement): void {
 		const reader = new FileReader();
 		reader.onload = async (e: ProgressEvent<FileReader>) => {
 			try {
-				const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
+				const raw: unknown = JSON.parse(e.target?.result as string);
+				if (!isPlainObject(raw)) {
+					throw new Error('Invalid template file: expected a JSON object');
+				}
+				const importedTemplate = raw as Partial<Template>;
 				debugLog('ImportExport', 'Imported template:', importedTemplate);
 
 				if (!validateImportedTemplate(importedTemplate)) {
@@ -256,7 +264,11 @@ export function importTemplateFile(file: File): void {
 	reader.onload = async (e: ProgressEvent<FileReader>) => {
 		try {
 			debugLog('ImportExport', 'Starting template import');
-			const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
+			const raw: unknown = JSON.parse(e.target?.result as string);
+			if (!isPlainObject(raw)) {
+				throw new Error('Invalid template file: expected a JSON object');
+			}
+			const importedTemplate = raw as Partial<Template>;
 			const processedTemplate = await processImportedTemplate(importedTemplate);
 
 			templates.unshift(processedTemplate);
@@ -278,7 +290,11 @@ export function showTemplateImportModal(): void {
 
 async function importTemplateFromJson(jsonContent: string): Promise<void> {
 	try {
-		const importedTemplate = JSON.parse(jsonContent) as Partial<Template>;
+		const raw: unknown = JSON.parse(jsonContent);
+		if (!isPlainObject(raw)) {
+			throw new Error('Invalid template data: expected a JSON object');
+		}
+		const importedTemplate = raw as Partial<Template>;
 		const processedTemplate = await processImportedTemplate(importedTemplate);
 
 		templates.unshift(processedTemplate);
@@ -351,7 +367,8 @@ export async function exportAllSettings(): Promise<void> {
 					// Join chunks and decompress
 					const compressedData = (exportData[key] as string[]).join('');
 					const decompressedData = decompressFromUTF16(compressedData);
-					exportData[key] = JSON.parse(decompressedData);
+					const parsed: unknown = JSON.parse(decompressedData);
+					exportData[key] = parsed;
 				} catch (error) {
 					console.error(`Failed to decompress template ${id}:`, error);
 				}
@@ -396,7 +413,11 @@ export function importAllSettings(): void {
 
 async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 	try {
-		const settings = JSON.parse(jsonContent) as StorageData;
+		const raw: unknown = JSON.parse(jsonContent);
+		if (!isPlainObject(raw)) {
+			throw new Error('Invalid settings data: expected a JSON object');
+		}
+		const settings = raw as StorageData;
 
 		if (confirm(getMessage('confirmReplaceSettings'))) {
 			// Create a copy of the settings to modify
