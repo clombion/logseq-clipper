@@ -28,6 +28,7 @@ function getApiConfig(): LogseqApiConfig {
 export async function checkDuplicate(url: string): Promise<{
 	exists: boolean;
 	pageTitle?: string;
+	destinationPage?: string;
 	clippedAt?: string;
 }> {
 	try {
@@ -35,15 +36,40 @@ export async function checkDuplicate(url: string): Promise<{
 		const results = await queryByProperty(config, 'source', url);
 
 		if (results && results.length > 0) {
-			const first = results[0];
-			const pageTitle = first.name ?? first['original-name'] ?? first.originalName;
-			if (!pageTitle) {
+			// Find the log entry that has source matching this URL
+			const logEntry = results.find(
+				(r) => r.properties?.source === url || r.properties?.['source'] === url,
+			);
+			if (!logEntry) {
 				return { exists: false };
 			}
+
+			const pageTitle = logEntry.content?.match(/\[\[(.+?)\]\]/)?.[1];
+			const destinationPage =
+				logEntry.properties?.['destination-page'] ??
+				logEntry.properties?.destinationPage ??
+				pageTitle;
+			const clippedAt =
+				logEntry.properties?.['clipped-at'] ?? logEntry.properties?.clippedAt;
+
+			if (!pageTitle && !destinationPage) {
+				return { exists: false };
+			}
+
+			// Verify the clip still exists on the destination page
+			if (destinationPage) {
+				const page = await getPage(config, destinationPage);
+				if (!page) {
+					debugLog('Dedup', `Log entry found for ${url} but destination page '${destinationPage}' no longer exists`);
+					return { exists: false };
+				}
+			}
+
 			return {
 				exists: true,
-				pageTitle,
-				clippedAt: first.properties?.['clipped-at'] ?? first.properties?.clippedAt,
+				pageTitle: pageTitle || destinationPage,
+				destinationPage,
+				clippedAt,
 			};
 		}
 
@@ -90,6 +116,9 @@ export async function saveToLogseq(
 		}
 	};
 
+	// Track the actual destination page for the clip log
+	let destinationPage = noteName;
+
 	switch (behavior) {
 		case 'create': {
 			debugLog('Save', `[${clipId}] creating page '${noteName}'`);
@@ -120,6 +149,7 @@ export async function saveToLogseq(
 					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
 				}
 			}
+			destinationPage = noteName;
 			break;
 		}
 		case 'append-specific': {
@@ -130,6 +160,7 @@ export async function saveToLogseq(
 			}
 			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
 			await insertContentAsChildren(anchor.uuid);
+			destinationPage = noteName;
 			break;
 		}
 		case 'append-daily': {
@@ -141,6 +172,7 @@ export async function saveToLogseq(
 			}
 			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
 			await insertContentAsChildren(anchor.uuid);
+			destinationPage = journalPage;
 			break;
 		}
 		case 'prepend-specific': {
@@ -150,6 +182,7 @@ export async function saveToLogseq(
 			}
 			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
 			await insertContentAsChildren(anchor.uuid);
+			destinationPage = noteName;
 			break;
 		}
 		case 'prepend-daily': {
@@ -160,12 +193,13 @@ export async function saveToLogseq(
 			}
 			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
 			await insertContentAsChildren(anchor.uuid);
+			destinationPage = journalPage;
 			break;
 		}
 	}
 
 	try {
-		await appendToClipLog(noteName, sourceUrl, contentHash);
+		await appendToClipLog(noteName, sourceUrl, contentHash, destinationPage);
 	} catch (logError) {
 		debugLog('Save', `[${clipId}] clip log failed (save succeeded):`, logError);
 	}
@@ -226,7 +260,7 @@ export async function updateExistingClip(
 
 	const contentHash = await computeContentHash(noteContent);
 	try {
-		await appendToClipLog(pageTitle, sourceUrl, contentHash, pageTitle);
+		await appendToClipLog(pageTitle, sourceUrl, contentHash, pageTitle, pageTitle);
 	} catch (logError) {
 		debugLog('Save', `[${clipId}] clip log failed (save succeeded):`, logError);
 	}
@@ -298,6 +332,7 @@ async function appendToClipLog(
 	title: string,
 	url: string,
 	contentHash: string,
+	destinationPage: string,
 	replaces?: string,
 ): Promise<void> {
 	const config = getApiConfig();
@@ -307,13 +342,15 @@ async function appendToClipLog(
 		source: url,
 		'clipped-at': new Date().toISOString(),
 		'content-hash': contentHash,
+		'destination-page': destinationPage,
 	};
 	if (replaces) {
 		logBlockProps['replaces'] = replaces;
 	}
 
+	const displayTitle = title || destinationPage;
 	const logBlock: IBatchBlock = {
-		content: `[[${title}]]`,
+		content: `[[${displayTitle}]]`,
 		properties: logBlockProps,
 	};
 

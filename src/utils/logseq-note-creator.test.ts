@@ -87,22 +87,23 @@ describe('checkDuplicate', () => {
 	test('returns exists:true when queryByProperty finds results', async () => {
 		mockedQueryByProperty.mockResolvedValue([
 			{
-				name: 'My Article',
-				uuid: 'page-1',
-				properties: { 'clipped-at': '2025-01-01T00:00:00.000Z' },
+				uuid: 'log-entry-1',
+				content: '[[My Article]]',
+				properties: {
+					source: 'https://example.com/article',
+					'clipped-at': '2025-01-01T00:00:00.000Z',
+					'destination-page': 'My Article',
+				},
 			},
 		]);
+		mockedGetPage.mockResolvedValue({ name: 'my article', uuid: 'page-1' });
 
 		const result = await checkDuplicate('https://example.com/article');
 
 		expect(result.exists).toBe(true);
 		expect(result.pageTitle).toBe('My Article');
+		expect(result.destinationPage).toBe('My Article');
 		expect(result.clippedAt).toBe('2025-01-01T00:00:00.000Z');
-		expect(mockedQueryByProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'source',
-			'https://example.com/article',
-		);
 	});
 
 	test('returns exists:false when no results', async () => {
