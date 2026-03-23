@@ -226,8 +226,8 @@ async function initializeExtension(tabId: number) {
 
 function setupMessageListeners() {
 	browser.runtime.onMessage.addListener(
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		(request: any, _sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
+		(message: unknown, _sender: browser.Runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
+			const request = message as Record<string, unknown>;
 			if (request.action === 'triggerQuickClip') {
 				handleClipLogseq()
 					.then(() => {
@@ -235,7 +235,7 @@ function setupMessageListeners() {
 					})
 					.catch((error) => {
 						console.error('Error in handleClipLogseq:', error);
-						sendResponse({ success: false, error: error.message });
+						sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
 					});
 				return true;
 			} else if (request.action === 'tabUrlChanged') {
@@ -247,7 +247,7 @@ function setupMessageListeners() {
 			} else if (request.action === 'activeTabChanged') {
 				// Only handle active tab changes if we're in side panel mode, not iframe mode
 				if (!isIframe) {
-					currentTabId = request.tabId;
+					currentTabId = request.tabId as number | undefined;
 					if (request.isValidUrl) {
 						if (currentTabId !== undefined) {
 							refreshFields(currentTabId); // Force template check when URL changes

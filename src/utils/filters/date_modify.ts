@@ -89,11 +89,9 @@ export const date_modify = (str: string, param?: string): string => {
 	const numericAmount = parseInt(amount!, 10);
 
 	if (operation === '+') {
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		date = date.add(numericAmount, unit as any);
+		date = date.add(numericAmount, unit as dayjs.ManipulateType);
 	} else {
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		date = date.subtract(numericAmount, unit as any);
+		date = date.subtract(numericAmount, unit as dayjs.ManipulateType);
 	}
 
 	return date.format('YYYY-MM-DD');

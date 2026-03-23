@@ -52,8 +52,7 @@ export const map = (str: string, param?: string): string => {
 				(expr.startsWith("'") && expr.endsWith("'"))
 			) {
 				// Use a simple object to store the mapped properties
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				const mappedItem: { [key: string]: any } = {};
+				const mappedItem: Record<string, unknown> = {};
 
 				// Parse the expression to extract property assignments or string literal
 				if (expr.startsWith('{')) {
@@ -73,7 +72,7 @@ export const map = (str: string, param?: string): string => {
 				} else {
 					// Handle string literal — return plain string
 					const stringLiteral = expr.slice(1, -1);
-					return stringLiteral.replace(new RegExp(`\\$\\{${argName!}\\}`, 'g'), item);
+					return stringLiteral.replace(new RegExp(`\\$\\{${argName!}\\}`, 'g'), String(item));
 				}
 
 				debugLog('Map', 'Mapped item:', mappedItem);
@@ -91,8 +90,7 @@ export const map = (str: string, param?: string): string => {
 	return str;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function evaluateExpression(expression: string, item: any, argName: string): any {
+function evaluateExpression(expression: string, item: unknown, argName: string): unknown {
 	if (typeof item === 'string') {
 		// For simple string arrays, return the item directly
 		return item;
@@ -109,17 +107,20 @@ function evaluateExpression(expression: string, item: any, argName: string): any
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function getNestedProperty(obj: any, path: string): any {
+function getNestedProperty(obj: unknown, path: string): unknown {
 	debugLog('Map', 'Getting nested property:', { obj: JSON.stringify(obj), path });
 	const result = path
 		.split(/[.[\]]/)
 		.filter(Boolean)
-		.reduce((current, key) => {
+		.reduce<unknown>((current, key) => {
 			if (current && Array.isArray(current) && /^\d+$/.test(key)) {
 				return current[parseInt(key, 10)];
 			}
-			return current && current[key] !== undefined ? current[key] : undefined;
+			if (current && typeof current === 'object' && current !== null) {
+				const rec = current as Record<string, unknown>;
+				return rec[key] !== undefined ? rec[key] : undefined;
+			}
+			return undefined;
 		}, obj);
 	debugLog('Map', 'Nested property result:', result);
 	return result;

@@ -10,8 +10,7 @@ export const validateTemplateParams = (param: string | undefined): ParamValidati
 	return { valid: true };
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-export const template = (input: string | any[], param?: string): string => {
+export const template = (input: string | unknown[], param?: string): string => {
 	debugLog('Template', 'Template input:', input);
 	debugLog('Template', 'Template param:', param);
 
@@ -25,8 +24,7 @@ export const template = (input: string | any[], param?: string): string => {
 	// Remove surrounding quotes (both single and double)
 	param = param.replace(/^(['"])([\s\S]*)\1$/, '$2');
 
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	let obj: any[] = [];
+	let obj: unknown[] = [];
 	if (typeof input === 'string') {
 		try {
 			obj = JSON.parse(input);
@@ -49,31 +47,33 @@ export const template = (input: string | any[], param?: string): string => {
 	return result;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function replaceTemplateVariables(obj: any, template: string): string {
+function replaceTemplateVariables(obj: unknown, template: string): string {
 	debugLog('Template', 'Replacing template variables for:', obj);
 	debugLog('Template', 'Template:', template);
 
 	// If obj is a plain string, make it available as ${str} for template compatibility
+	let resolved: Record<string, unknown> = {};
 	if (typeof obj === 'string') {
 		const strValue = obj;
 		try {
-			obj = parseObjectString(obj);
-			debugLog('Template', 'Parsed object:', obj);
+			resolved = parseObjectString(obj);
+			debugLog('Template', 'Parsed object:', resolved);
 		} catch (_error) {
 			debugLog('Template', 'Failed to parse object string:', obj);
 		}
 		// Ensure str property is set for plain strings
-		if (obj.str === undefined) {
-			obj.str = strValue;
+		if (resolved.str === undefined) {
+			resolved.str = strValue;
 		}
+	} else if (typeof obj === 'object' && obj !== null) {
+		resolved = obj as Record<string, unknown>;
 	}
 
 	let result = template.replace(/\$\{([\w.]+)\}/g, (match, path) => {
 		debugLog('Template', 'Replacing:', match);
-		const value = getNestedProperty(obj, path);
+		const value = getNestedProperty(resolved, path);
 		debugLog('Template', 'Replaced with:', value);
-		return value !== undefined && value !== 'undefined' ? value : '';
+		return value !== undefined && value !== 'undefined' ? String(value) : '';
 	});
 
 	debugLog('Template', 'Result after variable replacement:', result);
@@ -92,10 +92,8 @@ function replaceTemplateVariables(obj: any, template: string): string {
 	return result.trim();
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function parseObjectString(str: string): any {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const obj: any = {};
+function parseObjectString(str: string): Record<string, unknown> {
+	const obj: Record<string, unknown> = {};
 	const regex = /(\w+):\s*("(?:\\.|[^"\\])*"|[^,}]+)/g;
 	let match: RegExpExecArray | null = regex.exec(str);
 
@@ -112,11 +110,10 @@ function parseObjectString(str: string): any {
 	return obj;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function getNestedProperty(obj: any, path: string): any {
+function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
 	debugLog('Template', 'Getting nested property:', { obj, path });
-	const result = path.split('.').reduce((current, key) => {
-		return current && typeof current === 'object' ? current[key] : undefined;
+	const result = path.split('.').reduce<unknown>((current, key) => {
+		return current && typeof current === 'object' ? (current as Record<string, unknown>)[key] : undefined;
 	}, obj);
 	debugLog('Template', 'Nested property result:', result);
 	return result;

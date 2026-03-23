@@ -15,15 +15,13 @@ export const title = (input: string | string[], _param?: string): string | strin
 			.join(' ');
 	};
 
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const processValue = (value: any): any => {
+	const processValue = (value: unknown): unknown => {
 		if (typeof value === 'string') {
 			return toTitleCase(value);
 		} else if (Array.isArray(value)) {
 			return value.map(processValue);
 		} else if (typeof value === 'object' && value !== null) {
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			const result: { [key: string]: any } = {};
+			const result: Record<string, unknown> = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[toTitleCase(key)] = processValue(val);
 			}
@@ -38,6 +36,6 @@ export const title = (input: string | string[], _param?: string): string | strin
 		return JSON.stringify(result);
 	} catch (_error) {
 		// If parsing fails, treat it as a single string or array of strings
-		return processValue(input);
+		return processValue(input) as string | string[];
 	}
 };

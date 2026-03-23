@@ -21,9 +21,14 @@ import { compileTemplate, type SelectorProcessor } from './utils/template-compil
 // Public types
 // ---------------------------------------------------------------------------
 
+/** A parsed DOM document (browser Document, linkedom, etc.) */
+interface ParsedDocument {
+	documentElement?: unknown;
+	querySelectorAll: (selector: string) => NodeListOf<Element>;
+}
+
 export interface DocumentParser {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	parseFromString(html: string, mimeType: string): any;
+	parseFromString(html: string, mimeType: string): ParsedDocument;
 }
 
 export interface ClipOptions {
@@ -33,8 +38,7 @@ export interface ClipOptions {
 	documentParser: DocumentParser;
 	propertyTypes?: Record<string, string>;
 	/** Pre-parsed document to skip re-parsing (e.g. when already parsed for trigger matching). */
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	parsedDocument?: any;
+	parsedDocument?: ParsedDocument;
 }
 
 export interface ClipResult {
@@ -50,8 +54,7 @@ export interface ClipResult {
 // Selector resolvers (work on any { querySelectorAll } document)
 // ---------------------------------------------------------------------------
 
-// biome-ignore lint/suspicious/noExplicitAny: DOM API returns dynamic types
-type DocLike = { querySelectorAll: (selector: string) => any };
+type DocLike = { querySelectorAll: (selector: string) => NodeListOf<Element> };
 
 export function createAsyncResolver(doc: DocLike): AsyncResolver {
 	return async (name: string, _context: RenderContext) => {

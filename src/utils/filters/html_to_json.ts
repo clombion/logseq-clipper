@@ -1,6 +1,13 @@
+interface JsonNode {
+	type: string;
+	content?: string;
+	tag?: string;
+	attributes?: Record<string, string>;
+	children?: JsonNode[];
+}
+
 export const html_to_json = (input: string): string => {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const parseNode = (node: Node): any => {
+	const parseNode = (node: Node): JsonNode | null => {
 		if (node.nodeType === Node.TEXT_NODE) {
 			const text = node.textContent?.trim();
 			return text ? { type: 'text', content: text } : null;
@@ -8,8 +15,7 @@ export const html_to_json = (input: string): string => {
 
 		if (node.nodeType === Node.ELEMENT_NODE) {
 			const element = node as Element;
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			const result: any = {
+			const result: JsonNode = {
 				type: 'element',
 				tag: element.tagName.toLowerCase(),
 			};
@@ -30,7 +36,7 @@ export const html_to_json = (input: string): string => {
 
 			const children = Array.from(element.childNodes)
 				.map(parseNode)
-				.filter((child) => child !== null);
+				.filter((child): child is JsonNode => child !== null);
 
 			if (children.length > 0) {
 				result.children = children;
@@ -47,7 +53,7 @@ export const html_to_json = (input: string): string => {
 		const doc = parser.parseFromString(input, 'text/html');
 		const bodyChildren = Array.from(doc.body.childNodes)
 			.map(parseNode)
-			.filter((child) => child !== null);
+			.filter((child): child is JsonNode => child !== null);
 
 		// If there's only one top-level element, return it directly
 		// Otherwise, return the array of elements

@@ -5,16 +5,14 @@ export const number_format = (input: string, param?: string): string => {
 		return parts.join(decPoint);
 	};
 
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const processValue = (value: any, decimals: number, decPoint: string, thousandsSep: string): any => {
+	const processValue = (value: unknown, decimals: number, decPoint: string, thousandsSep: string): unknown => {
 		if (typeof value === 'number' || (typeof value === 'string' && !Number.isNaN(parseFloat(value)))) {
 			const num = typeof value === 'string' ? parseFloat(value) : value;
 			return formatNumber(num, decimals, decPoint, thousandsSep);
 		} else if (Array.isArray(value)) {
 			return value.map((item) => processValue(item, decimals, decPoint, thousandsSep));
 		} else if (typeof value === 'object' && value !== null) {
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			const result: { [key: string]: any } = {};
+			const result: Record<string, unknown> = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[key] = processValue(val, decimals, decPoint, thousandsSep);
 			}
@@ -72,8 +70,7 @@ export const number_format = (input: string, param?: string): string => {
 
 		if (Number.isNaN(decimals)) decimals = 0;
 
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		let parsedInput: any;
+		let parsedInput: unknown;
 		try {
 			parsedInput = JSON.parse(input);
 		} catch {

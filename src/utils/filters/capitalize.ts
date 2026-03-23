@@ -2,15 +2,13 @@ export const capitalize = (input: string): string => {
 	const capitalizeString = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
 	try {
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		const parseAndCapitalize = (value: any): any => {
+		const parseAndCapitalize = (value: unknown): unknown => {
 			if (typeof value === 'string') {
 				return capitalizeString(value);
 			} else if (Array.isArray(value)) {
 				return value.map(parseAndCapitalize);
 			} else if (typeof value === 'object' && value !== null) {
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				const result: { [key: string]: any } = {};
+				const result: Record<string, unknown> = {};
 				for (const [key, val] of Object.entries(value)) {
 					result[capitalizeString(key)] = parseAndCapitalize(val);
 				}

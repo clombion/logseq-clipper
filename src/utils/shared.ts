@@ -263,8 +263,7 @@ export function formatPropertyValue(value: string, type: string, templateValue: 
  * Works with any document-like object (browser Document, linkedom, etc.).
  */
 export function extractContentBySelector(
-	// biome-ignore lint/suspicious/noExplicitAny: DOM API returns dynamic types
-	doc: { querySelectorAll: (selector: string) => any },
+	doc: { querySelectorAll: (selector: string) => NodeListOf<Element> },
 	selector: string,
 	attribute?: string,
 	extractHtml: boolean = false,
@@ -276,8 +275,7 @@ export function extractContentBySelector(
 			return '';
 		}
 
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		return Array.from(elements).map((el: any) => {
+		return Array.from(elements).map((el: Element) => {
 			if (attribute) {
 				return el.getAttribute(attribute) || '';
 			}

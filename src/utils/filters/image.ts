@@ -16,11 +16,10 @@ export const image = (str: string, param?: string): string | string[] => {
 	try {
 		const data = JSON.parse(str);
 
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		const processObject = (obj: any): string[] => {
+		const processObject = (obj: Record<string, unknown>): string[] => {
 			return Object.entries(obj).flatMap(([key, value]) => {
 				if (typeof value === 'object' && value !== null) {
-					return processObject(value);
+					return processObject(value as Record<string, unknown>);
 				}
 				return `![${escapeMarkdown(String(value))}](${escapeMarkdown(key)})`;
 			});
@@ -29,12 +28,12 @@ export const image = (str: string, param?: string): string | string[] => {
 		if (Array.isArray(data)) {
 			return data.flatMap((item) => {
 				if (typeof item === 'object' && item !== null) {
-					return processObject(item);
+					return processObject(item as Record<string, unknown>);
 				}
 				return item ? `![${altText}](${escapeMarkdown(String(item))})` : '';
 			});
 		} else if (typeof data === 'object' && data !== null) {
-			return processObject(data);
+			return processObject(data as Record<string, unknown>);
 		}
 	} catch (_error) {
 		// If parsing fails, treat it as a single URL string
