@@ -979,17 +979,19 @@ function getParents(element: Element): Element[] {
 }
 
 // Save highlights to browser storage
+// Captures a snapshot of highlights at call time to avoid stale reads
+// if another save fires before this one's storage.get resolves.
 export function saveHighlights() {
 	const url = window.location.href;
-	if (highlights.length > 0) {
-		const data: StoredData = { highlights, url };
+	const snapshot = [...highlights];
+	if (snapshot.length > 0) {
+		const data: StoredData = { highlights: snapshot, url };
 		browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 			const allHighlights: HighlightsStorage = result.highlights || {};
 			allHighlights[url] = data;
 			browser.storage.local.set({ highlights: allHighlights });
 		});
 	} else {
-		// Remove the entry if there are no highlights
 		browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 			const allHighlights: HighlightsStorage = result.highlights || {};
 			delete allHighlights[url];
@@ -1064,21 +1066,26 @@ export async function loadHighlights() {
 	lastAppliedHighlights = JSON.stringify(highlights);
 }
 
-// Clear all highlights from the page and storage
+// Sets in-memory state immediately (sync) so callers get consistent state,
+// then persists to storage asynchronously.
 export function clearHighlights() {
 	const url = window.location.href;
 	const oldHighlights = [...highlights];
+
+	// Update in-memory state immediately — this is the source of truth
+	highlights = [];
+	removeExistingHighlights();
+	updateHighlighterMenu();
+	addToHistory('remove', oldHighlights, []);
+
+	// Persist to storage asynchronously
 	browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 		const allHighlights: HighlightsStorage = result.highlights || {};
 		delete allHighlights[url];
 		browser.storage.local.set({ highlights: allHighlights }).then(() => {
-			highlights = [];
-			removeExistingHighlights();
 			debugLog('Highlighter', 'Highlights cleared for:', url);
-			browser.runtime.sendMessage({ action: 'highlightsCleared' });
+			browser.runtime.sendMessage({ action: 'highlightsCleared' }).catch(() => {});
 			notifyHighlightsUpdated();
-			updateHighlighterMenu();
-			addToHistory('remove', oldHighlights, []);
 		});
 	});
 }

@@ -262,6 +262,9 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 	});
 }
 
+// HACK: load-then-save is non-atomic — concurrent calls can lose an increment.
+// Acceptable because incrementStat is only called from single UI actions (click handlers)
+// and the stats are cosmetic counters, not critical data.
 export async function incrementStat(
 	action: keyof Settings['stats'],
 	path?: string,
