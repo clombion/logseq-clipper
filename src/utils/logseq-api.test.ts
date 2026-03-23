@@ -74,7 +74,7 @@ describe('createPage', () => {
 		const body = JSON.parse(opts.body);
 		expect(body.method).toBe('logseq.Editor.createPage');
 		expect(body.args[0]).toBe('Test Page');
-		expect(body.args[2]).toEqual({ createFirstBlock: true, redirect: false });
+		expect(body.args[2]).toEqual({ redirect: false });
 	});
 
 	test('with properties sends them as second arg', async () => {

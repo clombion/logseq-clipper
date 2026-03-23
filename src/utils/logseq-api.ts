@@ -101,9 +101,9 @@ export async function createPage(
 	config: LogseqApiConfig,
 	title: string,
 	properties?: Record<string, any>,
-	opts: { createFirstBlock?: boolean; redirect?: boolean } = {},
+	opts: { redirect?: boolean } = {},
 ): Promise<LogseqPage> {
-	const mergedOpts = { createFirstBlock: true, redirect: false, ...opts };
+	const mergedOpts = { redirect: false, ...opts };
 	return await logseqApi(config, 'logseq.Editor.createPage', [title, properties ?? {}, mergedOpts]);
 }
 
