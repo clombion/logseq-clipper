@@ -103,7 +103,7 @@ export async function extractPageContent(tabId: number): Promise<ContentResponse
 			return await sendExtractRequest(tabId);
 		} catch (retryError) {
 			console.error('[Logseq Clipper] Extraction failed after retry:', retryError);
-			throw new Error('Web Clipper was not able to start. Please try reloading the page.');
+			throw new Error('Web Clipper was not able to start. Please try reloading the page.', { cause: retryError });
 		}
 	}
 }
@@ -199,7 +199,7 @@ export async function initializePageContent(
 	} catch (error: unknown) {
 		console.error('Error in initializePageContent:', error);
 		if (error instanceof Error) {
-			throw new Error(`Unable to initialize page content: ${error.message}`);
+			throw new Error(`Unable to initialize page content: ${error.message}`, { cause: error });
 		} else {
 			throw new Error('Unable to initialize page content: Unknown error');
 		}

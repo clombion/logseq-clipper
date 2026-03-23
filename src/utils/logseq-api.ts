@@ -26,11 +26,10 @@ export interface LogseqBlock {
 }
 
 export class LogseqConnectionError extends Error {
-	cause: Error;
-	constructor(cause: Error) {
-		super(`Failed to connect to Logseq: ${cause.message}`);
+	constructor(cause: unknown) {
+		const wrapped = cause instanceof Error ? cause : new Error(String(cause));
+		super(`Failed to connect to Logseq: ${wrapped.message}`, { cause: wrapped });
 		this.name = 'LogseqConnectionError';
-		this.cause = cause;
 	}
 }
 
@@ -63,7 +62,7 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 			body: JSON.stringify({ method, args }),
 		});
 	} catch (err) {
-		throw new LogseqConnectionError(err as Error);
+		throw new LogseqConnectionError(err);
 	}
 
 	if (response.status === 401) {
@@ -82,7 +81,7 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 	// Discriminate by checking for 'stack' property (string type) — normal API responses
 	// never have stack traces. If Logseq changes error serialization, this may need updating.
 	if (result && typeof result === 'object' && typeof result.stack === 'string') {
-		throw new LogseqApiError(200, result.message || 'Unknown Logseq API error');
+		throw new LogseqApiError(200, typeof result.message === 'string' ? result.message : 'Unknown Logseq API error');
 	}
 
 	return result;

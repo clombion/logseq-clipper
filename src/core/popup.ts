@@ -412,13 +412,15 @@ function setupEventListeners(tabId: number) {
 	if (moreButton && moreDropdown) {
 		moreButton.addEventListener('click', (e) => {
 			e.stopPropagation();
-			moreDropdown.classList.toggle('show');
+			const isOpen = moreDropdown.classList.toggle('show');
+			moreButton.setAttribute('aria-expanded', String(isOpen));
 		});
 
 		// Close dropdown when clicking outside
 		document.addEventListener('click', (e) => {
 			if (!moreButton.contains(e.target as Node)) {
 				moreDropdown.classList.remove('show');
+				moreButton.setAttribute('aria-expanded', 'false');
 			}
 		});
 	}
@@ -481,8 +483,12 @@ function setupEventListeners(tabId: number) {
 										const tabInfo = await getCurrentTabInfo();
 										await incrementStat('share', path, tabInfo.url, tabInfo.title);
 										const moreDropdown = document.getElementById('more-dropdown');
+										const moreBtn = document.getElementById('more-btn');
 										if (moreDropdown) {
 											moreDropdown.classList.remove('show');
+										}
+										if (moreBtn) {
+											moreBtn.setAttribute('aria-expanded', 'false');
 										}
 									})
 									.catch((error) => {
@@ -1153,8 +1159,12 @@ async function handleSaveToDownloads() {
 		await incrementStat('saveFile', path, tabInfo.url, tabInfo.title);
 
 		const moreDropdown = document.getElementById('more-dropdown');
+		const moreBtn = document.getElementById('more-btn');
 		if (moreDropdown) {
 			moreDropdown.classList.remove('show');
+		}
+		if (moreBtn) {
+			moreBtn.setAttribute('aria-expanded', 'false');
 		}
 	} catch (error) {
 		console.error('Failed to save file:', error);
@@ -1226,7 +1236,8 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 		// Gather content
 		const properties = getPropertiesFromDOM();
 		const noteContent = noteContentField.value;
-		const isDailyNote = currentTemplate.behavior === 'append-daily' || currentTemplate.behavior === 'prepend-daily';
+		const behavior = behaviorOverride ?? currentTemplate.behavior;
+		const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
 		const noteName = isDailyNote ? '' : noteNameField?.value || '';
 		const path = isDailyNote ? '' : pathField?.value || '';
 
@@ -1239,7 +1250,7 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 			const dup = await checkDuplicate(currentUrl);
 			if (dup.exists) {
 				const action = confirm(
-					`This URL was already clipped on ${dup.clippedAt} to page '${dup.pageTitle}'. ` +
+					`This URL was already clipped${dup.clippedAt ? ` on ${dup.clippedAt}` : ''} to page '${dup.pageTitle}'. ` +
 					`Press OK to update existing, or Cancel to create new.`
 				);
 				if (action) {
@@ -1254,7 +1265,6 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 			}
 		}
 
-		const behavior = behaviorOverride ?? currentTemplate.behavior;
 		await saveToLogseq(noteContent, noteName, properties, behavior, currentUrl);
 		await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
 
@@ -1279,7 +1289,8 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 }
 
 function addSecondaryAction(container: Element, actionType: string, handler: () => void) {
-	const menuItem = document.createElement('div');
+	const menuItem = document.createElement('button');
+	menuItem.type = 'button';
 	menuItem.className = 'menu-item';
 
 	// Create menu item icon container

@@ -442,7 +442,8 @@ export class Reader {
 		});
 
 		// Create outline items and store references
-		const outlineItems = new Map();
+		const outlineItems = new WeakMap<Element, HTMLElement>();
+		const outlineHeadings: Element[] = [];
 
 		// Keep track of the last heading at each level and their depths
 		const lastHeadingAtLevel: { [key: number]: { element: Element; depth: number } } = {};
@@ -493,6 +494,7 @@ export class Reader {
 
 			outline.appendChild(item);
 			outlineItems.set(heading, item);
+			outlineHeadings.push(heading);
 
 			// Update tracking variables
 			lastHeadingAtLevel[level] = { element: heading, depth };
@@ -506,22 +508,24 @@ export class Reader {
 
 				if (entry.isIntersecting) {
 					// Remove active state from all items
-					outlineItems.forEach((outlineItem) => {
-						outlineItem.classList.remove('active');
-					});
+					for (const h of outlineHeadings) {
+						outlineItems.get(h)?.classList.remove('active');
+					}
 					item?.classList.add('active');
 
 					// Update faint state for all items
-					outlineItems.forEach((outlineItem, itemHeading) => {
-						const headingRect = itemHeading.getBoundingClientRect();
-						const currentHeadingRect = heading.getBoundingClientRect();
+					const currentHeadingRect = heading.getBoundingClientRect();
+					for (const h of outlineHeadings) {
+						const outlineItem = outlineItems.get(h);
+						if (!outlineItem) continue;
+						const headingRect = h.getBoundingClientRect();
 
 						if (headingRect.top < currentHeadingRect.top) {
 							outlineItem.classList.add('faint');
 						} else {
 							outlineItem.classList.remove('faint');
 						}
-					});
+					}
 				}
 			});
 		};

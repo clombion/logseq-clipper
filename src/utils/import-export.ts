@@ -281,7 +281,7 @@ async function importTemplateFromJson(jsonContent: string): Promise<void> {
 		showTemplateEditor(processedTemplate);
 	} catch (error) {
 		console.error('Error parsing imported template:', error);
-		throw new Error('Error importing template. Please check the file and try again.');
+		throw new Error('Error importing template. Please check the file and try again.', { cause: error });
 	}
 }
 
@@ -443,6 +443,6 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 		}
 	} catch (error) {
 		console.error('Error importing all settings:', error);
-		throw new Error('Error importing settings. Please check the file and try again.');
+		throw new Error('Error importing settings. Please check the file and try again.', { cause: error });
 	}
 }

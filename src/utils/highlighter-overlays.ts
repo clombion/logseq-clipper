@@ -155,14 +155,25 @@ export function handleTouchMove(event: TouchEvent) {
 	handleMouseMove(event);
 }
 
-// Update event listeners for highlight overlays
+// Delegated click/touchend listeners — replaces per-overlay listeners
+function delegatedHighlightHandler(event: Event) {
+	const overlay = (event.target as Element)?.closest('.logseq-highlight-overlay') as HTMLElement | null;
+	if (overlay) {
+		handleHighlightClick(event, overlay);
+	}
+}
+
+let delegatedListenersAttached = false;
+function ensureDelegatedListeners() {
+	if (delegatedListenersAttached) return;
+	document.body.addEventListener('click', delegatedHighlightHandler);
+	document.body.addEventListener('touchend', delegatedHighlightHandler);
+	delegatedListenersAttached = true;
+}
+
+// Kept as public API — now just ensures delegation is set up
 export function updateHighlightListeners() {
-	document.querySelectorAll('.logseq-highlight-overlay').forEach((highlight) => {
-		highlight.removeEventListener('click', handleHighlightClick);
-		highlight.removeEventListener('touchend', handleHighlightClick);
-		highlight.addEventListener('click', handleHighlightClick);
-		highlight.addEventListener('touchend', handleHighlightClick);
-	});
+	ensureDelegatedListeners();
 }
 
 // Find a text node at a given offset within an element
@@ -392,8 +403,6 @@ function createHighlightOverlayElement(
 		}
 	}
 
-	overlay.addEventListener('click', handleHighlightClick);
-	overlay.addEventListener('touchend', handleHighlightClick);
 	document.body.appendChild(overlay);
 }
 
@@ -414,18 +423,25 @@ function getEffectiveBackgroundColor(element: HTMLElement): string {
 
 // Update positions of all highlight overlays
 function updateHighlightOverlayPositions() {
+	// Pass 1: read — resolve targets and collect indices to remove (no DOM writes)
+	const updates: { target: Element; highlight: AnyHighlightData; index: number; hasExisting: boolean }[] = [];
 	highlights.forEach((highlight, index) => {
 		const target = getElementByXPath(highlight.xpath);
 		if (target) {
-			const existingOverlays = document.querySelectorAll(
+			const hasExisting = document.querySelectorAll(
 				`.logseq-highlight-overlay[data-highlight-index="${index}"]`,
-			);
-			if (existingOverlays.length > 0) {
-				removeExistingHighlightOverlays(index);
-			}
-			planHighlightOverlayRects(target, highlight, index);
+			).length > 0;
+			updates.push({ target, highlight, index, hasExisting });
 		}
 	});
+
+	// Pass 2: write — remove old overlays, then create new ones
+	for (const { target, highlight, index, hasExisting } of updates) {
+		if (hasExisting) {
+			removeExistingHighlightOverlays(index);
+		}
+		planHighlightOverlayRects(target, highlight, index);
+	}
 }
 
 // Remove existing highlight overlays for a specific index
@@ -561,10 +577,10 @@ export function removeHoverOverlay() {
 }
 
 // Update the type of handleHighlightClick
-async function handleHighlightClick(event: Event) {
+async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) {
 	event.stopPropagation();
 	event.preventDefault(); // Prevent default touch behavior
-	const overlay = event.currentTarget as HTMLElement;
+	const overlay = overlayElement ?? event.currentTarget as HTMLElement;
 
 	try {
 		if (!overlay || !overlay.dataset) {

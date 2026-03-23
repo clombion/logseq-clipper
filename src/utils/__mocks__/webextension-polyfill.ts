@@ -16,6 +16,7 @@ export const storage = {
 	sync: {
 		get: async () => ({}),
 		set: async () => {},
+		remove: async () => {},
 	},
 };
 

@@ -170,6 +170,7 @@ export async function sendToLLM(
 			method: 'POST',
 			headers: headers,
 			body: JSON.stringify(requestBody),
+			signal: AbortSignal.timeout(60_000),
 		});
 
 		if (!response.ok) {
@@ -195,7 +196,7 @@ export async function sendToLLM(
 			data = JSON.parse(responseText);
 		} catch (error) {
 			console.error('Error parsing JSON response:', error);
-			throw new Error(`Failed to parse response from ${provider.name}`);
+			throw new Error(`Failed to parse response from ${provider.name}`, { cause: error });
 		}
 
 		debugLog('Interpreter', `Parsed ${provider.name} response:`, data);
@@ -292,7 +293,7 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 			// If direct parsing fails, try to extract and parse the JSON content
 			const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
 			if (!jsonMatch) {
-				throw new Error('No JSON object found in response');
+				throw new Error('No JSON object found in response', { cause: e });
 			}
 
 			// Try parsing with minimal sanitization first
@@ -642,9 +643,9 @@ export async function handleInterpreterUI(
 		moreButton.disabled = false;
 
 		if (error instanceof Error) {
-			throw new Error(`${error.message}`);
+			throw new Error(`${error.message}`, { cause: error });
 		} else {
-			throw new Error('An unknown error occurred while processing the interpreter request.');
+			throw new Error('An unknown error occurred while processing the interpreter request.', { cause: error });
 		}
 	}
 }

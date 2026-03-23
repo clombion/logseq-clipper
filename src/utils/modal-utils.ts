@@ -1,5 +1,9 @@
+let previouslyFocusedElement: HTMLElement | null = null;
+
 export function showModal(modal: HTMLElement | null): void {
 	if (modal) {
+		previouslyFocusedElement = document.activeElement as HTMLElement | null;
+
 		modal.style.display = 'flex';
 
 		const modalBg = modal.querySelector('.modal-bg');
@@ -18,6 +22,14 @@ export function showModal(modal: HTMLElement | null): void {
 		// Store the escape handler on the modal element for cleanup
 		modal.dataset.escapeHandler = 'true';
 		(modal as any).escapeHandler = handleEscape;
+
+		// Focus the first focusable element in the modal
+		const focusable = modal.querySelector<HTMLElement>(
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+		);
+		if (focusable) {
+			focusable.focus();
+		}
 	}
 }
 
@@ -45,6 +57,12 @@ export function hideModal(modal: HTMLElement | null): void {
 		const textarea = modal.querySelector('#import-json-textarea') as HTMLTextAreaElement;
 		if (textarea) {
 			textarea.value = '';
+		}
+
+		// Restore focus to the element that was focused before the modal opened
+		if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+			previouslyFocusedElement.focus();
+			previouslyFocusedElement = null;
 		}
 	}
 }

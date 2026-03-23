@@ -113,15 +113,16 @@ export async function saveToLogseq(
 		case 'append-specific': {
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
-				if (anchor?.uuid) {
-					const remaining = blocks.slice(1);
-					const children = blocks[0].children ?? [];
-					if (remaining.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-					}
-					if (children.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, children);
-					}
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to page '${noteName}'`);
+				}
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await appendBlockInPage(config, noteName, noteContent);
@@ -132,15 +133,16 @@ export async function saveToLogseq(
 			const journalPage = await fetchTodayJournalPage(config);
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, journalPage, blocks[0].content);
-				if (anchor?.uuid) {
-					const remaining = blocks.slice(1);
-					const children = blocks[0].children ?? [];
-					if (remaining.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-					}
-					if (children.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, children);
-					}
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to daily journal page`);
+				}
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await appendBlockInPage(config, journalPage, noteContent);
@@ -150,15 +152,16 @@ export async function saveToLogseq(
 		case 'prepend-specific': {
 			if (blocks.length > 0) {
 				const anchor = await prependBlockInPage(config, noteName, blocks[0].content);
-				if (anchor?.uuid) {
-					const remaining = blocks.slice(1);
-					const children = blocks[0].children ?? [];
-					if (remaining.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-					}
-					if (children.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, children);
-					}
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to page '${noteName}'`);
+				}
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await prependBlockInPage(config, noteName, noteContent);
@@ -169,15 +172,16 @@ export async function saveToLogseq(
 			const journalPage = await fetchTodayJournalPage(config);
 			if (blocks.length > 0) {
 				const anchor = await prependBlockInPage(config, journalPage, blocks[0].content);
-				if (anchor?.uuid) {
-					const remaining = blocks.slice(1);
-					const children = blocks[0].children ?? [];
-					if (remaining.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-					}
-					if (children.length > 0) {
-						await insertBatchBlock(config, anchor.uuid, children);
-					}
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to daily journal page`);
+				}
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await prependBlockInPage(config, journalPage, noteContent);
@@ -186,7 +190,11 @@ export async function saveToLogseq(
 		}
 	}
 
-	await appendToClipLog(noteName, sourceUrl, contentHash);
+	try {
+		await appendToClipLog(noteName, sourceUrl, contentHash);
+	} catch (logError) {
+		debugLog('Save', `[${clipId}] clip log failed (save succeeded):`, logError);
+	}
 }
 
 export async function updateExistingClip(
@@ -226,15 +234,16 @@ export async function updateExistingClip(
 	const blocks = markdownToBlocks(noteContent);
 	if (blocks.length > 0) {
 		const anchor = await appendBlockInPage(config, pageTitle, blocks[0].content);
-		if (anchor?.uuid) {
-			const children = blocks[0].children ?? [];
-			if (children.length > 0) {
-				await insertBatchBlock(config, anchor.uuid, children);
-			}
-			const remaining = blocks.slice(1);
-			if (remaining.length > 0) {
-				await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-			}
+		if (!anchor?.uuid) {
+			throw new Error(`Failed to insert new content on page '${pageTitle}'`);
+		}
+		const children = blocks[0].children ?? [];
+		if (children.length > 0) {
+			await insertBatchBlock(config, anchor.uuid, children);
+		}
+		const remaining = blocks.slice(1);
+		if (remaining.length > 0) {
+			await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
 		}
 	}
 
@@ -245,7 +254,11 @@ export async function updateExistingClip(
 	}
 
 	const contentHash = await computeContentHash(noteContent);
-	await appendToClipLog(pageTitle, sourceUrl, contentHash, pageTitle);
+	try {
+		await appendToClipLog(pageTitle, sourceUrl, contentHash, pageTitle);
+	} catch (logError) {
+		debugLog('Save', `[${clipId}] clip log failed (save succeeded):`, logError);
+	}
 }
 
 // TODO: Not yet called from production code. Intended to be invoked on popup

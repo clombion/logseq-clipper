@@ -63,57 +63,7 @@ Optional: enable "Auto start server" in the API panel so it starts with Logseq.
 
 ## Development
 
-### Prerequisites
-
-- Node.js (v18+)
-- [pnpm](https://pnpm.io/)
-- Logseq with HTTP API enabled (for manual testing)
-
-### Setup
-
-```bash
-pnpm install
-```
-
-### Build
-
-```bash
-pnpm run build:chrome    # → dist/
-pnpm run build:firefox   # → dist_firefox/
-pnpm run build           # both
-```
-
-### Test
-
-```bash
-pnpm test                # run once
-pnpm run test:watch      # watch mode
-```
-
-### Lint & format
-
-```bash
-pnpm run lint            # biome check
-pnpm run format          # biome format --write
-```
-
-### Project structure
-
-```
-src/
-├── core/              # popup.ts, settings.ts (UI entry points)
-├── managers/          # template-ui, general-settings, highlights, interpreter
-├── utils/
-│   ├── logseq-api.ts          # HTTP API client for Logseq
-│   ├── logseq-note-creator.ts # Save, dedup, clip log, settings sync
-│   ├── markdown-to-blocks.ts  # Markdown → IBatchBlock[] converter
-│   ├── shared.ts              # Pure functions (variables, frontmatter)
-│   ├── filters/               # 100+ template filters
-│   └── ...
-├── _locales/          # 32 languages
-├── setup.html/ts      # First-run setup page
-└── manifest.*.json    # Chrome, Firefox manifests
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, build, test, and PR instructions.
 
 ## Upstream sync
 
