@@ -122,13 +122,43 @@ export async function showVariables(isUpdate: boolean = false) {
 			isPanelOpen = true;
 			initializeIcons();
 
+			// Focus the search input when panel opens
+			searchInput.focus();
+
 			// Setup event listeners with references to the created elements
 			searchInput.addEventListener('input', debounce(handleVariableSearch, 300));
-			closeSpan.addEventListener('click', function () {
+
+			const closePanel = () => {
 				variablesPanel.classList.remove('show');
 				document.body.classList.remove('variables-panel-open');
 				isPanelOpen = false;
 				currentSearchTerm = '';
+			};
+
+			closeSpan.addEventListener('click', closePanel);
+
+			// Focus trap and Escape key
+			variablesPanel.addEventListener('keydown', (e: KeyboardEvent) => {
+				if (e.key === 'Escape') {
+					closePanel();
+					document.getElementById('show-variables')?.focus();
+					return;
+				}
+				if (e.key === 'Tab') {
+					const focusable = variablesPanel.querySelectorAll<HTMLElement>(
+						'input, button, [tabindex]:not([tabindex="-1"]), .clickable-icon, .chevron-icon',
+					);
+					if (focusable.length === 0) return;
+					const first = focusable[0];
+					const last = focusable[focusable.length - 1];
+					if (e.shiftKey && document.activeElement === first) {
+						e.preventDefault();
+						last.focus();
+					} else if (!e.shiftKey && document.activeElement === last) {
+						e.preventDefault();
+						first.focus();
+					}
+				}
 			});
 
 			const showMoreActionsButton = document.getElementById('show-variables');
@@ -207,14 +237,13 @@ function handleVariableSearch() {
 
 		chevron.addEventListener('click', function () {
 			item.classList.toggle('is-collapsed');
+			const isCollapsed = item.classList.contains('is-collapsed');
 			const chevronIcon = this.querySelector('i');
 			if (chevronIcon) {
-				chevronIcon.setAttribute(
-					'data-lucide',
-					item.classList.contains('is-collapsed') ? 'chevron-right' : 'chevron-down',
-				);
+				chevronIcon.setAttribute('data-lucide', isCollapsed ? 'chevron-right' : 'chevron-down');
 				initializeIcons();
 			}
+			this.setAttribute('aria-label', isCollapsed ? 'Expand' : 'Collapse');
 		});
 
 		if (currentSearchTerm.length < 2) {

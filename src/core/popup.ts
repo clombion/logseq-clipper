@@ -938,6 +938,12 @@ function setupMetadataToggle() {
 	if (metadataHeader && metadataProperties) {
 		metadataHeader.removeEventListener('click', toggleMetadataProperties);
 		metadataHeader.addEventListener('click', toggleMetadataProperties);
+		metadataHeader.addEventListener('keydown', (e: KeyboardEvent) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				toggleMetadataProperties();
+			}
+		});
 
 		// Set initial state
 		getLocalStorage('propertiesCollapsed').then((isCollapsed) => {
@@ -958,6 +964,7 @@ function toggleMetadataProperties() {
 	if (metadataProperties && metadataHeader) {
 		const isCollapsed = metadataProperties.classList.toggle('collapsed');
 		metadataHeader.classList.toggle('collapsed');
+		metadataHeader.setAttribute('aria-expanded', String(!isCollapsed));
 		setLocalStorage('propertiesCollapsed', isCollapsed);
 	}
 }
