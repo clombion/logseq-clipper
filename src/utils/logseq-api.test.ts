@@ -74,17 +74,8 @@ describe('createPage', () => {
 		const body = JSON.parse(opts.body);
 		expect(body.method).toBe('logseq.Editor.createPage');
 		expect(body.args[0]).toBe('Test Page');
+		expect(body.args[1]).toEqual({}); // properties always empty — use upsertBlockProperty instead
 		expect(body.args[2]).toEqual({ redirect: false });
-	});
-
-	test('with properties sends them as second arg', async () => {
-		const page = { name: 'Test Page', uuid: 'abc-123', properties: { type: 'article' } };
-		mockFetch.mockReturnValue(jsonResponse(page));
-
-		await createPage(config, 'Test Page', { type: 'article' });
-
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.args[1]).toEqual({ type: 'article' });
 	});
 });
 

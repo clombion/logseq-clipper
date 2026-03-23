@@ -80,7 +80,7 @@ export async function saveToLogseq(
 	switch (behavior) {
 		case 'create': {
 			debugLog('Save', `[${clipId}] creating page '${noteName}'`);
-			const page = await createPage(config, noteName, {}, { redirect: false });
+			const page = await createPage(config, noteName, { redirect: false });
 			if (!page?.uuid) {
 				throw new Error(`Failed to create page '${noteName}'`);
 			}
@@ -248,6 +248,9 @@ export async function updateExistingClip(
 	await appendToClipLog(pageTitle, sourceUrl, contentHash, pageTitle);
 }
 
+// TODO: Not yet called from production code. Intended to be invoked on popup
+// startup (read) and settings change (write) to sync config across browsers
+// via the [[Web Clips Log]] page. See design decision #6 in the plan.
 export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 	const config = getApiConfig();
 	const logPage = generalSettings.logseqLogPage || 'Web Clips Log';

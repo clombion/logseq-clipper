@@ -97,14 +97,15 @@ export async function checkConnection(config: LogseqApiConfig): Promise<boolean>
 	}
 }
 
+// Note: Logseq's createPage accepts a properties arg but silently ignores it
+// when the page already exists (F2). Use upsertBlockProperty instead.
 export async function createPage(
 	config: LogseqApiConfig,
 	title: string,
-	properties?: Record<string, any>,
 	opts: { redirect?: boolean } = {},
 ): Promise<LogseqPage> {
 	const mergedOpts = { redirect: false, ...opts };
-	return await logseqApi(config, 'logseq.Editor.createPage', [title, properties ?? {}, mergedOpts]);
+	return await logseqApi(config, 'logseq.Editor.createPage', [title, {}, mergedOpts]);
 }
 
 export async function getPage(config: LogseqApiConfig, title: string): Promise<LogseqPage | null> {

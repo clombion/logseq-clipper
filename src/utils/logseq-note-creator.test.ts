@@ -134,12 +134,11 @@ describe('saveToLogseq', () => {
 			'https://example.com',
 		);
 
-		// createPage called with empty {} for properties (upsertBlockProperty handles props)
+		// createPage called without properties (upsertBlockProperty handles props)
 		expect(mockedCreatePage).toHaveBeenCalledTimes(1);
 		const createArgs = mockedCreatePage.mock.calls[0];
 		expect(createArgs[1]).toBe('Test Note');
-		expect(createArgs[2]).toEqual({});
-		expect(createArgs[3]).toEqual({ redirect: false });
+		expect(createArgs[2]).toEqual({ redirect: false });
 
 		// upsertBlockProperty called for each property
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
@@ -267,8 +266,8 @@ describe('saveToLogseq', () => {
 			'https://example.com/props',
 		);
 
-		// createPage called with empty {} (not propsObj)
-		expect(mockedCreatePage.mock.calls[0][2]).toEqual({});
+		// createPage called without properties (upsertBlockProperty handles them)
+		expect(mockedCreatePage.mock.calls[0][2]).toEqual({ redirect: false });
 
 		// Properties set via upsertBlockProperty
 		const upsertCalls = mockedUpsertBlockProperty.mock.calls;
@@ -554,8 +553,8 @@ describe('saveToLogseq edge cases', () => {
 		);
 
 		expect(mockedCreatePage).toHaveBeenCalledTimes(1);
-		// createPage called with empty {}
-		expect(mockedCreatePage.mock.calls[0][2]).toEqual({});
+		// createPage called without properties
+		expect(mockedCreatePage.mock.calls[0][2]).toEqual({ redirect: false });
 
 		// Properties set via upsertBlockProperty
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
