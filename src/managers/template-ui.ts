@@ -64,55 +64,14 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 		li.dataset.index = index.toString();
 		li.draggable = true;
 
-		let touchStartTime: number;
-		let touchStartY: number;
-
-		li.addEventListener('touchstart', (e) => {
-			touchStartTime = Date.now();
-			touchStartY = e.touches[0]?.clientY ?? 0;
-		});
-
-		li.addEventListener('touchend', (e) => {
-			const touchEndY = e.changedTouches[0]?.clientY ?? 0;
-			const touchDuration = Date.now() - touchStartTime;
-			const touchDistance = Math.abs(touchEndY - touchStartY);
-
-			if (touchDuration < 300 && touchDistance < 10) {
-				const target = e.target as HTMLElement;
-				if (!target.closest('.delete-template-btn')) {
-					e.preventDefault();
-					showTemplateEditor(template);
-					// Add these lines to close the sidebar and deactivate the hamburger menu
-					const settingsContainer = document.getElementById('settings');
-					const hamburgerMenu = document.getElementById('hamburger-menu');
-					if (settingsContainer) {
-						settingsContainer.classList.remove('sidebar-open');
-					}
-					if (hamburgerMenu) {
-						hamburgerMenu.classList.remove('is-active');
-					}
-				}
-			}
-		});
-
-		// Keep the click event for non-touch devices
-		li.addEventListener('click', (e) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest('.delete-template-btn')) {
-				showTemplateEditor(template);
-			}
-		});
-
-		deleteBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			deleteTemplateFromList(template.id);
-		});
-
 		if (index === editingTemplateIndex) {
 			li.classList.add('active');
 		}
 		templateList.appendChild(li);
 	});
+
+	// Event delegation: single set of listeners on the container
+	setupTemplateListDelegation(templateList, validTemplates);
 
 	// If any invalid templates were found and removed, save the changes
 	if (validTemplates.length !== templatesToUse.length) {
@@ -120,6 +79,68 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 	}
 
 	initializeIcons(templateList);
+}
+
+let _delegationTouchStartTime = 0;
+let _delegationTouchStartY = 0;
+
+function setupTemplateListDelegation(templateList: HTMLElement, validTemplates: Template[]): void {
+	function findTemplateFromEvent(e: Event): Template | null {
+		const li = (e.target as HTMLElement).closest('li[data-id]') as HTMLElement | null;
+		if (!li?.dataset.id) return null;
+		return validTemplates.find((t) => t.id === li.dataset.id) ?? null;
+	}
+
+	templateList.addEventListener('touchstart', (e) => {
+		if (!(e.target as HTMLElement).closest('li[data-id]')) return;
+		_delegationTouchStartTime = Date.now();
+		_delegationTouchStartY = (e as TouchEvent).touches[0]?.clientY ?? 0;
+	});
+
+	templateList.addEventListener('touchend', (e) => {
+		const template = findTemplateFromEvent(e);
+		if (!template) return;
+
+		const touchEndY = (e as TouchEvent).changedTouches[0]?.clientY ?? 0;
+		const touchDuration = Date.now() - _delegationTouchStartTime;
+		const touchDistance = Math.abs(touchEndY - _delegationTouchStartY);
+
+		if (touchDuration < 300 && touchDistance < 10) {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.delete-template-btn')) {
+				e.preventDefault();
+				showTemplateEditor(template);
+				const settingsContainer = document.getElementById('settings');
+				const hamburgerMenu = document.getElementById('hamburger-menu');
+				if (settingsContainer) {
+					settingsContainer.classList.remove('sidebar-open');
+				}
+				if (hamburgerMenu) {
+					hamburgerMenu.classList.remove('is-active');
+				}
+			}
+		}
+	});
+
+	templateList.addEventListener('click', (e) => {
+		const target = e.target as HTMLElement;
+
+		// Handle delete button clicks
+		if (target.closest('.delete-template-btn')) {
+			e.stopPropagation();
+			const li = target.closest('li[data-id]') as HTMLElement | null;
+			if (li?.dataset.id) {
+				deleteTemplateFromList(li.dataset.id);
+			}
+			return;
+		}
+
+		// Handle template item clicks
+		const template = findTemplateFromEvent(e);
+		if (template) {
+			showTemplateEditor(template);
+		}
+	});
 }
 
 // Rename this function to make it clear it's for deleting from the list

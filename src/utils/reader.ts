@@ -444,6 +444,7 @@ export class Reader {
 
 		// Create outline items and store references
 		const outlineItems = new WeakMap<Element, HTMLElement>();
+		const outlineItemTargets = new WeakMap<Element, Element>();
 		const outlineHeadings: Element[] = [];
 
 		// Keep track of the last heading at each level and their depths
@@ -483,18 +484,9 @@ export class Reader {
 			item.setAttribute('data-depth', depth.toString());
 			item.textContent = heading.textContent;
 
-			item.addEventListener('click', () => {
-				const rect = heading.getBoundingClientRect();
-				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
-				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
-				window.scrollTo({
-					top: targetY,
-					behavior: 'smooth',
-				});
-			});
-
 			outline.appendChild(item);
 			outlineItems.set(heading, item);
+			outlineItemTargets.set(item, heading);
 			outlineHeadings.push(heading);
 
 			// Update tracking variables
@@ -514,14 +506,13 @@ export class Reader {
 					}
 					item?.classList.add('active');
 
-					// Update faint state for all items
-					const currentHeadingRect = heading.getBoundingClientRect();
-					for (const h of outlineHeadings) {
-						const outlineItem = outlineItems.get(h);
+					// Update faint state for all items using index position
+					const currentIndex = outlineHeadings.indexOf(heading);
+					for (let i = 0; i < outlineHeadings.length; i++) {
+						const outlineItem = outlineItems.get(outlineHeadings[i]!);
 						if (!outlineItem) continue;
-						const headingRect = h.getBoundingClientRect();
 
-						if (headingRect.top < currentHeadingRect.top) {
+						if (i < currentIndex) {
 							outlineItem.classList.add('faint');
 						} else {
 							outlineItem.classList.remove('faint');
@@ -548,20 +539,28 @@ export class Reader {
 			item.setAttribute('data-depth', '0');
 			item.textContent = 'Footnotes';
 
-			item.addEventListener('click', () => {
-				const rect = footnotes.getBoundingClientRect();
-				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
-				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
-				window.scrollTo({
-					top: targetY,
-					behavior: 'smooth',
-				});
-			});
-
 			outline.appendChild(item);
 			outlineItems.set(footnotes, item);
+			outlineItemTargets.set(item, footnotes);
 			observer.observe(footnotes);
 		}
+
+		// Event delegation for outline item clicks
+		outline.addEventListener('click', (e) => {
+			const item = (e.target as Element).closest('.logseq-reader-outline-item');
+			if (!item) return;
+
+			const target = outlineItemTargets.get(item);
+			if (!target) return;
+
+			const rect = target.getBoundingClientRect();
+			const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
+			const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
+			window.scrollTo({
+				top: targetY,
+				behavior: 'smooth',
+			});
+		});
 
 		return observer;
 	}

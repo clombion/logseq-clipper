@@ -354,9 +354,10 @@ function mergeHighlightOverlayRects(
 		mergedRects.push(currentRect);
 	}
 
+	const overlayRects = existingOverlays.map((overlay) => overlay.getBoundingClientRect());
+
 	for (const rect of mergedRects) {
-		const isDuplicate = existingOverlays.some((overlay) => {
-			const overlayRect = overlay.getBoundingClientRect();
+		const isDuplicate = overlayRects.some((overlayRect) => {
 			return (
 				Math.abs(rect.left - overlayRect.left) < 1 &&
 				Math.abs(rect.top - overlayRect.top) < 1 &&
