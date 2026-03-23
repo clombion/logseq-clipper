@@ -1,6 +1,6 @@
 {
 	"name": "logseq-clipper",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Web clipper for Logseq.",
 	"bin": {
 		"logseq-clipper": "./dist/cli.cjs"
