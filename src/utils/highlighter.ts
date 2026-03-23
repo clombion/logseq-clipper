@@ -13,6 +13,16 @@ import {
 import { detectBrowser, addBrowserClassToHtml } from './browser-detection';
 import { generalSettings, loadSettings } from './storage-utils';
 
+// Throttle mousemove via requestAnimationFrame to avoid firing on every pixel
+let rafId: number | null = null;
+function throttledMouseMove(e: MouseEvent) {
+	if (rafId !== null) return;
+	rafId = requestAnimationFrame(() => {
+		handleMouseMove(e);
+		rafId = null;
+	});
+}
+
 /**
  * Helper function to create SVG elements
  */
@@ -157,7 +167,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 	document.body.classList.toggle('logseq-highlighter-active', isActive);
 	if (isActive) {
 		document.addEventListener('mouseup', handleMouseUp);
-		document.addEventListener('mousemove', handleMouseMove);
+		document.addEventListener('mousemove', throttledMouseMove);
 		document.addEventListener('touchstart', handleTouchStart);
 		document.addEventListener('touchmove', handleTouchMove, { passive: true });
 		document.addEventListener('touchend', handleMouseUp);
@@ -169,7 +179,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 		applyHighlights();
 	} else {
 		document.removeEventListener('mouseup', handleMouseUp);
-		document.removeEventListener('mousemove', handleMouseMove);
+		document.removeEventListener('mousemove', throttledMouseMove);
 		document.removeEventListener('touchstart', handleTouchStart);
 		document.removeEventListener('touchmove', handleTouchMove);
 		document.removeEventListener('touchend', handleMouseUp);
@@ -507,7 +517,7 @@ export function handleTextSelection(selection: Selection, notes?: string[]) {
 		highlights = currentBatchHighlights; // Update global highlights with the final merged result
 
 		// Only add to history if something actually changed from the initial global state
-		if (JSON.stringify(oldGlobalHighlights) !== JSON.stringify(highlights)) {
+		if (highlights.length !== oldGlobalHighlights.length || highlights !== oldGlobalHighlights) {
 			addToHistory('add', oldGlobalHighlights, highlights);
 		}
 
@@ -766,11 +776,23 @@ function addHighlight(highlight: AnyHighlightData, notes?: string[]) {
 
 // Sort highlights based on their vertical position
 export function sortHighlights() {
+	// Pre-compute positions to avoid O(n log n) reflows inside the comparator
+	const positionCache = new Map<string, { top: number; left: number }>();
+	for (const h of highlights) {
+		if (!positionCache.has(h.xpath)) {
+			const el = getElementByXPath(h.xpath);
+			if (el) {
+				const rect = el.getBoundingClientRect();
+				positionCache.set(h.xpath, { top: rect.top + window.scrollY, left: rect.left });
+			}
+		}
+	}
+
 	highlights.sort((a, b) => {
-		const elementA = getElementByXPath(a.xpath);
-		const elementB = getElementByXPath(b.xpath);
-		if (elementA && elementB) {
-			const verticalDiff = getElementVerticalPosition(elementA) - getElementVerticalPosition(elementB);
+		const posA = positionCache.get(a.xpath);
+		const posB = positionCache.get(b.xpath);
+		if (posA && posB) {
+			const verticalDiff = posA.top - posB.top;
 
 			// If elements are at the same vertical position (same paragraph)
 			if (verticalDiff === 0) {
@@ -779,7 +801,7 @@ export function sortHighlights() {
 					return a.startOffset - b.startOffset;
 				}
 				// Otherwise, sort by horizontal position
-				return elementA.getBoundingClientRect().left - elementB.getBoundingClientRect().left;
+				return posA.left - posB.left;
 			}
 
 			return verticalDiff;

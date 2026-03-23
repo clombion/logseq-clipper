@@ -669,7 +669,7 @@ export class Reader {
 		};
 
 		doc.addEventListener('scroll', updatePopoverPosition, { passive: true });
-		window.addEventListener('resize', updatePopoverPosition);
+		window.addEventListener('resize', updatePopoverPosition, { passive: true });
 	}
 
 	private static showFootnotePopover(popover: HTMLElement, link: HTMLAnchorElement) {

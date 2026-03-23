@@ -721,12 +721,14 @@ function populateTemplateDropdown() {
 	if (templateDropdown && currentTemplate) {
 		// Clear existing options
 		templateDropdown.textContent = '';
+		const fragment = document.createDocumentFragment();
 		templates.forEach((template: Template) => {
 			const option = document.createElement('option');
 			option.value = template.id;
 			option.textContent = template.name;
-			templateDropdown.appendChild(option);
+			fragment.appendChild(option);
 		});
+		templateDropdown.appendChild(fragment);
 		templateDropdown.value = currentTemplate.id;
 	}
 }
