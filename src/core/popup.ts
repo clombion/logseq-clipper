@@ -604,8 +604,7 @@ function _clearError(): void {
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function _logError(message: string, error?: any): void {
+function _logError(message: string, error?: unknown): void {
 	console.error(message, error);
 	showError(message);
 }
@@ -843,8 +842,8 @@ async function fillTemplateFieldValues(
 
 	const tabId = currentTabId ?? 0;
 	// Compile all templates in parallel
-	const [compiledPropertyValues, formattedNoteName, formattedPath, formattedContent] = await Promise.all([
-		Promise.all(
+	const [settledPropertyValues, formattedNoteName, formattedPath, formattedContent] = await Promise.all([
+		Promise.allSettled(
 			template.properties.map((property) =>
 				memoizedCompileTemplate(tabId, unescapeValue(property.value), variables, currentUrl),
 			),
@@ -862,7 +861,13 @@ async function fillTemplateFieldValues(
 		const inputElement = document.getElementById(property.name) as HTMLInputElement;
 		if (!inputElement) continue;
 
-		let value = compiledPropertyValues[i]!;
+		const settled = settledPropertyValues[i]!;
+		if (settled.status === 'rejected') {
+			debugLog('Popup', `Property '${property.name}' compilation failed:`, settled.reason);
+			continue;
+		}
+
+		let value = settled.value;
 		const propertyType = inputElement.getAttribute('data-type') || 'text';
 
 		// Apply type-specific parsing
@@ -977,15 +982,25 @@ function updateMetadataToggleState(isCollapsed: boolean) {
 	}
 }
 
+interface ReplacedTemplate {
+	schemaVersion: string;
+	name: string;
+	behavior: string;
+	noteNameFormat: string;
+	path?: string;
+	noteContentFormat: string;
+	properties: Property[];
+	triggers?: string[];
+	context?: string;
+}
+
 async function _getReplacedTemplate(
 	template: Template,
 	variables: { [key: string]: string },
 	tabId: number,
 	currentUrl: string,
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-): Promise<any> {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	const replacedTemplate: any = {
+): Promise<ReplacedTemplate> {
+	const replacedTemplate: ReplacedTemplate = {
 		schemaVersion: '0.1.0',
 		name: template.name,
 		behavior: template.behavior,

@@ -23,6 +23,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm audit --audit-level=high
+        continue-on-error: true
+
       - run: pnpm test -- --reporter=verbose
         continue-on-error: true  # pre-existing upstream test failure
 
