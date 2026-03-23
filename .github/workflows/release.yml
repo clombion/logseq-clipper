@@ -29,24 +29,24 @@ jobs:
       - run: pnpm run build:chrome
       - run: pnpm run build:firefox
 
-      # Upload build artifacts (available on every push)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: logseq-web-clipper-chrome
-          path: dist/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: logseq-web-clipper-firefox
-          path: dist_firefox/
-
-      # On release: zip and attach to the GitHub release
+      # Zip build outputs
       - name: Package zips
-        if: github.event_name == 'release'
         run: |
           cd dist && zip -r ../logseq-web-clipper-chrome.zip . && cd ..
           cd dist_firefox && zip -r ../logseq-web-clipper-firefox.zip . && cd ..
 
+      # Upload zipped artifacts (available on every push)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logseq-web-clipper-chrome.zip
+          path: logseq-web-clipper-chrome.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logseq-web-clipper-firefox.zip
+          path: logseq-web-clipper-firefox.zip
+
+      # On release: attach zips to the GitHub release
       - name: Upload release assets
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
