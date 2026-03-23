@@ -2,6 +2,7 @@ import { initializeIcons } from '../icons/icons';
 import { getCommands } from '../utils/hotkeys';
 import { initializeToggles, updateToggleState, initializeSettingToggle } from '../utils/ui-utils';
 import { generalSettings, loadSettings, saveSettings, setLocalStorage, getLocalStorage } from '../utils/storage-utils';
+import { checkConnection } from '../utils/logseq-api';
 import { detectBrowser } from '../utils/browser-detection';
 import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
 import { createDefaultTemplate, getTemplates, saveTemplateSettings } from '../managers/template-manager';
@@ -172,6 +173,7 @@ export function initializeGeneralSettings(): void {
 		initializeHighlighterSettings();
 		initializeExportHighlightsButton();
 		initializeSaveBehaviorDropdown();
+		initializeLogseqConnection();
 		await initializeUsageChart();
 
 		// Initialize feedback modal close button
@@ -330,6 +332,48 @@ function initializeHighlighterSettings(): void {
 			saveSettings({ ...generalSettings, highlightBehavior: highlightBehaviorSelect.value });
 		});
 	}
+}
+
+function initializeLogseqConnection(): void {
+	const portInput = document.getElementById('logseq-api-port') as HTMLInputElement;
+	const tokenInput = document.getElementById('logseq-api-token') as HTMLInputElement;
+	const logPageInput = document.getElementById('logseq-log-page') as HTMLInputElement;
+	const testBtn = document.getElementById('test-connection-btn') as HTMLButtonElement;
+	const statusSpan = document.getElementById('connection-status') as HTMLSpanElement;
+
+	if (portInput) portInput.value = String(generalSettings.logseqApiPort);
+	if (tokenInput) tokenInput.value = generalSettings.logseqApiToken;
+	if (logPageInput) logPageInput.value = generalSettings.logseqLogPage;
+
+	// Save on change
+	const saveConnectionSettings = () => {
+		saveSettings({
+			logseqApiPort: parseInt(portInput.value, 10) || 12315,
+			logseqApiToken: tokenInput.value,
+			logseqLogPage: logPageInput.value || 'Web Clips Log',
+		});
+	};
+
+	portInput?.addEventListener('change', saveConnectionSettings);
+	tokenInput?.addEventListener('change', saveConnectionSettings);
+	logPageInput?.addEventListener('change', saveConnectionSettings);
+
+	// Test connection button
+	testBtn?.addEventListener('click', async () => {
+		statusSpan.textContent = 'Testing...';
+		const config = {
+			port: parseInt(portInput.value, 10) || 12315,
+			token: tokenInput.value,
+		};
+		const success = await checkConnection(config);
+		if (success) {
+			statusSpan.textContent = '\u2713 Connected';
+			statusSpan.style.color = 'var(--text-success)';
+		} else {
+			statusSpan.textContent = '\u2717 Failed \u2014 is Logseq running with API enabled?';
+			statusSpan.style.color = 'var(--text-error)';
+		}
+	});
 }
 
 async function initializeUsageChart(): Promise<void> {
