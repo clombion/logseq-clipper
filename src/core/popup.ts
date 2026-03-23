@@ -1,7 +1,9 @@
 import dayjs from 'dayjs';
 import { Template, Property, PromptVariable } from '../types/types';
 import { incrementStat, addHistoryEntry, getClipHistory } from '../utils/storage-utils';
-import { generateFrontmatter, saveToObsidian } from '../utils/obsidian-note-creator';
+import { saveToLogseq, checkDuplicate, updateExistingClip } from '../utils/logseq-note-creator';
+import { LogseqConnectionError, LogseqAuthError } from '../utils/logseq-api';
+import { generateFrontmatter, formatPropertyValue } from '../utils/shared';
 import { extractPageContent, initializePageContent } from '../utils/content-extractor';
 import { compileTemplate } from '../utils/template-compiler';
 import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
@@ -22,7 +24,6 @@ import { debounce } from '../utils/debounce';
 import { sanitizeFileName } from '../utils/string-utils';
 import { saveFile } from '../utils/file-utils';
 import { translatePage, getMessage, setupLanguageAndDirection } from '../utils/i18n';
-import { formatPropertyValue } from '../utils/shared';
 
 interface ReaderModeResponse {
 	success: boolean;
@@ -52,13 +53,13 @@ const memoizedCompileTemplate = memoizeWithExpiration(
 	},
 );
 
-// Memoize generateFrontmatter with a longer expiration
-const memoizedGenerateFrontmatter = memoizeWithExpiration(
-	async (properties: Property[]) => {
-		return generateFrontmatter(properties);
-	},
-	{ expirationMs: 5000 },
-);
+function buildFrontmatter(properties: Property[]): string {
+	const typeMap: Record<string, string> = {};
+	for (const pt of generalSettings.propertyTypes) {
+		typeMap[pt.name] = pt.type;
+	}
+	return generateFrontmatter(properties, typeMap);
+}
 
 function getPropertiesFromDOM(): Property[] {
 	return Array.from(document.querySelectorAll('.metadata-property input')).map((input) => {
@@ -213,12 +214,12 @@ function setupMessageListeners() {
 	browser.runtime.onMessage.addListener(
 		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
 			if (request.action === 'triggerQuickClip') {
-				handleClipObsidian()
+				handleClipLogseq()
 					.then(() => {
 						sendResponse({ success: true });
 					})
 					.catch((error) => {
-						console.error('Error in handleClipObsidian:', error);
+						console.error('Error in handleClipLogseq:', error);
 						sendResponse({ success: false, error: error.message });
 					});
 				return true;
@@ -427,7 +428,7 @@ function setupEventListeners(tabId: number) {
 			const properties = getPropertiesFromDOM();
 
 			const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
-			const frontmatter = await generateFrontmatter(properties);
+			const frontmatter = buildFrontmatter(properties);
 			const fileContent = frontmatter + noteContentField.value;
 
 			await copyToClipboard(fileContent);
@@ -447,9 +448,10 @@ function setupEventListeners(tabId: number) {
 
 				const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 
-				// Use Promise.all to prepare the data
-				Promise.all([generateFrontmatter(properties), Promise.resolve(noteContentField.value)]).then(
-					([frontmatter, noteContent]) => {
+				// Build frontmatter and prepare data
+				const frontmatter = buildFrontmatter(properties);
+				const noteContent = noteContentField.value;
+				Promise.resolve().then(() => {
 						const fileContent = frontmatter + noteContent;
 
 						// Call share directly from the click handler
@@ -1129,7 +1131,7 @@ async function handleSaveToDownloads() {
 		const properties = getPropertiesFromDOM();
 
 		const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
-		const frontmatter = await generateFrontmatter(properties);
+		const frontmatter = buildFrontmatter(properties);
 		const fileContent = frontmatter + noteContentField.value;
 
 		await saveFile({
@@ -1168,26 +1170,26 @@ function determineMainAction() {
 			mainButton.textContent = getMessage('copyToClipboard');
 			mainButton.onclick = () => copyContent();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipObsidian());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq());
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
 			break;
 		case 'saveFile':
 			mainButton.textContent = getMessage('saveFile');
 			mainButton.onclick = () => handleSaveToDownloads();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipObsidian());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq());
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
 			break;
 		default: // 'addToLogseq'
 			mainButton.textContent = getMessage('addToLogseq');
-			mainButton.onclick = () => handleClipObsidian();
+			mainButton.onclick = () => handleClipLogseq();
 			// Add direct actions to secondary
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
 	}
 }
 
-async function handleClipObsidian(): Promise<void> {
+async function handleClipLogseq(): Promise<void> {
 	if (!currentTemplate) return;
 
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
@@ -1213,25 +1215,48 @@ async function handleClipObsidian(): Promise<void> {
 
 		// Gather content
 		const properties = getPropertiesFromDOM();
-
-		const frontmatter = await generateFrontmatter(properties);
-		const fileContent = frontmatter + noteContentField.value;
-
-		// Save to Obsidian
+		const noteContent = noteContentField.value;
 		const isDailyNote = currentTemplate.behavior === 'append-daily' || currentTemplate.behavior === 'prepend-daily';
 		const noteName = isDailyNote ? '' : noteNameField?.value || '';
 		const path = isDailyNote ? '' : pathField?.value || '';
 
-		await saveToObsidian(fileContent, noteName, path, currentTemplate.behavior);
+		// Get current URL for dedup check
 		const tabInfo = await getCurrentTabInfo();
+		const currentUrl = tabInfo.url || '';
+
+		// Check for duplicate clip
+		const dup = await checkDuplicate(currentUrl);
+		if (dup.exists) {
+			const action = confirm(
+				`This URL was already clipped on ${dup.clippedAt} to page '${dup.pageTitle}'. ` +
+				`Press OK to update existing, or Cancel to create new.`
+			);
+			if (action) {
+				await updateExistingClip(dup.pageTitle!, noteContent, properties, currentUrl);
+				await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
+				if (!isSidePanel) {
+					setTimeout(() => window.close(), 500);
+				}
+				return;
+			}
+			// User chose Cancel — proceed with normal save (create new)
+		}
+
+		await saveToLogseq(noteContent, noteName, properties, currentTemplate.behavior, currentUrl);
 		await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
 
 		if (!isSidePanel) {
 			setTimeout(() => window.close(), 500);
 		}
 	} catch (error) {
-		console.error('Error in handleClipObsidian:', error);
-		showError('failedToSaveFile');
+		if (error instanceof LogseqConnectionError) {
+			showError('Logseq does not appear to be running. Please start Logseq and enable the API server.');
+		} else if (error instanceof LogseqAuthError) {
+			showError('Logseq API authentication failed. Please check your API token in settings.');
+		} else {
+			console.error('Error in handleClipLogseq:', error);
+			showError('failedToSaveFile');
+		}
 		throw error;
 	}
 }
@@ -1280,7 +1305,7 @@ async function copyContent() {
 	const properties = getPropertiesFromDOM();
 
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
-	const frontmatter = await generateFrontmatter(properties);
+	const frontmatter = buildFrontmatter(properties);
 	const fileContent = frontmatter + noteContentField.value;
 	await copyToClipboard(fileContent);
 }

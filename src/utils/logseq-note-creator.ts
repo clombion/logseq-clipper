@@ -81,8 +81,9 @@ export async function saveToLogseq(
 				}
 				for (let i = 1; i < blocks.length; i++) {
 					const blk = await appendBlockInPage(config, noteName, blocks[i].content);
-					if (blocks[i].children && blocks[i].children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, blocks[i].children);
+					const children = blocks[i].children;
+					if (children && children.length > 0) {
+						await insertBatchBlock(config, blk.uuid, children);
 					}
 				}
 			} else {
@@ -99,8 +100,9 @@ export async function saveToLogseq(
 				}
 				for (let i = 1; i < blocks.length; i++) {
 					const blk = await appendBlockInPage(config, journalPage, blocks[i].content);
-					if (blocks[i].children && blocks[i].children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, blocks[i].children);
+					const children = blocks[i].children;
+					if (children && children.length > 0) {
+						await insertBatchBlock(config, blk.uuid, children);
 					}
 				}
 			} else {
@@ -113,8 +115,9 @@ export async function saveToLogseq(
 				// Prepend in reverse order so final order is correct
 				for (let i = blocks.length - 1; i >= 0; i--) {
 					const blk = await prependBlockInPage(config, noteName, blocks[i].content);
-					if (blocks[i].children && blocks[i].children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, blocks[i].children);
+					const children = blocks[i].children;
+					if (children && children.length > 0) {
+						await insertBatchBlock(config, blk.uuid, children);
 					}
 				}
 			} else {
@@ -127,8 +130,9 @@ export async function saveToLogseq(
 			if (blocks.length > 0) {
 				for (let i = blocks.length - 1; i >= 0; i--) {
 					const blk = await prependBlockInPage(config, journalPage, blocks[i].content);
-					if (blocks[i].children && blocks[i].children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, blocks[i].children);
+					const children = blocks[i].children;
+					if (children && children.length > 0) {
+						await insertBatchBlock(config, blk.uuid, children);
 					}
 				}
 			} else {
