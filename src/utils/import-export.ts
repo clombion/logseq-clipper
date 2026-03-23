@@ -2,7 +2,7 @@ import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
 import { addPropertyType, updatePropertyTypesList } from '../managers/property-types-manager';
 import { editingTemplateIndex, loadTemplates, saveTemplateSettings, templates } from '../managers/template-manager';
 import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
-import type { Template } from '../types/types';
+import { PROPERTY_TYPES, type PropertyTypeName, type Template } from '../types/types';
 import browser from '../utils/browser-polyfill';
 import { hideModal } from '../utils/modal-utils';
 import { generalSettings, loadSettings } from '../utils/storage-utils';
@@ -21,8 +21,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 // Add these type definitions at the top
 interface StorageData {
-	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-	[key: string]: any;
+	[key: string]: unknown;
 	template_list?: string[];
 }
 
@@ -99,11 +98,14 @@ export function importTemplate(input?: HTMLInputElement): void {
 				// Handle property types and preserve existing IDs or generate new ones
 				if (importedTemplate.properties) {
 					importedTemplate.properties = await Promise.all(
-						// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-						importedTemplate.properties.map(async (prop: any) => {
+						importedTemplate.properties.map(async (prop) => {
 							debugLog('ImportExport', 'Processing property:', prop);
 							// Add or update the property type
-							await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
+							await addPropertyType(
+								prop.name,
+								(prop.type || 'text') as PropertyTypeName,
+								prop.value || '',
+							);
 
 							// Use the type from generalSettings, which will be either the existing type or the newly added one
 							const type =
@@ -161,7 +163,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 
 function validateImportedTemplate(template: Partial<Template>): boolean {
 	const requiredFields: (keyof Template)[] = ['name', 'behavior', 'properties', 'noteContentFormat'];
-	const validTypes = ['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'];
+	const validTypes: readonly string[] = PROPERTY_TYPES;
 
 	const isDailyNote = template.behavior === 'append-daily' || template.behavior === 'prepend-daily';
 
@@ -169,11 +171,10 @@ function validateImportedTemplate(template: Partial<Template>): boolean {
 	const hasValidProperties =
 		Array.isArray(template.properties) &&
 		template.properties?.every(
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			(prop: any) =>
+			(prop) =>
 				Object.hasOwn(prop, 'name') &&
 				Object.hasOwn(prop, 'value') &&
-				(!Object.hasOwn(prop, 'type') || validTypes.includes(prop.type)),
+				(!Object.hasOwn(prop, 'type') || !prop.type || validTypes.includes(prop.type)),
 		);
 
 	// Check for noteNameFormat and path only if it's not a daily note template
@@ -224,7 +225,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			if (!existingPropertyType) {
 				// Only add the property type if it doesn't exist
-				await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
+				await addPropertyType(prop.name, (prop.type || 'text') as PropertyTypeName, prop.value || '');
 			} else {
 				debugLog(
 					'ImportExport',
@@ -355,8 +356,7 @@ export async function exportAllSettings(): Promise<void> {
 		debugLog('ImportExport', 'All data fetched:', allData);
 
 		// Create a copy of the data to modify, excluding connection settings (machine-specific secret)
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: any };
+		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: unknown };
 
 		// Decompress all templates
 		const templateIds = exportData.template_list || [];
@@ -376,15 +376,11 @@ export async function exportAllSettings(): Promise<void> {
 		}
 
 		// Strip API keys from providers to prevent credential leakage
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-		if ((exportData as any).interpreter_settings?.providers) {
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			(exportData as any).interpreter_settings.providers =
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				(exportData as any).interpreter_settings.providers.map(
-					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-					({ apiKey, ...rest }: any) => rest,
-				);
+		const interpreterSettings = exportData.interpreter_settings as Record<string, unknown> | undefined;
+		if (interpreterSettings?.providers) {
+			interpreterSettings.providers = (interpreterSettings.providers as Record<string, unknown>[]).map(
+				({ apiKey, ...rest }: Record<string, unknown>) => rest,
+			);
 		}
 
 		debugLog('ImportExport', 'Data prepared for export:', exportData);
@@ -432,8 +428,7 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 						// Check if the data is already compressed (will be an array of strings)
 						const isAlreadyCompressed =
 							Array.isArray(importData[key]) &&
-							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-							importData[key].every((chunk: any) => typeof chunk === 'string');
+							(importData[key] as unknown[]).every((chunk: unknown) => typeof chunk === 'string');
 
 						if (!isAlreadyCompressed) {
 							// Compress the template data
@@ -459,8 +454,7 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 			const preservedLogseqSettings = currentStorage.logseq_settings;
 
 			// Remove logseq_settings from import data if present (don't import secrets)
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			delete (importData as any).logseq_settings;
+			delete importData.logseq_settings;
 
 			await browser.storage.sync.clear();
 			await browser.storage.sync.set(importData);

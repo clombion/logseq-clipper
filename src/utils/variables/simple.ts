@@ -1,6 +1,7 @@
 import type { TemplateValue } from '../../types/types';
 import { applyFilters } from '../filters';
-import { resolveVariable, valueToString } from '../resolver';
+import { valueToString } from '../renderer';
+import { resolveVariable } from '../resolver';
 
 // Function to process a simple variable (without special prefixes)
 export async function processSimpleVariable(

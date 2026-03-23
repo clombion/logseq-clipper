@@ -42,9 +42,12 @@ export interface PromptVariable {
 	filters?: string;
 }
 
+export const PROPERTY_TYPES = ['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'] as const;
+export type PropertyTypeName = (typeof PROPERTY_TYPES)[number];
+
 export interface PropertyType {
 	name: string;
-	type: string;
+	type: PropertyTypeName;
 	defaultValue?: string;
 }
 
@@ -120,8 +123,7 @@ export interface ConversationMessage {
 	author: string;
 	content: string;
 	timestamp?: string;
-	// biome-ignore lint/suspicious/noExplicitAny: metadata values are untyped
-	metadata?: Record<string, any>;
+	metadata?: Record<string, unknown>;
 }
 
 export interface ConversationMetadata {

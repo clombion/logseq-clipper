@@ -34,21 +34,21 @@ async function enableYouTubeEmbedRule(tabId: number): Promise<void> {
 				id: YOUTUBE_EMBED_RULE_ID,
 				priority: 1,
 				action: {
-					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-					type: 'modifyHeaders' as any,
+					// @ts-expect-error Chrome declarativeNetRequest type incomplete
+					type: 'modifyHeaders',
 					requestHeaders: [
 						{
 							header: 'Referer',
-							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-							operation: 'set' as any,
+							// @ts-expect-error Chrome declarativeNetRequest type incomplete
+							operation: 'set',
 							value: 'https://logseq.com/',
 						},
 					],
 				},
 				condition: {
 					urlFilter: '||youtube.com/embed/',
-					// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-					resourceTypes: ['sub_frame' as any],
+					// @ts-expect-error Chrome declarativeNetRequest type incomplete
+					resourceTypes: ['sub_frame'],
 					tabIds: [tabId],
 				},
 			},
@@ -194,6 +194,7 @@ browser.runtime.onMessage.addListener(
 				hasHighlights?: boolean;
 				tabId?: number;
 				text?: string;
+				message?: { action: string; [key: string]: unknown };
 			};
 
 			if (typedRequest.action === 'copy-to-clipboard' && typedRequest.text) {
@@ -206,8 +207,8 @@ browser.runtime.onMessage.addListener(
 								action: 'copy-text-to-clipboard',
 								text: typedRequest.text,
 							});
-							// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-							if ((response as any) && (response as any).success) {
+							const result = response as { success?: boolean } | undefined;
+							if (result?.success) {
 								sendResponse({ success: true });
 							} else {
 								sendResponse({ success: false, error: 'Failed to copy from content script' });
@@ -441,10 +442,7 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'sendMessageToTab') {
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				const tabId = (typedRequest as any).tabId;
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				const message = (typedRequest as any).message;
+				const { tabId, message } = typedRequest;
 				if (tabId && message) {
 					// Ensure content script is loaded before sending message
 					ensureContentScriptLoadedInBackground(tabId)
@@ -453,12 +451,8 @@ browser.runtime.onMessage.addListener(
 							return browser.tabs.sendMessage(tabId, message);
 						})
 						.then((response) => {
-							debugLog(
-								'Background',
-								'Tab response:',
-								// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-								response ? `has content=${!!(response as any).content}` : response,
-							);
+							const resp = response as { content?: unknown } | undefined;
+							debugLog('Background', 'Tab response:', resp ? `has content=${!!resp.content}` : response);
 							sendResponse(response);
 						})
 						.catch((error) => {

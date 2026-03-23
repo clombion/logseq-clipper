@@ -145,7 +145,7 @@ function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: Te
  * - "items[0]" → obj.items[0]
  * - "items[0].title" → obj.items[0].title
  */
-export function getNestedValue(obj: TemplateValue, path: string): TemplateValue {
+function getNestedValue(obj: TemplateValue, path: string): TemplateValue {
 	if (!path || !obj) return undefined;
 
 	const keys = path.split('.');
@@ -188,20 +188,4 @@ export function getNestedValue(obj: TemplateValue, path: string): TemplateValue 
 
 		return record[key];
 	}, obj);
-}
-
-/**
- * Convert any value to a string for template output.
- * - undefined/null → ''
- * - objects → JSON.stringify
- * - everything else → String()
- */
-export function valueToString(value: TemplateValue): string {
-	if (value === undefined || value === null) {
-		return '';
-	}
-	if (typeof value === 'object') {
-		return JSON.stringify(value);
-	}
-	return String(value);
 }

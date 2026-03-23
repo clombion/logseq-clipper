@@ -1,5 +1,5 @@
 import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
-import type { Template } from '../types/types';
+import type { PropertyTypeName, Template } from '../types/types';
 import { debugLog } from '../utils/debug';
 import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
 import { handleDragEnd, handleDragOver, handleDragStart, handleDrop } from '../utils/drag-and-drop';
@@ -430,7 +430,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 			const currentName = nameInput.value;
 
 			// Update the global property type
-			updatePropertyType(currentName, this.value)
+			updatePropertyType(currentName, this.value as PropertyTypeName)
 				.then(() => {
 					debugLog('TemplateUI', `Property type for ${currentName} updated to ${this.value}`);
 				})

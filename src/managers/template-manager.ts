@@ -1,5 +1,5 @@
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
-import type { PropertyType, Template } from '../types/types';
+import type { PropertyType, PropertyTypeName, Template } from '../types/types';
 import browser from '../utils/browser-polyfill';
 import { debugLog } from '../utils/debug';
 import { getMessage } from '../utils/i18n';
@@ -229,7 +229,7 @@ async function updateGlobalPropertyTypes(templates: Template[]): Promise<void> {
 	const existingTypes = new Set(generalSettings.propertyTypes.map((p) => p.name));
 	const newTypes: PropertyType[] = [];
 
-	const defaultTypes: { [key: string]: { type: string; defaultValue: string } } = {
+	const defaultTypes: { [key: string]: { type: PropertyTypeName; defaultValue: string } } = {
 		title: { type: 'text', defaultValue: '{{title}}' },
 		source: { type: 'text', defaultValue: '{{url}}' },
 		author: { type: 'multitext', defaultValue: '{{author|split:", "|wikilink|join}}' },

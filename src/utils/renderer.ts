@@ -189,8 +189,7 @@ async function renderNode(node: ASTNode, state: RenderState): Promise<string> {
 			return renderSet(node, state);
 		default:
 			state.errors.push({
-				// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-				message: `Unknown node type: ${(node as any).type}`,
+				message: `Unknown node type: ${(node as { type: string }).type}`,
 			});
 			return '';
 	}
@@ -519,8 +518,7 @@ async function evaluateExpression(expr: Expression, state: RenderState): Promise
 			return evaluateMember(expr, state);
 
 		default:
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-			throw new Error(`Unknown expression type: ${(expr as any).type}`);
+			throw new Error(`Unknown expression type: ${(expr as { type: string }).type}`);
 	}
 }
 
@@ -922,7 +920,7 @@ function isTruthy(value: TemplateValue): boolean {
 /**
  * Convert any value to a string for output
  */
-function valueToString(value: TemplateValue): string {
+export function valueToString(value: TemplateValue): string {
 	if (value === undefined || value === null) {
 		return '';
 	}

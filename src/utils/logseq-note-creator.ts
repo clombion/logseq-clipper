@@ -1,4 +1,9 @@
 import type { Property, Template } from '../types/types';
+
+export function assertNever(x: never): never {
+	throw new Error(`Unhandled case: ${x}`);
+}
+
 import { debugLog } from './debug';
 import {
 	appendBlockInPage,
@@ -234,6 +239,8 @@ export async function saveToLogseq(
 			destinationPage = journalPage;
 			break;
 		}
+		default:
+			assertNever(behavior);
 	}
 
 	try {
@@ -364,8 +371,7 @@ function mergeValidatedSettings(jsonString: string): void {
 		if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
 			const record = parsed as Record<string, unknown>;
 			const allowedKeys = Object.keys(generalSettings);
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic settings validation
-			const validated: Record<string, any> = {};
+			const validated: Record<string, unknown> = {};
 			for (const key of allowedKeys) {
 				if (key in record) {
 					validated[key] = record[key];
