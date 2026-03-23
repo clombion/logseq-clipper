@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "logseq-clipper@clombion.github.io": {
+      "updates": [
+        {
+          "version": "0.1.2",
+          "update_link": "https://github.com/clombion/logseq-clipper/releases/download/v0.1.2/logseq-web-clipper-firefox.xpi"
+        }
+      ]
+    }
+  }
+}
