@@ -32,9 +32,13 @@ export async function checkDuplicate(url: string): Promise<{
 
 		if (results && results.length > 0) {
 			const first = results[0];
+			const pageTitle = first.name ?? first['original-name'] ?? first.originalName;
+			if (!pageTitle) {
+				return { exists: false };
+			}
 			return {
 				exists: true,
-				pageTitle: first.name ?? first['original-name'] ?? first.originalName,
+				pageTitle,
 				clippedAt: first.properties?.['clipped-at'] ?? first.properties?.clippedAt,
 			};
 		}
@@ -67,28 +71,36 @@ export async function saveToLogseq(
 
 	switch (behavior) {
 		case 'create': {
-			const page = await createPage(config, noteName, propsObj, {
+			await createPage(config, noteName, propsObj, {
 				createFirstBlock: true,
 				redirect: false,
 			});
 			const tree = await getPageBlocksTree(config, noteName);
 			if (tree.length > 0 && blocks.length > 0) {
-				await insertBatchBlock(config, tree[0].uuid, blocks);
+				try {
+					await insertBatchBlock(config, tree[0].uuid, blocks);
+				} catch (error) {
+					// Rollback: try to delete the page we just created
+					try {
+						for (const block of tree) {
+							await removeBlock(config, block.uuid);
+						}
+					} catch { /* best effort cleanup */ }
+					throw error;
+				}
 			}
 			break;
 		}
 		case 'append-specific': {
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
-				if (blocks[0].children && blocks[0].children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, blocks[0].children);
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
 				}
-				for (let i = 1; i < blocks.length; i++) {
-					const blk = await appendBlockInPage(config, noteName, blocks[i].content);
-					const children = blocks[i].children;
-					if (children && children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, children);
-					}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await appendBlockInPage(config, noteName, noteContent);
@@ -99,15 +111,13 @@ export async function saveToLogseq(
 			const journalPage = getTodayJournalPageName();
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, journalPage, blocks[0].content);
-				if (blocks[0].children && blocks[0].children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, blocks[0].children);
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
 				}
-				for (let i = 1; i < blocks.length; i++) {
-					const blk = await appendBlockInPage(config, journalPage, blocks[i].content);
-					const children = blocks[i].children;
-					if (children && children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, children);
-					}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await appendBlockInPage(config, journalPage, noteContent);
@@ -116,13 +126,14 @@ export async function saveToLogseq(
 		}
 		case 'prepend-specific': {
 			if (blocks.length > 0) {
-				// Prepend in reverse order so final order is correct
-				for (let i = blocks.length - 1; i >= 0; i--) {
-					const blk = await prependBlockInPage(config, noteName, blocks[i].content);
-					const children = blocks[i].children;
-					if (children && children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, children);
-					}
+				const anchor = await prependBlockInPage(config, noteName, blocks[0].content);
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await prependBlockInPage(config, noteName, noteContent);
@@ -132,12 +143,14 @@ export async function saveToLogseq(
 		case 'prepend-daily': {
 			const journalPage = getTodayJournalPageName();
 			if (blocks.length > 0) {
-				for (let i = blocks.length - 1; i >= 0; i--) {
-					const blk = await prependBlockInPage(config, journalPage, blocks[i].content);
-					const children = blocks[i].children;
-					if (children && children.length > 0) {
-						await insertBatchBlock(config, blk.uuid, children);
-					}
+				const anchor = await prependBlockInPage(config, journalPage, blocks[0].content);
+				const remaining = blocks.slice(1);
+				const children = blocks[0].children ?? [];
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+				}
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
 				}
 			} else {
 				await prependBlockInPage(config, journalPage, noteContent);
@@ -158,15 +171,16 @@ export async function updateExistingClip(
 	const config = getApiConfig();
 
 	const tree = await getPageBlocksTree(config, pageTitle);
-
-	// Remove all existing content blocks (skip the first/properties block)
-	for (let i = 1; i < tree.length; i++) {
-		await removeBlock(config, tree[i].uuid);
-	}
-
 	const blocks = markdownToBlocks(noteContent);
+
+	// Insert new content first, then delete old blocks (insert-before-delete)
 	if (tree.length > 0 && blocks.length > 0) {
 		await insertBatchBlock(config, tree[0].uuid, blocks);
+	}
+
+	// Only after successful insert, remove old content blocks (skip the first/properties block)
+	for (let i = 1; i < tree.length; i++) {
+		await removeBlock(config, tree[i].uuid);
 	}
 
 	const contentHash = await computeContentHash(noteContent);
@@ -187,8 +201,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 			if (block.content?.includes('## Settings')) {
 				const jsonMatch = block.content.match(/```json\n([\s\S]*?)\n```/);
 				if (jsonMatch) {
-					const parsed = JSON.parse(jsonMatch[1]);
-					Object.assign(generalSettings, parsed);
+					mergeValidatedSettings(jsonMatch[1]);
 				}
 				break;
 			}
@@ -198,8 +211,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 					if (child.content?.includes('## Settings')) {
 						const jsonMatch = child.content.match(/```json\n([\s\S]*?)\n```/);
 						if (jsonMatch) {
-							const parsed = JSON.parse(jsonMatch[1]);
-							Object.assign(generalSettings, parsed);
+							mergeValidatedSettings(jsonMatch[1]);
 						}
 						break;
 					}
@@ -210,6 +222,24 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 }
 
 // --- Internal functions ---
+
+function mergeValidatedSettings(jsonString: string): void {
+	try {
+		const parsed = JSON.parse(jsonString);
+		if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+			const allowedKeys = Object.keys(generalSettings);
+			const validated: Record<string, any> = {};
+			for (const key of allowedKeys) {
+				if (key in parsed) {
+					validated[key] = parsed[key];
+				}
+			}
+			Object.assign(generalSettings, validated);
+		}
+	} catch {
+		console.error('Failed to parse settings from Logseq page');
+	}
+}
 
 export function getTodayJournalPageName(): string {
 	const now = new Date();
