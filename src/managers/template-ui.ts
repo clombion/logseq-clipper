@@ -18,6 +18,7 @@ import { showSettingsSection } from './settings-section-ui';
 import { updatePropertyType } from './property-types-manager';
 import { getMessage } from '../utils/i18n';
 import { parse, validateVariables, validateFilters } from '../utils/parser';
+import { debugLog } from '../utils/debug';
 let hasUnsavedChanges = false;
 
 export function resetUnsavedChanges(): void {
@@ -67,11 +68,11 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 
 		li.addEventListener('touchstart', (e) => {
 			touchStartTime = Date.now();
-			touchStartY = e.touches[0].clientY;
+			touchStartY = e.touches[0]!.clientY;
 		});
 
 		li.addEventListener('touchend', (e) => {
-			const touchEndY = e.changedTouches[0].clientY;
+			const touchEndY = e.changedTouches[0]!.clientY;
 			const touchDuration = Date.now() - touchStartTime;
 			const touchDistance = Math.abs(touchEndY - touchStartY);
 
@@ -134,7 +135,7 @@ async function deleteTemplateFromList(templateId: string): Promise<void> {
 			const updatedTemplates = await loadTemplates();
 			updateTemplateList(updatedTemplates);
 			if (updatedTemplates.length > 0) {
-				showTemplateEditor(updatedTemplates[0]);
+				showTemplateEditor(updatedTemplates[0]!);
 			} else {
 				showSettingsSection('general');
 			}
@@ -247,7 +248,7 @@ export function showTemplateEditor(template: Template | null): void {
 	if (templateName) {
 		templateName.addEventListener('input', () => {
 			if (editingTemplateIndex !== -1 && templates[editingTemplateIndex]) {
-				templates[editingTemplateIndex].name = templateName.value;
+				templates[editingTemplateIndex]!.name = templateName.value;
 				updateTemplateList();
 			}
 		});
@@ -410,7 +411,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 			// Update the global property type
 			updatePropertyType(currentName, this.value)
 				.then(() => {
-					console.log(`Property type for ${currentName} updated to ${this.value}`);
+					debugLog('TemplateUI', `Property type for ${currentName} updated to ${this.value}`);
 				})
 				.catch((error) => {
 					console.error(`Failed to update property type for ${currentName}:`, error);
@@ -445,7 +446,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 			if (this.value.trim() !== '') {
 				updatePropertyType(this.value, selectedType.type)
 					.then(() => {
-						console.log(`Property type for ${this.value} updated to ${selectedType.type}`);
+						debugLog('TemplateUI', `Property type for ${this.value} updated to ${selectedType.type}`);
 					})
 					.catch((error) => {
 						console.error(`Failed to update property type for ${this.value}:`, error);

@@ -1,5 +1,6 @@
 import { saveTemplateSettings, editingTemplateIndex } from '../managers/template-manager';
 import { updateTemplateList, addPropertyToEditor, updateTemplateFromForm } from '../managers/template-ui';
+import { debugLog } from './debug';
 
 let isReordering = false;
 
@@ -29,7 +30,7 @@ export function initializeAutoSave(): void {
 				const warnings = await saveTemplateSettings();
 				if (warnings.length > 0) {
 					updateTemplateList();
-					console.log('Auto-save completed');
+					debugLog('AutoSave', 'Auto-save completed');
 					showWarnings(warnings);
 				}
 			} catch (error) {

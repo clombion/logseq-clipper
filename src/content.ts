@@ -6,6 +6,7 @@ import { getDomain } from './utils/string-utils';
 import { extractContentBySelector as extractContentBySelectorShared } from './utils/shared';
 import { createMarkdownContent } from 'defuddle/full';
 import { flattenShadowDom } from './utils/flatten-shadow-dom';
+import { debugLog } from './utils/debug';
 
 declare global {
 	interface Window {
@@ -23,16 +24,16 @@ declare global {
 	// old context is gone.
 	try {
 		const runtimeId = window.logseqClipperRuntimeCheck?.();
-		console.log('[Logseq Clipper] Re-init guard: runtimeCheck returned', runtimeId);
+		debugLog('Content', 'Re-init guard: runtimeCheck returned', runtimeId);
 		if (runtimeId) {
-			console.log('[Logseq Clipper] Previous runtime still alive, skipping init');
+			debugLog('Content', 'Previous runtime still alive, skipping init');
 			return;
 		}
 	} catch (e) {
-		console.log('[Logseq Clipper] Previous runtime threw, re-initializing', e);
+		debugLog('Content', 'Previous runtime threw, re-initializing', e);
 	}
 
-	console.log('[Logseq Clipper] Initializing content script');
+	debugLog('Content', 'Initializing content script');
 
 	window.logseqClipperRuntimeCheck = () => browser.runtime?.id;
 
@@ -307,7 +308,7 @@ declare global {
 								.map((src) => {
 									const [url, size] = src.trim().split(' ');
 									try {
-										const absoluteUrl = new URL(url, document.baseURI).href;
+										const absoluteUrl = new URL(url!, document.baseURI).href;
 										return `${absoluteUrl}${size ? ' ' + size : ''}`;
 									} catch (e) {
 										return src;

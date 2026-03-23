@@ -99,7 +99,7 @@ export async function extractPageContent(tabId: number): Promise<ContentResponse
 		// First attempt failed — this commonly happens on Safari after an
 		// extension update when the old content script context is invalidated.
 		// Retry once; the background script will re-inject if needed.
-		console.log('[Logseq Clipper] First extraction attempt failed, retrying...', firstError);
+		debugLog('ContentExtractor', 'First extraction attempt failed, retrying...', firstError);
 		try {
 			return await sendExtractRequest(tabId);
 		} catch (retryError) {

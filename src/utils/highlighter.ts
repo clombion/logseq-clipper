@@ -12,6 +12,7 @@ import {
 } from './highlighter-overlays';
 import { detectBrowser, addBrowserClassToHtml } from './browser-detection';
 import { generalSettings, loadSettings } from './storage-utils';
+import { debugLog } from './debug';
 
 // Throttle mousemove via requestAnimationFrame to avoid firing on every pixel
 let rafId: number | null = null;
@@ -461,7 +462,7 @@ export function highlightElement(element: Element, notes?: string[]) {
 			targetElement = parentTable;
 		} else {
 			// If a cell/row is not within a table, do not highlight.
-			console.log('Table cell/row targeted, but no parent table found. Not highlighting:', originalTagName);
+			debugLog('Highlighter', 'Table cell/row targeted, but no parent table found. Not highlighting:', originalTagName);
 			return;
 		}
 	}
@@ -477,7 +478,7 @@ export function highlightElement(element: Element, notes?: string[]) {
 		) {
 			targetElement = targetElement.parentElement;
 		} else {
-			console.log('Element type not allowed for highlighting:', finalTagName);
+			debugLog('Highlighter', 'Element type not allowed for highlighting:', finalTagName);
 			return;
 		}
 	}
@@ -560,7 +561,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 	});
 
 	for (let i = 0; i < sortedBlocks.length; i++) {
-		const blockElement = sortedBlocks[i];
+		const blockElement = sortedBlocks[i]!;
 		const currentBlockSelectionRange = document.createRange();
 
 		// Determine the portion of the selection that is within this blockElement
@@ -669,7 +670,8 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 				});
 			}
 		} else {
-			console.log(
+			debugLog(
+				'Highlighter',
 				"Fallback highlight's parent is not in ALLOWED_HIGHLIGHT_TAGS, skipping highlight:",
 				parentElement.tagName,
 			);
@@ -712,16 +714,16 @@ function balanceTags(html: string): string {
 	let match;
 
 	while ((match = regex.exec(html)) !== null) {
-		if (match[0].startsWith('</')) {
+		if (match[0]!.startsWith('</')) {
 			// Closing tag
 			const lastOpenTag = openingTags.pop();
-			if (lastOpenTag !== match[1].toLowerCase()) {
+			if (lastOpenTag !== match[1]!.toLowerCase()) {
 				// Mismatched tag, add it back
 				if (lastOpenTag) openingTags.push(lastOpenTag);
 			}
 		} else {
 			// Opening tag
-			openingTags.push(match[1].toLowerCase());
+			openingTags.push(match[1]!.toLowerCase());
 		}
 	}
 
@@ -858,7 +860,7 @@ function mergeOverlappingHighlights(
 				merged = true;
 			} else {
 				mergedHighlights[mergedHighlights.length - 1] = mergeHighlights(
-					mergedHighlights[mergedHighlights.length - 1],
+					mergedHighlights[mergedHighlights.length - 1]!,
 					existing,
 				);
 			}
@@ -1063,7 +1065,7 @@ export function clearHighlights() {
 		browser.storage.local.set({ highlights: allHighlights }).then(() => {
 			highlights = [];
 			removeExistingHighlights();
-			console.log('Highlights cleared for:', url);
+			debugLog('Highlighter', 'Highlights cleared for:', url);
 			browser.runtime.sendMessage({ action: 'highlightsCleared' });
 			notifyHighlightsUpdated();
 			updateHighlighterMenu();
@@ -1091,7 +1093,7 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 function exitHighlighterMode() {
-	console.log('Exiting highlighter mode');
+	debugLog('Highlighter', 'Exiting highlighter mode');
 	toggleHighlighterMenu(false);
 	browser.runtime.sendMessage({ action: 'setHighlighterMode', isActive: false });
 

@@ -1,5 +1,6 @@
 import { Template } from '../types/types';
 import { memoize, memoizeWithExpiration } from './memoize';
+import { debugLog } from './debug';
 
 // Modify the memoized function to handle regex patterns correctly
 const memoizedInternalMatchPattern = memoize(
@@ -129,7 +130,7 @@ const memoizedFindMatchingTemplate = memoizeWithExpiration(
 			const schemaOrgData = await getSchemaOrgData();
 			for (const { template, pattern } of schemaTriggers) {
 				if (matchSchemaPattern(pattern, schemaOrgData)) {
-					console.log('Schema match found:', template);
+					debugLog('Triggers', 'Schema match found:', template);
 					return template;
 				}
 			}

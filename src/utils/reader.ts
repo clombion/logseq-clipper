@@ -7,6 +7,7 @@ import hljs from 'highlight.js';
 import { getDomain } from './string-utils';
 import { applyHighlights } from './highlighter';
 import { copyToClipboard } from './clipboard-utils';
+import { debugLog } from './debug';
 
 // Mobile viewport settings
 const VIEWPORT = 'width=device-width, initial-scale=1, maximum-scale=1';
@@ -765,7 +766,7 @@ export class Reader {
 						nativeClearInterval(id);
 					} catch (e) {
 						// Ignore errors from clearing individual timeouts
-						console.log('Reader', 'Error clearing timeout/interval:', e);
+						debugLog('Reader', 'Error clearing timeout/interval:', e);
 					}
 				}
 			}
@@ -784,7 +785,7 @@ export class Reader {
 			meta.content = "script-src 'none'; object-src 'none';";
 			doc.head.appendChild(meta);
 		} catch (e) {
-			console.log('Reader', 'Error during script cleanup:', e);
+			debugLog('Reader', 'Error during script cleanup:', e);
 			// Continue with reader mode even if script cleanup fails
 		}
 	}
@@ -802,14 +803,14 @@ export class Reader {
 				try {
 					hljs.highlightElement(block as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting code block:', e);
+					debugLog('Reader', 'Error highlighting code block:', e);
 				}
 			} else {
 				// If no language specified, try autodetection
 				try {
 					hljs.highlightElement(block as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting code block:', e);
+					debugLog('Reader', 'Error highlighting code block:', e);
 				}
 			}
 		});
@@ -823,7 +824,7 @@ export class Reader {
 				try {
 					hljs.highlightElement(code as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting inline code:', e);
+					debugLog('Reader', 'Error highlighting inline code:', e);
 				}
 			}
 		});
@@ -877,10 +878,10 @@ export class Reader {
 							button.appendChild(svg); // Re-add original SVG
 						}, 2000);
 					} else {
-						console.log('Reader', 'Error copying code: clipboard operation failed');
+						debugLog('Reader', 'Error copying code: clipboard operation failed');
 					}
 				} catch (err) {
-					console.log('Reader', 'Error copying code:', err);
+					debugLog('Reader', 'Error copying code:', err);
 				}
 			});
 			pre.appendChild(button);
@@ -1289,7 +1290,7 @@ export class Reader {
 			spinner.remove();
 
 			if (!content) {
-				console.log('Reader', 'Failed to extract content');
+				debugLog('Reader', 'Failed to extract content');
 				article.textContent = 'Failed to extract content.';
 				return;
 			}
@@ -1318,7 +1319,7 @@ export class Reader {
 					}
 				} catch (e) {
 					formattedDate = published;
-					console.log('Reader', 'Error formatting date:', e);
+					debugLog('Reader', 'Error formatting date:', e);
 				}
 			}
 

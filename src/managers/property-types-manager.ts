@@ -8,6 +8,7 @@ import { unescapeValue } from '../utils/string-utils';
 import { showImportModal } from '../utils/import-modal';
 import { saveFile } from '../utils/file-utils';
 import { getMessage } from '../utils/i18n';
+import { debugLog } from '../utils/debug';
 
 export function initializePropertyTypesManager(): void {
 	ensureTagsProperty();
@@ -222,36 +223,36 @@ async function importTypesFromJson(jsonContent: string): Promise<void> {
 }
 
 async function mergePropertyTypes(newTypes: PropertyType[]): Promise<void> {
-	console.log('Merging property types');
+	debugLog('PropertyTypes', 'Merging property types');
 	for (const newType of newTypes) {
-		console.log(`Processing type: ${newType.name}, type: ${newType.type}`);
+		debugLog('PropertyTypes', `Processing type: ${newType.name}, type: ${newType.type}`);
 		if (newType.name === 'tags') {
-			console.log('Ensuring tags is multitext');
+			debugLog('PropertyTypes', 'Ensuring tags is multitext');
 			await updatePropertyType('tags', 'multitext', '');
 		} else {
 			const existingType = generalSettings.propertyTypes.find((pt) => pt.name === newType.name);
 			if (existingType) {
-				console.log(`Existing type found for ${newType.name}: ${existingType.type}`);
+				debugLog('PropertyTypes', `Existing type found for ${newType.name}: ${existingType.type}`);
 				if (existingType.type !== newType.type) {
 					const useNewType = await resolveConflict(newType.name, 'type', existingType.type, newType.type);
 					if (useNewType) {
-						console.log(`Updating existing type: ${newType.name} to ${newType.type}`);
+						debugLog('PropertyTypes', `Updating existing type: ${newType.name} to ${newType.type}`);
 						await updatePropertyType(newType.name, newType.type, existingType.defaultValue);
 					} else {
-						console.log(`Keeping existing type: ${newType.name} as ${existingType.type}`);
+						debugLog('PropertyTypes', `Keeping existing type: ${newType.name} as ${existingType.type}`);
 					}
 				} else {
-					console.log(`No changes needed for existing type: ${newType.name}`);
+					debugLog('PropertyTypes', `No changes needed for existing type: ${newType.name}`);
 				}
 			} else {
-				console.log(`Adding new type: ${newType.name} as ${newType.type}`);
+				debugLog('PropertyTypes', `Adding new type: ${newType.name} as ${newType.type}`);
 				await addPropertyType(newType.name, newType.type, '');
 			}
 		}
 	}
 
 	await saveSettings();
-	console.log('Property types merged and saved');
+	debugLog('PropertyTypes', 'Property types merged and saved');
 }
 
 async function resolveConflict(name: string, field: string, existingValue: string, newValue: string): Promise<boolean> {
@@ -286,10 +287,10 @@ async function exportTypesJson(): Promise<void> {
 }
 
 export async function addPropertyType(name: string, type: string = 'text', defaultValue: string = ''): Promise<void> {
-	console.log(`addPropertyType called with: name=${name}, type=${type}, defaultValue=${defaultValue}`);
+	debugLog('PropertyTypes', `addPropertyType called with: name=${name}, type=${type}, defaultValue=${defaultValue}`);
 	const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === name);
 	if (!existingPropertyType) {
-		console.log(`Adding new property type: ${name} with type ${type}`);
+		debugLog('PropertyTypes', `Adding new property type: ${name} with type ${type}`);
 		const newPropertyType: PropertyType = { name, type };
 		if (defaultValue !== null && defaultValue !== '') {
 			newPropertyType.defaultValue = defaultValue;
@@ -297,7 +298,7 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 		generalSettings.propertyTypes.push(newPropertyType);
 		await saveSettings();
 	} else if (existingPropertyType.type !== type || existingPropertyType.defaultValue !== defaultValue) {
-		console.log(`Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`);
+		debugLog('PropertyTypes', `Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`);
 		existingPropertyType.type = type;
 		if (defaultValue !== null && defaultValue !== '') {
 			existingPropertyType.defaultValue = defaultValue;
@@ -306,19 +307,19 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 		}
 		await saveSettings();
 	} else {
-		console.log(`Property type ${name} already exists and is up to date`);
+		debugLog('PropertyTypes', `Property type ${name} already exists and is up to date`);
 	}
-	console.log('Current property types:', JSON.stringify(generalSettings.propertyTypes, null, 2));
+	debugLog('PropertyTypes', 'Current property types:', JSON.stringify(generalSettings.propertyTypes, null, 2));
 }
 
 export async function updatePropertyType(name: string, newType: string, newDefaultValue?: string): Promise<void> {
 	const index = generalSettings.propertyTypes.findIndex((p) => p.name === name);
 	if (index !== -1) {
-		generalSettings.propertyTypes[index].type = newType;
+		generalSettings.propertyTypes[index]!.type = newType;
 		if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
-			generalSettings.propertyTypes[index].defaultValue = newDefaultValue;
+			generalSettings.propertyTypes[index]!.defaultValue = newDefaultValue;
 		} else {
-			delete generalSettings.propertyTypes[index].defaultValue;
+			delete generalSettings.propertyTypes[index]!.defaultValue;
 		}
 	} else {
 		const newPropertyType: PropertyType = { name, type: newType };

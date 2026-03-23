@@ -3,6 +3,7 @@ import { debounce } from '../utils/debounce';
 import { Template } from '../types/types';
 import { getMessage } from '../utils/i18n';
 import { copyToClipboard } from '../utils/clipboard-utils';
+import { debugLog } from '../utils/debug';
 
 let variablesPanel: HTMLElement;
 let currentTemplate: Template | null;
@@ -149,8 +150,8 @@ export async function showVariables(isUpdate: boolean = false) {
 						'input, button, [tabindex]:not([tabindex="-1"]), .clickable-icon, .chevron-icon',
 					);
 					if (focusable.length === 0) return;
-					const first = focusable[0];
-					const last = focusable[focusable.length - 1];
+					const first = focusable[0]!;
+					const last = focusable[focusable.length - 1]!;
 					if (e.shiftKey && document.activeElement === first) {
 						e.preventDefault();
 						last.focus();
@@ -174,7 +175,7 @@ export async function showVariables(isUpdate: boolean = false) {
 
 		handleVariableSearch();
 	} else {
-		console.log('No variables available to display');
+		debugLog('InspectVariables', 'No variables available to display');
 	}
 }
 

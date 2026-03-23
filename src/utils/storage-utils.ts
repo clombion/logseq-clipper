@@ -323,12 +323,12 @@ if (typeof window !== 'undefined') {
 	window.debugStorage = (key?: string) => {
 		if (key) {
 			return browser.storage.sync.get(key).then((data) => {
-				console.log(`Sync storage contents for key "${key}":`, data);
+				debugLog('Storage', `Sync storage contents for key "${key}":`, data);
 				return data;
 			});
 		}
 		return browser.storage.sync.get(null).then((data) => {
-			console.log('Sync storage contents:', data);
+			debugLog('Storage', 'Sync storage contents:', data);
 			return data;
 		});
 	};

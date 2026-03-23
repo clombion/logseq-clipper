@@ -4,6 +4,7 @@ import browser from '../utils/browser-polyfill';
 import { generalSettings } from '../utils/storage-utils';
 import { addPropertyType } from './property-types-manager';
 import { getMessage } from '../utils/i18n';
+import { debugLog } from '../utils/debug';
 
 export let templates: Template[] = [];
 export let editingTemplateIndex = -1;
@@ -51,7 +52,7 @@ export async function loadTemplates(): Promise<Template[]> {
 		}
 
 		if (templates.length === 0) {
-			console.log('No valid templates found, creating default template');
+			debugLog('TemplateManager', 'No valid templates found, creating default template');
 			const defaultTemplate = createDefaultTemplate();
 			templates = [defaultTemplate];
 			await saveTemplateSettings();
@@ -92,7 +93,7 @@ export async function saveTemplateSettings(): Promise<string[]> {
 
 	try {
 		await browser.storage.sync.set({ ...templateChunks, [TEMPLATE_LIST_KEY]: templateIds });
-		console.log('Template settings saved');
+		debugLog('TemplateManager', 'Template settings saved');
 		return warnings;
 	} catch (error) {
 		console.error('Error saving templates:', error);
@@ -193,7 +194,7 @@ function getUniqueTemplateName(baseName: string): string {
 
 export async function deleteTemplate(templateId: string): Promise<boolean> {
 	const index = templates.findIndex((t) => t.id === templateId);
-	console.log('Deleting template:', templateId);
+	debugLog('TemplateManager', 'Deleting template:', templateId);
 	if (index !== -1) {
 		// Remove from the templates array
 		templates.splice(index, 1);
@@ -213,14 +214,14 @@ export async function deleteTemplate(templateId: string): Promise<boolean> {
 			// Update the template_list in storage
 			await browser.storage.sync.set({ template_list: templateIds });
 
-			console.log(`Template ${templateId} deleted successfully`);
+			debugLog('TemplateManager', `Template ${templateId} deleted successfully`);
 			return true;
 		} catch (error) {
-			console.log('Error deleting template:', error);
+			debugLog('TemplateManager', 'Error deleting template:', error);
 			return false;
 		}
 	}
-	console.log('Error deleting template');
+	debugLog('TemplateManager', 'Error deleting template');
 	return false;
 }
 
@@ -267,17 +268,17 @@ export async function rebuildTemplateList(): Promise<void> {
 			.filter((key) => key.startsWith('template_') && key !== 'template_list')
 			.map((key) => key.replace('template_', ''));
 
-		console.log('Found template IDs:', templateIds);
+		debugLog('TemplateManager', 'Found template IDs:', templateIds);
 
 		// Update the template_list in storage
 		await browser.storage.sync.set({ template_list: templateIds });
 
-		console.log('Template list rebuilt successfully');
+		debugLog('TemplateManager', 'Template list rebuilt successfully');
 
 		// Reload templates
 		templates = await loadTemplates();
 
-		console.log('Templates reloaded:', templates);
+		debugLog('TemplateManager', 'Templates reloaded:', templates);
 	} catch (error) {
 		console.error('Error rebuilding template list:', error);
 	}
@@ -286,5 +287,5 @@ export async function rebuildTemplateList(): Promise<void> {
 export async function cleanupTemplateStorage(): Promise<void> {
 	await rebuildTemplateList();
 	await loadTemplates();
-	console.log('Template storage cleaned up and rebuilt');
+	debugLog('TemplateManager', 'Template storage cleaned up and rebuilt');
 }

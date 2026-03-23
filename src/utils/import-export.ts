@@ -11,6 +11,7 @@ import { saveFile } from './file-utils';
 import { copyToClipboardWithFeedback } from './clipboard-utils';
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
 import { getMessage } from './i18n';
+import { debugLog } from './debug';
 
 const SCHEMA_VERSION = '0.1.0';
 
@@ -79,7 +80,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 		reader.onload = async (e: ProgressEvent<FileReader>) => {
 			try {
 				const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
-				console.log('Imported template:', importedTemplate);
+				debugLog('ImportExport', 'Imported template:', importedTemplate);
 
 				if (!validateImportedTemplate(importedTemplate)) {
 					throw new Error('Invalid template file');
@@ -92,14 +93,14 @@ export function importTemplate(input?: HTMLInputElement): void {
 					importedTemplate.properties = await Promise.all(
 						// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 						importedTemplate.properties.map(async (prop: any) => {
-							console.log('Processing property:', prop);
+							debugLog('ImportExport', 'Processing property:', prop);
 							// Add or update the property type
 							await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
 
 							// Use the type from generalSettings, which will be either the existing type or the newly added one
 							const type =
 								generalSettings.propertyTypes.find((pt) => pt.name === prop.name)?.type || 'text';
-							console.log(`Property ${prop.name} type after processing:`, type);
+							debugLog('ImportExport', `Property ${prop.name} type after processing:`, type);
 							return {
 								id: prop.id || Date.now().toString() + Math.random().toString(36).slice(2, 9),
 								name: prop.name,
@@ -110,7 +111,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 					);
 				}
 
-				console.log('Processed template properties:', importedTemplate.properties);
+				debugLog('ImportExport', 'Processed template properties:', importedTemplate.properties);
 
 				// Keep the context if it exists in the imported template
 				if (importedTemplate.context) {
@@ -124,7 +125,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 				}
 				importedTemplate.name = newName;
 
-				console.log('Final imported template:', importedTemplate);
+				debugLog('ImportExport', 'Final imported template:', importedTemplate);
 				templates.unshift(importedTemplate as Template);
 
 				saveTemplateSettings();
@@ -140,7 +141,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 	};
 
 	if (input.files && input.files.length > 0) {
-		handleFile(input.files[0]);
+		handleFile(input.files[0]!);
 	} else {
 		input.onchange = (event: Event) => {
 			const file = (event.target as HTMLInputElement).files?.[0];
@@ -198,7 +199,7 @@ function handleFiles(files: FileList): void {
 }
 
 async function processImportedTemplate(importedTemplate: Partial<Template>): Promise<Template> {
-	console.log('Processing imported template:', importedTemplate);
+	debugLog('ImportExport', 'Processing imported template:', importedTemplate);
 
 	if (!validateImportedTemplate(importedTemplate)) {
 		throw new Error('Invalid template file');
@@ -208,15 +209,16 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 
 	// Process property types
 	if (importedTemplate.properties) {
-		console.log('Processing properties:', importedTemplate.properties);
+		debugLog('ImportExport', 'Processing properties:', importedTemplate.properties);
 		for (const prop of importedTemplate.properties) {
-			console.log(`Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`);
+			debugLog('ImportExport', `Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`);
 			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			if (!existingPropertyType) {
 				// Only add the property type if it doesn't exist
 				await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
 			} else {
-				console.log(
+				debugLog(
+					'ImportExport',
 					`Property type ${prop.name} already exists, keeping existing type: ${existingPropertyType.type}`,
 				);
 			}
@@ -234,7 +236,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 		});
 	}
 
-	console.log('Processed template properties:', importedTemplate.properties);
+	debugLog('ImportExport', 'Processed template properties:', importedTemplate.properties);
 
 	// Ensure unique name
 	let newName = importedTemplate.name as string;
@@ -244,7 +246,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 	}
 	importedTemplate.name = newName;
 
-	console.log('Final imported template:', importedTemplate);
+	debugLog('ImportExport', 'Final imported template:', importedTemplate);
 	return importedTemplate as Template;
 }
 
@@ -252,7 +254,7 @@ export function importTemplateFile(file: File): void {
 	const reader = new FileReader();
 	reader.onload = async (e: ProgressEvent<FileReader>) => {
 		try {
-			console.log('Starting template import');
+			debugLog('ImportExport', 'Starting template import');
 			const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
 			const processedTemplate = await processImportedTemplate(importedTemplate);
 
@@ -260,7 +262,7 @@ export function importTemplateFile(file: File): void {
 			await saveTemplateSettings();
 			updateTemplateList();
 			showTemplateEditor(processedTemplate);
-			console.log('Template import completed');
+			debugLog('ImportExport', 'Template import completed');
 		} catch (error) {
 			console.error('Error parsing imported template:', error);
 			alert(getMessage('failedToImportTemplate'));
@@ -329,11 +331,11 @@ export function copyTemplateToClipboard(template: Template): void {
 }
 
 export async function exportAllSettings(): Promise<void> {
-	console.log('Starting exportAllSettings function');
+	debugLog('ImportExport', 'Starting exportAllSettings function');
 	try {
-		console.log('Fetching all data from browser storage');
+		debugLog('ImportExport', 'Fetching all data from browser storage');
 		const allData = (await browser.storage.sync.get(null)) as StorageData;
-		console.log('All data fetched:', allData);
+		debugLog('ImportExport', 'All data fetched:', allData);
 
 		// Create a copy of the data to modify, excluding connection settings (machine-specific secret)
 		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
@@ -367,9 +369,9 @@ export async function exportAllSettings(): Promise<void> {
 				);
 		}
 
-		console.log('Data prepared for export:', exportData);
+		debugLog('ImportExport', 'Data prepared for export:', exportData);
 		const content = JSON.stringify(exportData, null, 2);
-		console.log('Data stringified, length:', content.length);
+		debugLog('ImportExport', 'Data stringified, length:', content.length);
 
 		const fileName = 'logseq-web-clipper-settings.json';
 
@@ -380,7 +382,7 @@ export async function exportAllSettings(): Promise<void> {
 			onError: (error) => console.error('Failed to export settings:', error),
 		});
 
-		console.log('Export completed successfully');
+		debugLog('ImportExport', 'Export completed successfully');
 	} catch (error) {
 		console.error('Error in exportAllSettings:', error);
 		alert(getMessage('failedToExportSettings'));

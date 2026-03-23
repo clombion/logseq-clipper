@@ -184,7 +184,7 @@ async function initializeExtension(tabId: number) {
 		// Initialize triggers to speed up template matching
 		initializeTriggers(templates);
 
-		currentTemplate = templates[0];
+		currentTemplate = templates[0]!;
 		debugLog('Templates', 'Current template set to:', currentTemplate);
 
 		const tab = await getTabInfo(tabId);
@@ -653,7 +653,7 @@ async function refreshFields(tabId: number, checkTemplateTriggers: boolean = tru
 
 			const matchedTemplate = await findMatchingTemplate(tab.url, getSchemaOrgData);
 			if (matchedTemplate) {
-				console.log('Matched template:', matchedTemplate);
+				debugLog('Popup', 'Matched template:', matchedTemplate);
 				currentTemplate = matchedTemplate;
 				updateTemplateDropdown();
 			}
@@ -688,7 +688,7 @@ async function refreshFields(tabId: number, checkTemplateTriggers: boolean = tru
 			);
 			if (initializedContent) {
 				currentVariables = initializedContent.currentVariables;
-				console.log('Updated currentVariables:', currentVariables);
+				debugLog('Popup', 'Updated currentVariables:', currentVariables);
 				await fillTemplateFieldValues(
 					tabId,
 					currentTemplate,
@@ -869,11 +869,11 @@ async function fillTemplateFieldValues(
 
 	// Fill property values into existing DOM elements
 	for (let i = 0; i < template.properties.length; i++) {
-		const property = template.properties[i];
+		const property = template.properties[i]!;
 		const inputElement = document.getElementById(property.name) as HTMLInputElement;
 		if (!inputElement) continue;
 
-		let value = compiledPropertyValues[i];
+		let value = compiledPropertyValues[i]!;
 		const propertyType = inputElement.getAttribute('data-type') || 'text';
 
 		// Apply type-specific parsing
@@ -1028,7 +1028,7 @@ function refreshPopup() {
 }
 
 function handleTemplateChange(templateId: string) {
-	currentTemplate = templates.find((t) => t.id === templateId) || templates[0];
+	currentTemplate = templates.find((t) => t.id === templateId) ?? templates[0]!;
 	refreshFields(currentTabId!, false);
 }
 

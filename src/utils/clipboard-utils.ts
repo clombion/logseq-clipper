@@ -1,4 +1,5 @@
 import browser from './browser-polyfill';
+import { debugLog } from './debug';
 
 /**
  * Checks if the current context is inside an iframe
@@ -23,11 +24,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 	try {
 		// First try the standard Clipboard API
 		await navigator.clipboard.writeText(text);
-		console.log('Successfully copied to clipboard using standard API');
+		debugLog('Clipboard', 'Successfully copied to clipboard using standard API');
 		return true;
 	} catch (clipboardError) {
 		const inIframe = isInIframe();
-		console.log(
+		debugLog(
+			'Clipboard',
 			`Standard clipboard API failed${inIframe ? ' (running in iframe)' : ''}, trying content script fallback:`,
 			clipboardError,
 		);
@@ -40,7 +42,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 			})) as { success: boolean; error?: string } | undefined;
 
 			if (response && response.success) {
-				console.log('Successfully copied to clipboard using content script fallback');
+				debugLog('Clipboard', 'Successfully copied to clipboard using content script fallback');
 				return true;
 			} else {
 				console.error('Content script clipboard fallback failed:', response?.error);
@@ -70,7 +72,7 @@ export async function copyToClipboardWithFeedback(
 	const success = await copyToClipboard(text);
 
 	if (success && successMessage) {
-		console.log(successMessage);
+		debugLog('Clipboard', successMessage);
 	} else if (!success && errorMessage) {
 		console.error(errorMessage);
 	}

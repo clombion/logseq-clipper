@@ -3,6 +3,7 @@ import { detectBrowser } from './utils/browser-detection';
 import { updateCurrentActiveTab, isValidUrl, isBlankPage } from './utils/active-tab-manager';
 import { TextHighlightData } from './utils/highlighter';
 import { debounce } from './utils/debounce';
+import { debugLog } from './utils/debug';
 
 const YOUTUBE_EMBED_RULE_ID = 9001;
 
@@ -74,13 +75,13 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 
 		// Check if the URL is valid before proceeding
 		if (!tab.url || !isValidUrl(tab.url)) {
-			console.log(`Skipping content script injection for invalid URL: ${tab.url}`);
+			debugLog('Background', `Skipping content script injection for invalid URL: ${tab.url}`);
 			throw new Error(`Cannot inject content script into invalid URL: ${tab.url}`);
 		}
 
 		// Attempt to send a message to the content script
 		await browser.tabs.sendMessage(tabId, { action: 'ping' });
-		console.log('[Logseq Clipper] Content script ping succeeded');
+		debugLog('Background', 'Content script ping succeeded');
 	} catch (error) {
 		// If the error is about invalid URL, re-throw it
 		if (error instanceof Error && error.message.includes('invalid URL')) {
@@ -88,23 +89,23 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 		}
 
 		// If the message fails, the content script is not loaded, so inject it
-		console.log('[Logseq Clipper] Ping failed, injecting content script...', error);
+		debugLog('Background', 'Ping failed, injecting content script...', error);
 		try {
 			// Try using the scripting API (Chrome)
 			if (browser.scripting) {
-				console.log('[Logseq Clipper] Using scripting API');
+				debugLog('Background', 'Using scripting API');
 				await browser.scripting.executeScript({
 					target: { tabId: tabId },
 					files: ['content.js'],
 				});
 			} else {
-				console.log('[Logseq Clipper] Using tabs.executeScript fallback');
+				debugLog('Background', 'Using tabs.executeScript fallback');
 				// Fallback to tabs.executeScript (Firefox)
 				await browser.tabs.executeScript(tabId, {
 					file: 'content.js',
 				});
 			}
-			console.log('[Logseq Clipper] Injection completed, waiting for init...');
+			debugLog('Background', 'Injection completed, waiting for init...');
 
 			// Poll until the content script responds, rather than a fixed delay
 			let ready = false;
@@ -121,7 +122,7 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 			if (!ready) {
 				throw new Error('Content script did not respond after injection');
 			}
-			console.log('[Logseq Clipper] Post-injection ping succeeded');
+			debugLog('Background', 'Post-injection ping succeeded');
 		} catch (injectError) {
 			console.error('[Logseq Clipper] Injection or post-injection ping failed:', injectError);
 			throw injectError;
@@ -145,7 +146,7 @@ async function initialize() {
 		// Initialize context menu
 		await debouncedUpdateContextMenu(-1);
 
-		console.log('Background script initialized successfully');
+		debugLog('Background', 'Background script initialized successfully');
 	} catch (error) {
 		console.error('Error initializing background script:', error);
 	}
@@ -447,12 +448,13 @@ browser.runtime.onMessage.addListener(
 					// Ensure content script is loaded before sending message
 					ensureContentScriptLoadedInBackground(tabId)
 						.then(() => {
-							console.log('[Logseq Clipper] Sending message to tab:', message.action);
+							debugLog('Background', 'Sending message to tab:', message.action);
 							return browser.tabs.sendMessage(tabId, message);
 						})
 						.then((response) => {
-							console.log(
-								'[Logseq Clipper] Tab response:',
+							debugLog(
+								'Background',
+								'Tab response:',
 								// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 								response ? 'has content=' + !!(response as any).content : response,
 							);
@@ -529,7 +531,7 @@ const debouncedUpdateContextMenu = debounce(async (tabId: number) => {
 		if (currentTabId === -1) {
 			const tabs = await browser.tabs.query({ active: true, currentWindow: true });
 			if (tabs.length > 0) {
-				currentTabId = tabs[0].id!;
+				currentTabId = tabs[0]!.id!;
 			}
 		}
 
