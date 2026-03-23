@@ -1,39 +1,174 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Logseq Web Clipper — Setup</title>
+	<meta charset="UTF-8">
+	<title>Logseq Web Clipper &mdash; Setup</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="style.css">
+	<style>
+		body {
+			max-width: 580px;
+			margin: 0 auto;
+			padding: 40px 24px 60px;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			line-height: 1.6;
+			color: var(--text-normal, #ddd);
+			background: var(--background-primary, #1e1e1e);
+		}
+		.header {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			margin-bottom: 8px;
+		}
+		.header img {
+			width: 48px;
+			height: 48px;
+		}
+		.header h1 {
+			margin: 0;
+			font-size: 1.6em;
+		}
+		.intro {
+			opacity: 0.75;
+			font-size: 0.95em;
+			margin-bottom: 32px;
+			border-bottom: 1px solid var(--background-modifier-border, #333);
+			padding-bottom: 20px;
+		}
+		.step {
+			margin-bottom: 24px;
+		}
+		.step h2 {
+			font-size: 1.15em;
+			margin-bottom: 6px;
+		}
+		.step p {
+			margin: 4px 0;
+		}
+		.tip {
+			font-size: 0.9em;
+			opacity: 0.65;
+			font-style: italic;
+			margin-top: 4px;
+		}
+		.form-section {
+			background: var(--background-secondary, #262626);
+			border-radius: 8px;
+			padding: 20px;
+			margin-top: 28px;
+		}
+		.field {
+			margin-bottom: 16px;
+		}
+		.field label {
+			display: block;
+			margin-bottom: 4px;
+			font-weight: 600;
+			font-size: 0.95em;
+		}
+		.field .hint {
+			font-weight: normal;
+			opacity: 0.5;
+			font-size: 0.9em;
+		}
+		.field input {
+			width: 100%;
+			padding: 10px 12px;
+			border: 1px solid var(--background-modifier-border, #444);
+			border-radius: 6px;
+			background: var(--background-primary, #1e1e1e);
+			color: var(--text-normal, #ddd);
+			font-size: 0.95em;
+			box-sizing: border-box;
+		}
+		.field input[type="number"] {
+			width: 130px;
+		}
+		.actions {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			margin-top: 20px;
+		}
+		button {
+			padding: 10px 20px;
+			border: 1px solid var(--background-modifier-border, #444);
+			border-radius: 6px;
+			background: var(--background-secondary-alt, #333);
+			color: var(--text-normal, #ddd);
+			font-size: 0.95em;
+			cursor: pointer;
+		}
+		button:hover {
+			background: var(--background-modifier-hover, #3a3a3a);
+		}
+		button#save-btn {
+			background: var(--interactive-accent, #059669);
+			color: white;
+			font-weight: 600;
+			border-color: transparent;
+		}
+		button#save-btn:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+		button#save-btn:not(:disabled):hover {
+			opacity: 0.9;
+		}
+		.test-row {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+		#test-status {
+			font-size: 0.9em;
+		}
+	</style>
 </head>
-<body style="max-width: 600px; margin: 40px auto; padding: 0 20px;">
-	<h1>Logseq Web Clipper</h1>
-	<p>Connect to Logseq's HTTP API to start clipping web pages.</p>
+<body>
+	<div class="header">
+		<img src="icons/icon128.png" alt="Logseq Web Clipper">
+		<h1>Logseq Web Clipper</h1>
+	</div>
 
-	<h2>Step 1: Enable the HTTP API server</h2>
-	<p>In Logseq, go to <strong>Settings → Features</strong> and enable <strong>HTTP APIs Server</strong>.</p>
+	<div class="intro">
+		<p>Clip web pages directly into Logseq as structured, searchable pages with metadata.</p>
+		<p>This extension extracts content from any web page, converts it to Logseq's block format, and saves it via Logseq's local HTTP API. It supports templates, highlighting, an AI interpreter, and a clipping log for dedup detection.</p>
+		<p>Based on <a href="https://github.com/obsidianmd/obsidian-clipper" style="color: var(--interactive-accent, #059669);">Obsidian Web Clipper</a>, adapted for Logseq.</p>
+	</div>
 
-	<h2>Step 2: Start the server</h2>
-	<p>Click the <strong>API icon</strong> in Logseq's toolbar, then select <strong>Start Server</strong>.</p>
-	<p><em>Tip: Enable "Auto start server" in the API panel's Server configurations to start it automatically.</em></p>
+	<div class="step">
+		<h2>Step 1: Enable the HTTP API server</h2>
+		<p>In Logseq, go to <strong>Settings &rarr; Features</strong> and enable <strong>HTTP APIs Server</strong>.</p>
+	</div>
 
-	<h2>Step 3: Create an authorization token</h2>
-	<p>In the API panel, go to <strong>Authorization tokens → Add new token</strong>. Enter a name and value, then paste the token value below.</p>
+	<div class="step">
+		<h2>Step 2: Start the server</h2>
+		<p>Click the <strong>API icon</strong> in Logseq's toolbar, then select <strong>Start Server</strong>.</p>
+		<p class="tip">Tip: Enable "Auto start server" in the API panel's Server configurations so it starts with Logseq.</p>
+	</div>
 
-	<div style="margin: 24px 0;">
-		<div style="margin-bottom: 12px;">
-			<label for="setup-token" style="display: block; margin-bottom: 4px; font-weight: 600;">API Token</label>
-			<input type="password" id="setup-token" placeholder="Paste your token here" style="width: 100%; padding: 8px;" autocomplete="off" />
+	<div class="step">
+		<h2>Step 3: Create an authorization token</h2>
+		<p>In the API panel, go to <strong>Authorization tokens &rarr; Add new token</strong>. Enter a name and value, then paste the token value below.</p>
+	</div>
+
+	<div class="form-section">
+		<div class="field">
+			<label for="setup-token">API Token</label>
+			<input type="password" id="setup-token" placeholder="Paste your token here" autocomplete="off">
 		</div>
-		<div style="margin-bottom: 12px;">
-			<label for="setup-port" style="display: block; margin-bottom: 4px; font-weight: 600;">API Port <span style="font-weight: normal; opacity: 0.6;">(default: 12315)</span></label>
-			<input type="number" id="setup-port" value="12315" min="1" max="65535" style="width: 120px; padding: 8px;" />
+		<div class="field">
+			<label for="setup-port">API Port <span class="hint">(default: 12315)</span></label>
+			<input type="number" id="setup-port" value="12315" min="1" max="65535">
 		</div>
-		<div style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
-			<button id="test-btn" type="button" style="padding: 8px 16px;">Test connection</button>
-			<span id="test-status"></span>
-		</div>
-		<div style="margin-top: 16px;">
-			<button id="save-btn" type="button" disabled style="padding: 8px 24px; font-weight: 600;">Save & continue →</button>
+		<div class="actions">
+			<div class="test-row">
+				<button id="test-btn" type="button">Test connection</button>
+				<span id="test-status"></span>
+			</div>
+			<button id="save-btn" type="button" disabled>Save &amp; continue</button>
 		</div>
 	</div>
 
