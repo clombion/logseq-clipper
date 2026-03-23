@@ -170,7 +170,7 @@ Example response:
 			} catch (error) {
 				console.error(`\n  ❌ Failed to parse response as JSON:`, response);
 				console.error(`  Error details:`, error);
-				throw new Error('Invalid response format');
+				throw new Error('Invalid response format', { cause: error });
 			}
 
 			// Add response to chat history

@@ -46,6 +46,10 @@ async function fetchPresetProviders(): Promise<Record<string, PresetProvider>> {
 		}
 		const data = (await response.json()) as ProviderPresets;
 
+		if (!data || typeof data !== 'object') {
+			throw new Error('Invalid provider presets response');
+		}
+
 		await setLocalStorage(LOCAL_STORAGE_KEY, data);
 		debugLog('Providers', 'Stored providers in local storage:', data);
 

@@ -203,7 +203,7 @@ export async function initializePageContent(
 		if (error instanceof Error) {
 			throw new Error(`Unable to initialize page content: ${error.message}`, { cause: error });
 		} else {
-			throw new Error('Unable to initialize page content: Unknown error');
+			throw new Error('Unable to initialize page content: Unknown error', { cause: error });
 		}
 	}
 }

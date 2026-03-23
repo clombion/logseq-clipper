@@ -1190,25 +1190,35 @@ function determineMainAction() {
 			mainButton.textContent = getMessage('copyToClipboard');
 			mainButton.onclick = () => copyContent();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq().catch(() => {}));
+			addSecondaryAction(secondaryActions, 'addToLogseq', () =>
+				handleClipLogseq().catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
+			);
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
-			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
+			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
+				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
+			);
 			break;
 		case 'saveFile':
 			mainButton.textContent = getMessage('saveFile');
 			mainButton.onclick = () => handleSaveToDownloads();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipLogseq().catch(() => {}));
+			addSecondaryAction(secondaryActions, 'addToLogseq', () =>
+				handleClipLogseq().catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
+			);
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
-			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
+			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
+				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
+			);
 			break;
 		default: // 'addToLogseq'
 			mainButton.textContent = getMessage('addToLogseq');
-			mainButton.onclick = () => handleClipLogseq().catch(() => {});
+			mainButton.onclick = () => handleClipLogseq().catch((e) => debugLog('Clip', 'Unhandled clip error:', e));
 			// Add direct actions to secondary
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
-			addSecondaryAction(secondaryActions, 'saveAsPage', () => handleClipLogseq('create').catch(() => {}));
+			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
+				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
+			);
 	}
 }
 
