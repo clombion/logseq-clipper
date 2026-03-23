@@ -1360,10 +1360,11 @@ export class Reader {
 				if (iframe) {
 					const embedUrl = new URL(iframe.src);
 					const videoId = embedUrl.pathname.split('/').pop();
+					const YOUTUBE_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 					const browserType = await detectBrowser();
 					const isSafari = ['safari', 'mobile-safari', 'ipad-os'].includes(browserType);
 
-					if (isSafari && videoId) {
+					if (isSafari && videoId && YOUTUBE_ID_RE.test(videoId)) {
 						// Safari can't modify request headers, so YouTube blocks
 						// self-referrer embeds. Show a clickable thumbnail instead.
 						const watchUrl =
@@ -1376,13 +1377,23 @@ export class Reader {
 						thumbnail.rel = 'noopener';
 						thumbnail.style.cssText =
 							'display:block;position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:8px;overflow:hidden;';
-						thumbnail.innerHTML =
-							'<img src="https://img.youtube.com/vi/' +
-							videoId +
-							'/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;mix-blend-mode:normal!important;">' +
-							'<svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;" viewBox="0 0 68 48">' +
-							'<path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/>' +
-							'<path d="M45 24L27 14v20" fill="white"/></svg>';
+						const img = doc.createElement('img');
+						img.src = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+						img.style.cssText = 'width:100%;height:100%;object-fit:cover;mix-blend-mode:normal!important;';
+						thumbnail.appendChild(img);
+
+						const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+						svg.setAttribute('style', 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;');
+						svg.setAttribute('viewBox', '0 0 68 48');
+						const bgPath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+						bgPath.setAttribute('d', 'M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z');
+						bgPath.setAttribute('fill', 'red');
+						const playPath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+						playPath.setAttribute('d', 'M45 24L27 14v20');
+						playPath.setAttribute('fill', 'white');
+						svg.appendChild(bgPath);
+						svg.appendChild(playPath);
+						thumbnail.appendChild(svg);
 						iframe.replaceWith(thumbnail);
 					} else {
 						// Chrome/Firefox: use direct embed with header modification

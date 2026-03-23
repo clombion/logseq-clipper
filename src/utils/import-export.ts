@@ -351,6 +351,14 @@ export async function exportAllSettings(): Promise<void> {
 			}
 		}
 
+		// Strip API keys from providers to prevent credential leakage
+		if ((exportData as any).interpreter_settings?.providers) {
+			(exportData as any).interpreter_settings.providers =
+				(exportData as any).interpreter_settings.providers.map(
+					({ apiKey, ...rest }: any) => rest
+				);
+		}
+
 		console.log('Data prepared for export:', exportData);
 		const content = JSON.stringify(exportData, null, 2);
 		console.log('Data stringified, length:', content.length);

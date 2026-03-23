@@ -345,18 +345,22 @@ function initializeLogseqConnection(): void {
 	if (tokenInput) tokenInput.value = generalSettings.logseqApiToken;
 	if (logPageInput) logPageInput.value = generalSettings.logseqLogPage;
 
-	// Save on change
+	// Save on any input (debounced to avoid excessive writes)
+	let saveTimer: ReturnType<typeof setTimeout>;
 	const saveConnectionSettings = () => {
-		saveSettings({
-			logseqApiPort: parseInt(portInput.value, 10) || 12315,
-			logseqApiToken: tokenInput.value,
-			logseqLogPage: logPageInput.value || 'Web Clips Log',
-		});
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			saveSettings({
+				logseqApiPort: parseInt(portInput.value, 10) || 12315,
+				logseqApiToken: tokenInput.value,
+				logseqLogPage: logPageInput.value || 'Web Clips Log',
+			});
+		}, 300);
 	};
 
-	portInput?.addEventListener('change', saveConnectionSettings);
-	tokenInput?.addEventListener('change', saveConnectionSettings);
-	logPageInput?.addEventListener('change', saveConnectionSettings);
+	portInput?.addEventListener('input', saveConnectionSettings);
+	tokenInput?.addEventListener('input', saveConnectionSettings);
+	logPageInput?.addEventListener('input', saveConnectionSettings);
 
 	// Test connection button
 	testBtn?.addEventListener('click', async () => {

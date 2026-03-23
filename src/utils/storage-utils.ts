@@ -202,6 +202,8 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			alwaysShowHighlights: generalSettings.alwaysShowHighlights,
 			highlightBehavior: generalSettings.highlightBehavior,
 		},
+		// TODO: providers contains apiKey fields that get cloud-synced via storage.sync.
+		// Move interpreter_settings.providers to storage.local to prevent credential sync.
 		interpreter_settings: {
 			interpreterModel: generalSettings.interpreterModel,
 			models: generalSettings.models,

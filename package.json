@@ -1,6 +1,6 @@
 {
 	"name": "logseq-clipper",
-	"version": "0.1.4",
+	"version": "0.2.0",
 	"description": "Web clipper for Logseq.",
 	"bin": {
 		"logseq-clipper": "./dist/cli.cjs"
@@ -22,7 +22,7 @@
 		"build": "pnpm run build:chrome && pnpm run build:firefox",
 		"build:cli": "node scripts/build-cli.mjs",
 		"build:api": "node scripts/build-api.mjs",
-		"dev": "npm run dev:chrome",
+		"dev": "pnpm run dev:chrome",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"update-locales": "ts-node --project scripts/tsconfig.json scripts/update-locales.ts",
@@ -30,7 +30,7 @@
 		"add-locale": "ts-node --project scripts/tsconfig.json scripts/add-locale.ts",
 		"lint": "biome check src/",
 		"format": "biome format --write src/",
-		"prepublishOnly": "npm run build:cli && npm run build:api"
+		"prepublishOnly": "pnpm run build:cli && pnpm run build:api"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.8",
