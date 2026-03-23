@@ -1,0 +1,78 @@
+name: Check upstream changes
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'  # 1st of each month at 9am UTC
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/obsidianmd/obsidian-clipper.git
+
+      - name: Fetch upstream
+        run: git fetch upstream main --quiet
+
+      - name: Check for new commits
+        id: check
+        run: |
+          FORK_POINT=$(git merge-base HEAD upstream/main)
+          NEW_COMMITS=$(git rev-list --count ${FORK_POINT}..upstream/main)
+          echo "new_commits=${NEW_COMMITS}" >> $GITHUB_OUTPUT
+          echo "fork_point=${FORK_POINT}" >> $GITHUB_OUTPUT
+
+          if [ "$NEW_COMMITS" -eq "0" ]; then
+            echo "No new upstream commits."
+            exit 0
+          fi
+
+          echo "Found ${NEW_COMMITS} new upstream commits since ${FORK_POINT}"
+
+          # Generate summary
+          {
+            echo "## Upstream changes since last check"
+            echo ""
+            echo "**${NEW_COMMITS} new commits** on \`obsidianmd/obsidian-clipper\` main branch."
+            echo ""
+            echo "### Commits"
+            echo ""
+            git log --oneline ${FORK_POINT}..upstream/main | head -50
+            echo ""
+            if [ "$NEW_COMMITS" -gt 50 ]; then
+              echo "_... and $((NEW_COMMITS - 50)) more commits_"
+              echo ""
+            fi
+            echo "### Files changed"
+            echo ""
+            echo '```'
+            git diff --stat ${FORK_POINT}..upstream/main | tail -20
+            echo '```'
+            echo ""
+            echo "### Categories"
+            echo ""
+            echo "**Security-related:**"
+            git log --oneline ${FORK_POINT}..upstream/main --grep="security\|XSS\|sanitiz\|innerHTML\|CVE\|vulnerab" -i | head -10 || echo "_None found_"
+            echo ""
+            echo "**Dependencies:**"
+            git log --oneline ${FORK_POINT}..upstream/main --grep="bump\|upgrade\|update.*dep\|defuddle" -i | head -10 || echo "_None found_"
+            echo ""
+            echo "**Bug fixes:**"
+            git log --oneline ${FORK_POINT}..upstream/main --grep="fix\|bug\|patch" -i | head -10 || echo "_None found_"
+            echo ""
+            echo "---"
+            echo "_Review each commit before cherry-picking. Use \`git cherry-pick <hash>\` for individual commits._"
+          } > /tmp/upstream-report.md
+
+      - name: Create issue
+        if: steps.check.outputs.new_commits != '0'
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Upstream sync — ${{ steps.check.outputs.new_commits }} new commits"
+          content-filepath: /tmp/upstream-report.md
+          labels: upstream-sync
