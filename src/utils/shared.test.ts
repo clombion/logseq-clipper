@@ -52,39 +52,47 @@ describe('buildVariables', () => {
 	});
 
 	test('strips text fragment from URL', () => {
-		const vars = buildVariables(makeParams({
-			url: 'https://example.com/page#:~:text=some%20text',
-		}));
+		const vars = buildVariables(
+			makeParams({
+				url: 'https://example.com/page#:~:text=some%20text',
+			}),
+		);
 		expect(vars['{{url}}']).toBe('https://example.com/page');
 	});
 
 	test('strips text fragment with trailing ampersand', () => {
-		const vars = buildVariables(makeParams({
-			url: 'https://example.com/page#:~:text=foo&bar=1',
-		}));
+		const vars = buildVariables(
+			makeParams({
+				url: 'https://example.com/page#:~:text=foo&bar=1',
+			}),
+		);
 		expect(vars['{{url}}']).toBe('https://example.com/pagebar=1');
 	});
 
 	test('trims whitespace from string fields', () => {
-		const vars = buildVariables(makeParams({
-			title: '  padded title  ',
-			author: '  padded author  ',
-		}));
+		const vars = buildVariables(
+			makeParams({
+				title: '  padded title  ',
+				author: '  padded author  ',
+			}),
+		);
 		expect(vars['{{title}}']).toBe('padded title');
 		expect(vars['{{author}}']).toBe('padded author');
 	});
 
 	test('handles empty/falsy values', () => {
-		const vars = buildVariables(makeParams({
-			author: '',
-			description: '',
-			favicon: '',
-			image: '',
-			published: '',
-			site: '',
-			language: '',
-			wordCount: 0,
-		}));
+		const vars = buildVariables(
+			makeParams({
+				author: '',
+				description: '',
+				favicon: '',
+				image: '',
+				published: '',
+				site: '',
+				language: '',
+				wordCount: 0,
+			}),
+		);
 		expect(vars['{{author}}']).toBe('');
 		expect(vars['{{description}}']).toBe('');
 		expect(vars['{{favicon}}']).toBe('');
@@ -96,9 +104,11 @@ describe('buildVariables', () => {
 	});
 
 	test('takes first element of comma-separated published field', () => {
-		const vars = buildVariables(makeParams({
-			published: '2024-01-15, 2024-02-20',
-		}));
+		const vars = buildVariables(
+			makeParams({
+				published: '2024-01-15, 2024-02-20',
+			}),
+		);
 		expect(vars['{{published}}']).toBe('2024-01-15');
 	});
 
@@ -110,11 +120,13 @@ describe('buildVariables', () => {
 	});
 
 	test('includes selection and highlights when provided', () => {
-		const vars = buildVariables(makeParams({
-			selection: 'selected text',
-			selectionHtml: '<mark>selected text</mark>',
-			highlights: '[{"text":"highlight"}]',
-		}));
+		const vars = buildVariables(
+			makeParams({
+				selection: 'selected text',
+				selectionHtml: '<mark>selected text</mark>',
+				highlights: '[{"text":"highlight"}]',
+			}),
+		);
 		expect(vars['{{selection}}']).toBe('selected text');
 		expect(vars['{{selectionHtml}}']).toBe('<mark>selected text</mark>');
 		expect(vars['{{highlights}}']).toBe('[{"text":"highlight"}]');
@@ -129,24 +141,28 @@ describe('buildVariables', () => {
 	});
 
 	test('adds extracted content as template variables', () => {
-		const vars = buildVariables(makeParams({
-			extractedContent: {
-				transcript: 'Hello world transcript',
-				summary: 'A summary',
-			},
-		}));
+		const vars = buildVariables(
+			makeParams({
+				extractedContent: {
+					transcript: 'Hello world transcript',
+					summary: 'A summary',
+				},
+			}),
+		);
 		expect(vars['{{transcript}}']).toBe('Hello world transcript');
 		expect(vars['{{summary}}']).toBe('A summary');
 	});
 
 	test('adds meta tags as template variables', () => {
-		const vars = buildVariables(makeParams({
-			metaTags: [
-				{ name: 'description', property: null, content: 'meta desc' },
-				{ name: null, property: 'og:title', content: 'OG Title' },
-				{ name: 'author', property: 'article:author', content: 'Both' },
-			],
-		}));
+		const vars = buildVariables(
+			makeParams({
+				metaTags: [
+					{ name: 'description', property: null, content: 'meta desc' },
+					{ name: null, property: 'og:title', content: 'OG Title' },
+					{ name: 'author', property: 'article:author', content: 'Both' },
+				],
+			}),
+		);
 		expect(vars['{{meta:name:description}}']).toBe('meta desc');
 		expect(vars['{{meta:property:og:title}}']).toBe('OG Title');
 		expect(vars['{{meta:name:author}}']).toBe('Both');
@@ -154,18 +170,20 @@ describe('buildVariables', () => {
 	});
 
 	test('skips meta tags with null content', () => {
-		const vars = buildVariables(makeParams({
-			metaTags: [
-				{ name: 'robots', property: null, content: null },
-			],
-		}));
+		const vars = buildVariables(
+			makeParams({
+				metaTags: [{ name: 'robots', property: null, content: null }],
+			}),
+		);
 		expect(vars['{{meta:name:robots}}']).toBeUndefined();
 	});
 
 	test('includes schema.org data', () => {
-		const vars = buildVariables(makeParams({
-			schemaOrgData: [{ '@type': 'Article', headline: 'Test' }],
-		}));
+		const vars = buildVariables(
+			makeParams({
+				schemaOrgData: [{ '@type': 'Article', headline: 'Test' }],
+			}),
+		);
 		expect(vars['{{schema:@Article:headline}}']).toBe('Test');
 	});
 });
@@ -190,10 +208,13 @@ describe('addSchemaOrgDataToVariables', () => {
 
 	test('processes array of typed objects', () => {
 		const vars: Record<string, string> = {};
-		addSchemaOrgDataToVariables([
-			{ '@type': 'Article', headline: 'First' },
-			{ '@type': 'Person', name: 'Alice' },
-		], vars);
+		addSchemaOrgDataToVariables(
+			[
+				{ '@type': 'Article', headline: 'First' },
+				{ '@type': 'Person', name: 'Alice' },
+			],
+			vars,
+		);
 		expect(vars['{{schema:@Article:headline}}']).toBe('First');
 		expect(vars['{{schema:@Person:name}}']).toBe('Alice');
 	});
@@ -220,20 +241,30 @@ describe('addSchemaOrgDataToVariables', () => {
 
 	test('serializes array values as JSON and recurses', () => {
 		const vars: Record<string, string> = {};
-		addSchemaOrgDataToVariables([{
-			'@type': 'Article',
-			keywords: ['javascript', 'typescript'],
-		}], vars);
+		addSchemaOrgDataToVariables(
+			[
+				{
+					'@type': 'Article',
+					keywords: ['javascript', 'typescript'],
+				},
+			],
+			vars,
+		);
 		expect(vars['{{schema:@Article:keywords}}']).toBe('["javascript","typescript"]');
 	});
 
 	test('converts number and boolean values to string', () => {
 		const vars: Record<string, string> = {};
-		addSchemaOrgDataToVariables([{
-			'@type': 'Product',
-			price: 29.99,
-			inStock: true,
-		}], vars);
+		addSchemaOrgDataToVariables(
+			[
+				{
+					'@type': 'Product',
+					price: 29.99,
+					inStock: true,
+				},
+			],
+			vars,
+		);
 		expect(vars['{{schema:@Product:price}}']).toBe('29.99');
 		expect(vars['{{schema:@Product:inStock}}']).toBe('true');
 	});
@@ -271,112 +302,76 @@ describe('generateFrontmatter', () => {
 	});
 
 	test('quotes property names with special characters', () => {
-		const result = generateFrontmatter([
-			{ name: 'my-property', value: 'val' },
-		]);
+		const result = generateFrontmatter([{ name: 'my-property', value: 'val' }]);
 		expect(result).toContain('"my-property":');
 	});
 
 	test('quotes property names starting with digits', () => {
-		const result = generateFrontmatter([
-			{ name: '1st', value: 'val' },
-		]);
+		const result = generateFrontmatter([{ name: '1st', value: 'val' }]);
 		expect(result).toContain('"1st":');
 	});
 
 	test('quotes YAML reserved words', () => {
-		const result = generateFrontmatter([
-			{ name: 'true', value: 'val' },
-		]);
+		const result = generateFrontmatter([{ name: 'true', value: 'val' }]);
 		expect(result).toContain('"true":');
 	});
 
 	test('uses single quotes when name contains double quotes', () => {
-		const result = generateFrontmatter([
-			{ name: 'say "hi"', value: 'val' },
-		]);
-		expect(result).toContain("'say \"hi\"':");
+		const result = generateFrontmatter([{ name: 'say "hi"', value: 'val' }]);
+		expect(result).toContain('\'say "hi"\':');
 	});
 
 	test('handles multitext type with JSON array', () => {
-		const result = generateFrontmatter(
-			[{ name: 'tags', value: '["tag1","tag2"]' }],
-			{ tags: 'multitext' }
-		);
+		const result = generateFrontmatter([{ name: 'tags', value: '["tag1","tag2"]' }], { tags: 'multitext' });
 		expect(result).toContain('  - "tag1"');
 		expect(result).toContain('  - "tag2"');
 	});
 
 	test('handles multitext type with comma-separated values', () => {
-		const result = generateFrontmatter(
-			[{ name: 'tags', value: 'tag1, tag2, tag3' }],
-			{ tags: 'multitext' }
-		);
+		const result = generateFrontmatter([{ name: 'tags', value: 'tag1, tag2, tag3' }], { tags: 'multitext' });
 		expect(result).toContain('  - "tag1"');
 		expect(result).toContain('  - "tag2"');
 		expect(result).toContain('  - "tag3"');
 	});
 
 	test('preserves wikilinks in multitext splitting', () => {
-		const result = generateFrontmatter(
-			[{ name: 'tags', value: '[[link1]], [[link2]]' }],
-			{ tags: 'multitext' }
-		);
+		const result = generateFrontmatter([{ name: 'tags', value: '[[link1]], [[link2]]' }], { tags: 'multitext' });
 		expect(result).toContain('  - "[[link1]]"');
 		expect(result).toContain('  - "[[link2]]"');
 	});
 
 	test('handles number type', () => {
-		const result = generateFrontmatter(
-			[{ name: 'count', value: '42' }],
-			{ count: 'number' }
-		);
+		const result = generateFrontmatter([{ name: 'count', value: '42' }], { count: 'number' });
 		expect(result).toContain('count: 42');
 	});
 
 	test('handles number type with non-numeric characters', () => {
-		const result = generateFrontmatter(
-			[{ name: 'price', value: '$19.99 USD' }],
-			{ price: 'number' }
-		);
+		const result = generateFrontmatter([{ name: 'price', value: '$19.99 USD' }], { price: 'number' });
 		expect(result).toContain('price: 19.99');
 	});
 
 	test('handles checkbox type', () => {
-		const result = generateFrontmatter(
-			[{ name: 'done', value: 'true' }],
-			{ done: 'checkbox' }
-		);
+		const result = generateFrontmatter([{ name: 'done', value: 'true' }], { done: 'checkbox' });
 		expect(result).toContain('done: true');
 	});
 
 	test('handles checkbox type with false', () => {
-		const result = generateFrontmatter(
-			[{ name: 'done', value: 'false' }],
-			{ done: 'checkbox' }
-		);
+		const result = generateFrontmatter([{ name: 'done', value: 'false' }], { done: 'checkbox' });
 		expect(result).toContain('done: false');
 	});
 
 	test('handles date type', () => {
-		const result = generateFrontmatter(
-			[{ name: 'created', value: '2024-01-15' }],
-			{ created: 'date' }
-		);
+		const result = generateFrontmatter([{ name: 'created', value: '2024-01-15' }], { created: 'date' });
 		expect(result).toContain('created: 2024-01-15');
 	});
 
 	test('handles empty values', () => {
-		const result = generateFrontmatter([
-			{ name: 'empty', value: '' },
-		]);
+		const result = generateFrontmatter([{ name: 'empty', value: '' }]);
 		expect(result).toContain('empty:\n');
 	});
 
 	test('escapes double quotes in text values', () => {
-		const result = generateFrontmatter([
-			{ name: 'quote', value: 'she said "hello"' },
-		]);
+		const result = generateFrontmatter([{ name: 'quote', value: 'she said "hello"' }]);
 		expect(result).toContain('quote: "she said \\"hello\\""');
 	});
 });
@@ -447,7 +442,9 @@ describe('extractContentBySelector', () => {
 
 	test('returns empty string on error', () => {
 		const doc = {
-			querySelectorAll: () => { throw new Error('bad selector'); },
+			querySelectorAll: () => {
+				throw new Error('bad selector');
+			},
 		};
 		const result = extractContentBySelector(doc, '!!!invalid');
 		expect(result).toBe('');

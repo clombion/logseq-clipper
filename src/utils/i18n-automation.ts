@@ -18,7 +18,7 @@ export default class I18nAutomation {
 	private sourceLocale = 'en';
 	private localesDir: string;
 	private apiKey?: string;
-	private chatHistories: { [locale: string]: { role: string, content: string }[] } = {};
+	private chatHistories: { [locale: string]: { role: string; content: string }[] } = {};
 	private lastRequestTime = 0;
 	private requestInterval = 2000; // 2 seconds between requests
 	private maxRetries = 3;
@@ -30,9 +30,10 @@ export default class I18nAutomation {
 	}
 
 	private initializeChatHistory(targetLanguage: string) {
-		this.chatHistories[targetLanguage] = [{
-			role: "system",
-			content: `You are a professional translator for the Obsidian Web Clipper browser extension.
+		this.chatHistories[targetLanguage] = [
+			{
+				role: 'system',
+				content: `You are a professional translator for the Obsidian Web Clipper browser extension.
 
 About the extension:
 - It's a browser extension that helps users save web content to their Obsidian vault
@@ -57,18 +58,16 @@ save: (button) "Save to vault"
 error: (error message) "Failed to connect"
 
 Example response:
-{"save":"Sauvegarder dans le coffre","error":"Échec de la connexion"}`
-		}];
+{"save":"Sauvegarder dans le coffre","error":"Échec de la connexion"}`,
+			},
+		];
 	}
 
 	private async sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
-	private async makeRequestWithRetry(
-		messages: { role: string, content: string }[],
-		retryCount = 0
-	): Promise<string> {
+	private async makeRequestWithRetry(messages: { role: string; content: string }[], retryCount = 0): Promise<string> {
 		// Ensure we wait at least requestInterval ms between requests
 		const now = Date.now();
 		const timeSinceLastRequest = now - this.lastRequestTime;
@@ -81,13 +80,13 @@ Example response:
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${this.apiKey}`
+					Authorization: `Bearer ${this.apiKey}`,
 				},
 				body: JSON.stringify({
-					model: "gpt-5.2",
+					model: 'gpt-5.2',
 					messages: messages,
-					temperature: 0.3
-				})
+					temperature: 0.3,
+				}),
 			});
 
 			this.lastRequestTime = Date.now();
@@ -98,8 +97,12 @@ Example response:
 
 				if (response.status === 429) {
 					const retryAfter = response.headers.get('retry-after');
-					const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : this.requestInterval * Math.pow(2, retryCount);
-					console.log(`  ⏳ Rate limited, waiting ${waitTime/1000}s before retry ${retryCount + 1}/${this.maxRetries}...`);
+					const waitTime = retryAfter
+						? parseInt(retryAfter) * 1000
+						: this.requestInterval * Math.pow(2, retryCount);
+					console.log(
+						`  ⏳ Rate limited, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
+					);
 					await this.sleep(waitTime);
 					return this.makeRequestWithRetry(messages, retryCount + 1);
 				}
@@ -108,13 +111,15 @@ Example response:
 
 			// Reset the request interval on successful response
 			this.requestInterval = 2000; // Reset to base interval
-			
+
 			const data = await response.json();
 			return data.choices[0].message.content;
 		} catch (error) {
 			if (retryCount < this.maxRetries) {
 				const waitTime = this.requestInterval * Math.pow(2, retryCount);
-				console.log(`  ⏳ Request failed, waiting ${waitTime/1000}s before retry ${retryCount + 1}/${this.maxRetries}...`);
+				console.log(
+					`  ⏳ Request failed, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
+				);
 				await this.sleep(waitTime);
 				return this.makeRequestWithRetry(messages, retryCount + 1);
 			}
@@ -124,17 +129,19 @@ Example response:
 
 	private async translateBatch(
 		messages: { key: string; message: string }[],
-		targetLanguage: string
+		targetLanguage: string,
 	): Promise<{ [key: string]: string }> {
 		if (!this.chatHistories[targetLanguage]) {
 			this.initializeChatHistory(targetLanguage);
 		}
 
 		// Format the batch request
-		const batchPrompt = messages.map(({ key, message }) => {
-			const context = this.getMessageContext(key);
-			return `${key}: (${context}) "${message}"`;
-		}).join('\n\n');
+		const batchPrompt = messages
+			.map(({ key, message }) => {
+				const context = this.getMessageContext(key);
+				return `${key}: (${context}) "${message}"`;
+			})
+			.join('\n\n');
 
 		console.log(`\n  🤖 Translating batch of ${messages.length} messages to ${targetLanguage}`);
 		messages.forEach(({ key, message }) => {
@@ -143,13 +150,13 @@ Example response:
 
 		// Add batch to chat history
 		this.chatHistories[targetLanguage].push({
-			role: "user",
-			content: `Translate these messages to ${targetLanguage}. Respond with a valid JSON object where keys match the input keys and values are the translations. Format the response as a single line without pretty-printing:\n\n${batchPrompt}`
+			role: 'user',
+			content: `Translate these messages to ${targetLanguage}. Respond with a valid JSON object where keys match the input keys and values are the translations. Format the response as a single line without pretty-printing:\n\n${batchPrompt}`,
 		});
 
 		try {
 			const response = await this.makeRequestWithRetry(this.chatHistories[targetLanguage]);
-			
+
 			// Clean and parse the JSON response
 			let translations: { [key: string]: string };
 			try {
@@ -158,7 +165,7 @@ Example response:
 
 				const missingKeys = messages.filter(({ key }) => !translations[key]);
 				if (missingKeys.length > 0) {
-					throw new Error(`Missing translations for keys: ${missingKeys.map(m => m.key).join(', ')}`);
+					throw new Error(`Missing translations for keys: ${missingKeys.map((m) => m.key).join(', ')}`);
 				}
 			} catch (error) {
 				console.error(`\n  ❌ Failed to parse response as JSON:`, response);
@@ -168,8 +175,8 @@ Example response:
 
 			// Add response to chat history
 			this.chatHistories[targetLanguage].push({
-				role: "assistant",
-				content: JSON.stringify(translations)
+				role: 'assistant',
+				content: JSON.stringify(translations),
 			});
 
 			// Log translations
@@ -208,7 +215,7 @@ Example response:
 	// Process all locales
 	async processLocales(srcDir: string, targetLocale?: string): Promise<void> {
 		console.log('\n🌍 Starting localization process...');
-		
+
 		// Read source (English) messages
 		console.log(`📖 Reading source messages from ${this.sourceLocale}...`);
 		const sourceFile = path.join(this.localesDir, this.sourceLocale, 'messages.json');
@@ -217,23 +224,20 @@ Example response:
 
 		// Sort source messages
 		const sortedSourceMessages = this.sortMessages(sourceMessages);
-		await fs.promises.writeFile(
-			sourceFile,
-			JSON.stringify(sortedSourceMessages, null, '\t')
-		);
+		await fs.promises.writeFile(sourceFile, JSON.stringify(sortedSourceMessages, null, '\t'));
 
 		// Get list of locales to process
 		const locales = await fs.promises.readdir(this.localesDir);
-		const localesToProcess = targetLocale 
+		const localesToProcess = targetLocale
 			? [targetLocale]
-			: locales.filter(locale => !locale.startsWith('.') && locale !== this.sourceLocale);
+			: locales.filter((locale) => !locale.startsWith('.') && locale !== this.sourceLocale);
 
 		console.log(`\n🎯 Processing ${localesToProcess.length} locale(s): ${localesToProcess.join(', ')}`);
 
 		// Process selected locales
 		for (const locale of localesToProcess) {
 			console.log(`\n📝 Processing ${locale}...`);
-			
+
 			if (!locales.includes(locale)) {
 				console.log(`  Creating new locale directory: ${locale}`);
 				await fs.promises.mkdir(path.join(this.localesDir, locale), { recursive: true });
@@ -250,29 +254,29 @@ Example response:
 			}
 
 			// Find missing translations
-			const missingKeys = Object.keys(sortedSourceMessages).filter(key => !localeMessages[key]);
+			const missingKeys = Object.keys(sortedSourceMessages).filter((key) => !localeMessages[key]);
 			if (missingKeys.length > 0) {
 				console.log(`  🔍 Found ${missingKeys.length} missing translations`);
-				
+
 				// Process messages in batches
 				for (let i = 0; i < missingKeys.length; i += this.batchSize) {
-					const batch = missingKeys.slice(i, i + this.batchSize).map(key => ({
+					const batch = missingKeys.slice(i, i + this.batchSize).map((key) => ({
 						key,
-						message: sortedSourceMessages[key].message
+						message: sortedSourceMessages[key].message,
 					}));
 
 					// Try twice before falling back to source messages
 					for (let attempt = 1; attempt <= 2; attempt++) {
 						try {
 							const translations = await this.translateBatch(batch, locale);
-							
+
 							// Add translations to localeMessages
 							Object.entries(translations).forEach(([key, translation]) => {
 								localeMessages[key] = {
 									message: translation,
-									...(sortedSourceMessages[key].placeholders && { 
-										placeholders: sortedSourceMessages[key].placeholders 
-									})
+									...(sortedSourceMessages[key].placeholders && {
+										placeholders: sortedSourceMessages[key].placeholders,
+									}),
 								};
 							});
 							break; // Success - exit retry loop
@@ -294,7 +298,7 @@ Example response:
 			}
 
 			// Remove messages that don't exist in English
-			const obsoleteKeys = Object.keys(localeMessages).filter(key => !sortedSourceMessages[key]);
+			const obsoleteKeys = Object.keys(localeMessages).filter((key) => !sortedSourceMessages[key]);
 			if (obsoleteKeys.length > 0) {
 				console.log(`\n  🧹 Removing ${obsoleteKeys.length} obsolete messages`);
 				for (const key of obsoleteKeys) {
@@ -304,13 +308,10 @@ Example response:
 
 			// Sort and save locale messages
 			const sortedLocaleMessages = this.sortMessages(localeMessages);
-			await fs.promises.writeFile(
-				localeFile,
-				JSON.stringify(sortedLocaleMessages, null, '\t')
-			);
+			await fs.promises.writeFile(localeFile, JSON.stringify(sortedLocaleMessages, null, '\t'));
 			console.log(`  💾 Saved translations for ${locale}`);
 		}
 
 		console.log('\n✨ Localization process completed successfully!\n');
 	}
-} 
+}

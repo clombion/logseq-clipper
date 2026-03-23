@@ -34,4 +34,3 @@ describe('strip_tags filter', () => {
 		expect(strip_tags('before<br/>after')).toBe('beforeafter');
 	});
 });
-

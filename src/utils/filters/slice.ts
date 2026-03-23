@@ -5,7 +5,7 @@ export const validateSliceParams = (param: string | undefined): ParamValidationR
 		return { valid: false, error: 'requires at least a start index (e.g., slice:0,5)' };
 	}
 
-	const parts = param.split(',').map(p => p.trim());
+	const parts = param.split(',').map((p) => p.trim());
 	if (parts.length > 2) {
 		return { valid: false, error: 'accepts at most 2 parameters: start and end' };
 	}
@@ -30,11 +30,14 @@ export const slice = (str: string, param?: string): string => {
 		return str;
 	}
 
-	const [start, end] = param.split(',').map(p => p.trim()).map(p => {
-		if (p === '') return undefined;
-		const num = parseInt(p, 10);
-		return isNaN(num) ? undefined : num;
-	});
+	const [start, end] = param
+		.split(',')
+		.map((p) => p.trim())
+		.map((p) => {
+			if (p === '') return undefined;
+			const num = parseInt(p, 10);
+			return isNaN(num) ? undefined : num;
+		});
 
 	let value;
 	try {

@@ -22,4 +22,3 @@ describe('unescape filter', () => {
 		expect(unescape('\\"one\\"\\n\\"two\\"')).toBe('"one"\n"two"');
 	});
 });
-

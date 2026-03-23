@@ -27,4 +27,3 @@ describe('html_to_json filter', () => {
 		expect(typeof result).toBe('string');
 	});
 });
-

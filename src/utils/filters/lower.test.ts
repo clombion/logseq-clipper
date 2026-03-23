@@ -22,4 +22,3 @@ describe('lower filter', () => {
 		expect(lower('HELLO123!')).toBe('hello123!');
 	});
 });
-

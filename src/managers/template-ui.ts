@@ -1,5 +1,12 @@
 import { Template, Property } from '../types/types';
-import { deleteTemplate, templates, editingTemplateIndex, saveTemplateSettings, setEditingTemplateIndex, loadTemplates } from './template-manager';
+import {
+	deleteTemplate,
+	templates,
+	editingTemplateIndex,
+	saveTemplateSettings,
+	setEditingTemplateIndex,
+	loadTemplates,
+} from './template-manager';
 import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
 import { escapeValue, unescapeValue } from '../utils/string-utils';
 import { generalSettings } from '../utils/storage-utils';
@@ -23,19 +30,20 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 		console.error('Template list element not found');
 		return;
 	}
-	
+
 	const templatesToUse = loadedTemplates || templates;
-	
+
 	// Filter out null or undefined templates
-	const validTemplates = templatesToUse.filter((template): template is Template => 
-		template != null && typeof template === 'object' && 'id' in template && 'name' in template
+	const validTemplates = templatesToUse.filter(
+		(template): template is Template =>
+			template != null && typeof template === 'object' && 'id' in template && 'name' in template,
 	);
 
 	// Clear existing templates
 	templateList.textContent = '';
 	validTemplates.forEach((template, index) => {
 		const li = document.createElement('li');
-		
+
 		const dragHandle = createElementWithClass('div', 'drag-handle');
 		dragHandle.appendChild(createElementWithHTML('i', '', { 'data-lucide': 'grip-vertical' }));
 		li.appendChild(dragHandle);
@@ -97,7 +105,7 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 			e.stopPropagation();
 			deleteTemplateFromList(template.id);
 		});
-		
+
 		if (index === editingTemplateIndex) {
 			li.classList.add('active');
 		}
@@ -114,7 +122,7 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 
 // Rename this function to make it clear it's for deleting from the list
 async function deleteTemplateFromList(templateId: string): Promise<void> {
-	const template = templates.find(t => t.id === templateId);
+	const template = templates.find((t) => t.id === templateId);
 	if (!template) {
 		console.error('Template not found:', templateId);
 		return;
@@ -150,18 +158,20 @@ export function showTemplateEditor(template: Template | null): void {
 			noteContentFormat: '{{content}}',
 			properties: [],
 			triggers: [],
-			context: ''
+			context: '',
 		};
 		templates.unshift(editingTemplate);
 		setEditingTemplateIndex(0);
-		saveTemplateSettings().then(() => {
-			updateTemplateList();
-		}).catch(error => {
-			console.error('Failed to save new template:', error);
-		});
+		saveTemplateSettings()
+			.then(() => {
+				updateTemplateList();
+			})
+			.catch((error) => {
+				console.error('Failed to save new template:', error);
+			});
 	} else {
 		editingTemplate = template;
-		setEditingTemplateIndex(templates.findIndex(t => t.id === editingTemplate.id));
+		setEditingTemplateIndex(templates.findIndex((t) => t.id === editingTemplate.id));
 	}
 
 	// Ensure properties is always an array
@@ -213,11 +223,14 @@ export function showTemplateEditor(template: Template | null): void {
 	refreshPropertyNameSuggestions();
 
 	if (editingTemplate && Array.isArray(editingTemplate.properties)) {
-		editingTemplate.properties.forEach(property => addPropertyToEditor(property.name, property.value, property.id));
+		editingTemplate.properties.forEach((property) =>
+			addPropertyToEditor(property.name, property.value, property.id),
+		);
 	}
 
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
-	if (triggersTextarea) triggersTextarea.value = editingTemplate && editingTemplate.triggers ? editingTemplate.triggers.join('\n') : '';
+	if (triggersTextarea)
+		triggersTextarea.value = editingTemplate && editingTemplate.triggers ? editingTemplate.triggers.join('\n') : '';
 
 	showSettingsSection('templates', editingTemplate.id);
 
@@ -248,7 +261,7 @@ export function showTemplateEditor(template: Template | null): void {
 		lastUsedOption.value = '';
 		lastUsedOption.textContent = getMessage('lastUsed');
 		vaultSelect.appendChild(lastUsedOption);
-		generalSettings.vaults.forEach(vault => {
+		generalSettings.vaults.forEach((vault) => {
 			const option = document.createElement('option');
 			option.value = vault;
 			option.textContent = vault;
@@ -313,15 +326,17 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 
 	const propertySelectDiv = createElementWithClass('div', 'property-select');
 	const propertySelectedDiv = createElementWithClass('div', 'property-selected');
-	const propertyType = generalSettings.propertyTypes.find(p => p.name === name)?.type || 'text';
+	const propertyType = generalSettings.propertyTypes.find((p) => p.name === name)?.type || 'text';
 	propertySelectedDiv.dataset.value = propertyType;
-	propertySelectedDiv.appendChild(createElementWithHTML('i', '', { 'data-lucide': getPropertyTypeIcon(propertyType) }));
+	propertySelectedDiv.appendChild(
+		createElementWithHTML('i', '', { 'data-lucide': getPropertyTypeIcon(propertyType) }),
+	);
 	propertySelectDiv.appendChild(propertySelectedDiv);
 
 	const select = document.createElement('select');
 	select.className = 'property-type';
 	select.id = `${propertyId}-type`;
-	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach(optionValue => {
+	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach((optionValue) => {
 		const option = document.createElement('option');
 		option.value = optionValue;
 		const messageKey = `propertyType${optionValue.charAt(0).toUpperCase() + optionValue.slice(1)}`;
@@ -340,7 +355,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 		placeholder: getMessage('propertyName'),
 		autocapitalize: 'off',
 		autocomplete: 'off',
-		list: 'property-name-suggestions'
+		list: 'property-name-suggestions',
 	});
 	propertyRow.appendChild(nameInput);
 
@@ -360,7 +375,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 		class: 'property-value',
 		id: `${propertyId}-value`,
 		value: unescapeValue(value),
-		placeholder: getMessage('propertyValue')
+		placeholder: getMessage('propertyValue'),
 	}) as HTMLInputElement;
 	propertyRow.appendChild(valueInput);
 
@@ -403,19 +418,21 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 	propertyDiv.addEventListener('mouseup', resetDraggable);
 
 	if (select) {
-		select.addEventListener('change', function() {
+		select.addEventListener('change', function () {
 			if (propertySelectedDiv) updateSelectedOption(this.value, propertySelectedDiv);
-			
+
 			// Get the current name of the property
 			const nameInput = propertyDiv.querySelector('.property-name') as HTMLInputElement;
 			const currentName = nameInput.value;
 
 			// Update the global property type
-			updatePropertyType(currentName, this.value).then(() => {
-				console.log(`Property type for ${currentName} updated to ${this.value}`);
-			}).catch(error => {
-				console.error(`Failed to update property type for ${currentName}:`, error);
-			});
+			updatePropertyType(currentName, this.value)
+				.then(() => {
+					console.log(`Property type for ${currentName} updated to ${this.value}`);
+				})
+				.catch((error) => {
+					console.error(`Failed to update property type for ${currentName}:`, error);
+				});
 
 			updateTemplateFromForm();
 		});
@@ -436,21 +453,23 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 
 	initializeIcons(propertyDiv);
 
-	nameInput.addEventListener('input', function(this: HTMLInputElement) {
-		const selectedType = generalSettings.propertyTypes.find(pt => pt.name === this.value);
+	nameInput.addEventListener('input', function (this: HTMLInputElement) {
+		const selectedType = generalSettings.propertyTypes.find((pt) => pt.name === this.value);
 		if (selectedType) {
 			select.value = selectedType.type;
 			updateSelectedOption(selectedType.type, propertySelectedDiv);
-			
+
 			// Only update the property type if the name is not empty
 			if (this.value.trim() !== '') {
-				updatePropertyType(this.value, selectedType.type).then(() => {
-					console.log(`Property type for ${this.value} updated to ${selectedType.type}`);
-				}).catch(error => {
-					console.error(`Failed to update property type for ${this.value}:`, error);
-				});
+				updatePropertyType(this.value, selectedType.type)
+					.then(() => {
+						console.log(`Property type for ${this.value} updated to ${selectedType.type}`);
+					})
+					.catch((error) => {
+						console.error(`Failed to update property type for ${this.value}:`, error);
+					});
 			}
-			
+
 			// Fill in the default value if it exists and the value input is empty
 			if (selectedType.defaultValue && !valueInput.value) {
 				valueInput.value = selectedType.defaultValue;
@@ -462,8 +481,8 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 	});
 
 	// Add a change event listener to handle selection from autocomplete
-	nameInput.addEventListener('change', function(this: HTMLInputElement) {
-		const selectedType = generalSettings.propertyTypes.find(pt => pt.name === this.value);
+	nameInput.addEventListener('change', function (this: HTMLInputElement) {
+		const selectedType = generalSettings.propertyTypes.find((pt) => pt.name === this.value);
 		if (selectedType) {
 			// Fill in the default value if it exists, regardless of current value
 			if (selectedType.defaultValue) {
@@ -477,14 +496,14 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 
 function updateSelectedOption(value: string, propertySelected: HTMLElement): void {
 	const iconName = getPropertyTypeIcon(value);
-	
+
 	// Clear existing content
 	propertySelected.textContent = '';
-	
+
 	// Create and append the new icon element
 	const iconElement = createElementWithHTML('i', '', { 'data-lucide': iconName });
 	propertySelected.appendChild(iconElement);
-	
+
 	propertySelected.setAttribute('data-value', value);
 	initializeIcons(propertySelected);
 }
@@ -526,17 +545,19 @@ export function updateTemplateFromForm(): void {
 	if (promptContextTextarea) template.context = promptContextTextarea.value;
 
 	const propertyElements = document.querySelectorAll('#template-properties .property-editor');
-	template.properties = Array.from(propertyElements).map(prop => {
-		const nameInput = prop.querySelector('.property-name') as HTMLInputElement;
-		const valueInput = prop.querySelector('.property-value') as HTMLInputElement;
-		const typeSelect = prop.querySelector('.property-select .property-selected') as HTMLElement;
-		return {
-			id: (prop as HTMLElement).dataset.id || Date.now().toString() + Math.random().toString(36).slice(2, 11),
-			name: nameInput.value,
-			value: escapeValue(valueInput.value),
-			type: typeSelect.getAttribute('data-value') || 'text'
-		};
-	}).filter(prop => prop.name.trim() !== ''); // Filter out properties with empty names
+	template.properties = Array.from(propertyElements)
+		.map((prop) => {
+			const nameInput = prop.querySelector('.property-name') as HTMLInputElement;
+			const valueInput = prop.querySelector('.property-value') as HTMLInputElement;
+			const typeSelect = prop.querySelector('.property-select .property-selected') as HTMLElement;
+			return {
+				id: (prop as HTMLElement).dataset.id || Date.now().toString() + Math.random().toString(36).slice(2, 11),
+				name: nameInput.value,
+				value: escapeValue(valueInput.value),
+				type: typeSelect.getAttribute('data-value') || 'text',
+			};
+		})
+		.filter((prop) => prop.name.trim() !== ''); // Filter out properties with empty names
 
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
 	if (triggersTextarea) template.triggers = triggersTextarea.value.split('\n').filter(Boolean);
@@ -583,19 +604,23 @@ function handleAddProperty(): void {
 		const nameInput = newPropertyDiv.querySelector('.property-name') as HTMLInputElement;
 		if (nameInput) {
 			nameInput.focus();
-			nameInput.addEventListener('blur', () => {
-				if (nameInput.value.trim() === '') {
-					templateProperties.removeChild(newPropertyDiv);
-				} else {
-					updateTemplateFromForm();
-				}
-			}, { once: true });
+			nameInput.addEventListener(
+				'blur',
+				() => {
+					if (nameInput.value.trim() === '') {
+						templateProperties.removeChild(newPropertyDiv);
+					} else {
+						updateTemplateFromForm();
+					}
+				},
+				{ once: true },
+			);
 		}
 	}
 }
 
 function getUniqueTemplateName(baseName: string): string {
-	const existingNames = new Set(templates.map(t => t.name));
+	const existingNames = new Set(templates.map((t) => t.name));
 	let newName = baseName;
 	let counter = 1;
 
@@ -612,7 +637,7 @@ function updatePropertyNameSuggestions(): void {
 	if (datalist) {
 		// Clear existing suggestions
 		datalist.textContent = '';
-		generalSettings.propertyTypes.forEach(pt => {
+		generalSettings.propertyTypes.forEach((pt) => {
 			const option = document.createElement('option');
 			option.value = pt.name;
 			datalist.appendChild(option);
@@ -642,7 +667,7 @@ function updateErrorSummary(): void {
 	// Count errors from all validation elements
 	const validationEls = document.querySelectorAll('.template-validation.invalid');
 	let totalErrors = 0;
-	validationEls.forEach(el => {
+	validationEls.forEach((el) => {
 		const errorItems = el.querySelectorAll('.validation-error');
 		totalErrors += errorItems.length;
 	});
@@ -675,7 +700,11 @@ function updateErrorSummary(): void {
  * @param showLineNumbers Whether to show line numbers in error messages (for multiline fields)
  * @param appendTo Optional element to append the validation to (defaults to inserting after the field)
  */
-function validateTemplateField(field: HTMLInputElement | HTMLTextAreaElement, showLineNumbers: boolean = false, appendTo?: HTMLElement): void {
+function validateTemplateField(
+	field: HTMLInputElement | HTMLTextAreaElement,
+	showLineNumbers: boolean = false,
+	appendTo?: HTMLElement,
+): void {
 	const content = field.value;
 	const validationId = `${field.id}-validation`;
 
@@ -711,9 +740,9 @@ function validateTemplateField(field: HTMLInputElement | HTMLTextAreaElement, sh
 
 	// Combine errors and warnings into a single list
 	const issues: { line: number; message: string; isError: boolean }[] = [
-		...result.errors.map(e => ({ line: e.line || 0, message: e.message, isError: true })),
-		...variableWarnings.map(w => ({ line: w.line || 0, message: w.message, isError: false })),
-		...filterWarnings.map(w => ({ line: w.line || 0, message: w.message, isError: false })),
+		...result.errors.map((e) => ({ line: e.line || 0, message: e.message, isError: true })),
+		...variableWarnings.map((w) => ({ line: w.line || 0, message: w.message, isError: false })),
+		...filterWarnings.map((w) => ({ line: w.line || 0, message: w.message, isError: false })),
 	].sort((a, b) => a.line - b.line);
 
 	const hasErrors = result.errors.length > 0;
@@ -733,7 +762,7 @@ function validateTemplateField(field: HTMLInputElement | HTMLTextAreaElement, sh
 		const issueList = document.createElement('div');
 		issueList.className = 'validation-errors';
 
-		issues.forEach(issue => {
+		issues.forEach((issue) => {
 			const issueItem = document.createElement('div');
 			issueItem.className = issue.isError ? 'validation-error' : 'validation-warning';
 			const location = showLineNumbers && issue.line ? `Line ${issue.line}: ` : '';
@@ -752,7 +781,10 @@ function validateTemplateField(field: HTMLInputElement | HTMLTextAreaElement, sh
 /**
  * Add validation listener to a template field.
  */
-function addValidationListener(field: HTMLInputElement | HTMLTextAreaElement | null, showLineNumbers: boolean = false): void {
+function addValidationListener(
+	field: HTMLInputElement | HTMLTextAreaElement | null,
+	showLineNumbers: boolean = false,
+): void {
 	if (field) {
 		field.addEventListener('blur', () => validateTemplateField(field, showLineNumbers));
 	}

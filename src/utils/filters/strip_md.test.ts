@@ -42,4 +42,3 @@ describe('strip_md filter', () => {
 		expect(strip_md('`code`')).toBe('code');
 	});
 });
-

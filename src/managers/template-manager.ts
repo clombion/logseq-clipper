@@ -20,30 +20,32 @@ export function setEditingTemplateIndex(index: number): void {
 export async function loadTemplates(): Promise<Template[]> {
 	try {
 		const data = await browser.storage.sync.get(['template_list']);
-		let templateIds = data.template_list as string[] || [];
+		let templateIds = (data.template_list as string[]) || [];
 
 		// Filter out any null or undefined values
-		templateIds = templateIds.filter(id => id != null);
+		templateIds = templateIds.filter((id) => id != null);
 
 		if (templateIds.length > 0) {
-			const loadedTemplates = await Promise.all(templateIds.map(async (id: string) => {
-				try {
-					const result = await browser.storage.sync.get(`template_${id}`);
-					const compressedChunks = result[`template_${id}`] as string[];
-					if (compressedChunks) {
-						const decompressedData = decompressFromUTF16(compressedChunks.join(''));
-						const template = JSON.parse(decompressedData);
-						if (template && Array.isArray(template.properties)) {
-							return template;
+			const loadedTemplates = await Promise.all(
+				templateIds.map(async (id: string) => {
+					try {
+						const result = await browser.storage.sync.get(`template_${id}`);
+						const compressedChunks = result[`template_${id}`] as string[];
+						if (compressedChunks) {
+							const decompressedData = decompressFromUTF16(compressedChunks.join(''));
+							const template = JSON.parse(decompressedData);
+							if (template && Array.isArray(template.properties)) {
+								return template;
+							}
 						}
+						console.warn(`Template ${id} is invalid or missing`);
+						return null;
+					} catch (error) {
+						console.error(`Error parsing template ${id}:`, error);
+						return null;
 					}
-					console.warn(`Template ${id} is invalid or missing`);
-					return null;
-				} catch (error) {
-					console.error(`Error parsing template ${id}:`, error);
-					return null;
-				}
-			}));
+				}),
+			);
 
 			templates = loadedTemplates.filter((t: Template | null): t is Template => t !== null);
 		}
@@ -69,13 +71,15 @@ export async function loadTemplates(): Promise<Template[]> {
 }
 
 export async function saveTemplateSettings(): Promise<string[]> {
-	const templateIds = templates.map(t => t.id);
+	const templateIds = templates.map((t) => t.id);
 	const warnings: string[] = [];
 	const templateChunks: { [key: string]: string[] } = {};
 
 	for (const template of templates) {
 		if (!template.noteNameFormat || template.noteNameFormat.trim() === '') {
-			warnings.push(`Warning: Template "${template.name}" has an empty note name format. Using default "{{title}}".`);
+			warnings.push(
+				`Warning: Template "${template.name}" has an empty note name format. Using default "{{title}}".`,
+			);
 			template.noteNameFormat = '{{title}}';
 		}
 
@@ -105,7 +109,10 @@ async function prepareTemplateForSave(template: Template): Promise<[string[], st
 
 	// Check if the template size is approaching the limit
 	if (compressedData.length > SIZE_WARNING_THRESHOLD) {
-		return [chunks, `Warning: Template "${template.name}" is ${(compressedData.length / 1024).toFixed(2)}KB, which is approaching the storage limit.`];
+		return [
+			chunks,
+			`Warning: Template "${template.name}" is ${(compressedData.length / 1024).toFixed(2)}KB, which is approaching the storage limit.`,
+		];
 	}
 	return [chunks, null];
 }
@@ -118,17 +125,29 @@ export function createDefaultTemplate(): Template {
 		noteNameFormat: '{{title}}',
 		path: 'Clippings',
 		noteContentFormat: '{{content}}',
-		context: "",
+		context: '',
 		properties: [
 			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'title', value: '{{title}}' },
 			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'source', value: '{{url}}' },
-			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'author', value: '{{author|split:", "|wikilink|join}}' },
-			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'published', value: '{{published}}' },
+			{
+				id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
+				name: 'author',
+				value: '{{author|split:", "|wikilink|join}}',
+			},
+			{
+				id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
+				name: 'published',
+				value: '{{published}}',
+			},
 			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'created', value: '{{date}}' },
-			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'description', value: '{{description}}' },
-			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'tags', value: 'clippings' }
+			{
+				id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
+				name: 'description',
+				value: '{{description}}',
+			},
+			{ id: Date.now().toString() + Math.random().toString(36).slice(2, 11), name: 'tags', value: 'clippings' },
 		],
-		triggers: []
+		triggers: [],
 	};
 }
 
@@ -141,11 +160,11 @@ export function getTemplates(): Template[] {
 }
 
 export function findTemplateById(id: string): Template | undefined {
-	return templates.find(template => template.id === id);
+	return templates.find((template) => template.id === id);
 }
 
 export function duplicateTemplate(templateId: string): Template {
-	const originalTemplate = templates.find(t => t.id === templateId);
+	const originalTemplate = templates.find((t) => t.id === templateId);
 	if (!originalTemplate) {
 		throw new Error('Template not found');
 	}
@@ -153,14 +172,14 @@ export function duplicateTemplate(templateId: string): Template {
 	const newTemplate: Template = JSON.parse(JSON.stringify(originalTemplate));
 	newTemplate.id = Date.now().toString() + Math.random().toString(36).slice(2, 11);
 	newTemplate.name = getUniqueTemplateName(originalTemplate.name);
-	
+
 	templates.unshift(newTemplate);
 	return newTemplate;
 }
 
 function getUniqueTemplateName(baseName: string): string {
 	const baseNameWithoutNumber = baseName.replace(/\s\d+$/, '');
-	const existingNames = new Set(templates.map(t => t.name));
+	const existingNames = new Set(templates.map((t) => t.name));
 	let newName = baseNameWithoutNumber;
 	let counter = 1;
 
@@ -173,7 +192,7 @@ function getUniqueTemplateName(baseName: string): string {
 }
 
 export async function deleteTemplate(templateId: string): Promise<boolean> {
-	const index = templates.findIndex(t => t.id === templateId);
+	const index = templates.findIndex((t) => t.id === templateId);
 	console.log('Deleting template:', templateId);
 	if (index !== -1) {
 		// Remove from the templates array
@@ -186,13 +205,13 @@ export async function deleteTemplate(templateId: string): Promise<boolean> {
 
 			// Get the current template_list
 			const data = await browser.storage.sync.get('template_list');
-			let templateIds = data.template_list as string[] || [];
+			let templateIds = (data.template_list as string[]) || [];
 
 			// Remove the deleted template ID from the list
-			templateIds = templateIds.filter(id => id !== templateId);
+			templateIds = templateIds.filter((id) => id !== templateId);
 
 			// Update the template_list in storage
-			await browser.storage.sync.set({ 'template_list': templateIds });
+			await browser.storage.sync.set({ template_list: templateIds });
 
 			console.log(`Template ${templateId} deleted successfully`);
 			return true;
@@ -206,27 +225,27 @@ export async function deleteTemplate(templateId: string): Promise<boolean> {
 }
 
 async function updateGlobalPropertyTypes(templates: Template[]): Promise<void> {
-	const existingTypes = new Set(generalSettings.propertyTypes.map(p => p.name));
+	const existingTypes = new Set(generalSettings.propertyTypes.map((p) => p.name));
 	const newTypes: PropertyType[] = [];
 
-	const defaultTypes: { [key: string]: { type: string, defaultValue: string } } = {
-		'title': { type: 'text', defaultValue: '{{title}}' },
-		'source': { type: 'text', defaultValue: '{{url}}' },
-		'author': { type: 'multitext', defaultValue: '{{author|split:", "|wikilink|join}}' },
-		'published': { type: 'date', defaultValue: '{{published}}' },
-		'created': { type: 'date', defaultValue: '{{date}}' },
-		'description': { type: 'text', defaultValue: '{{description}}' },
-		'tags': { type: 'multitext', defaultValue: 'clippings' }
+	const defaultTypes: { [key: string]: { type: string; defaultValue: string } } = {
+		title: { type: 'text', defaultValue: '{{title}}' },
+		source: { type: 'text', defaultValue: '{{url}}' },
+		author: { type: 'multitext', defaultValue: '{{author|split:", "|wikilink|join}}' },
+		published: { type: 'date', defaultValue: '{{published}}' },
+		created: { type: 'date', defaultValue: '{{date}}' },
+		description: { type: 'text', defaultValue: '{{description}}' },
+		tags: { type: 'multitext', defaultValue: 'clippings' },
 	};
 
-	templates.forEach(template => {
-		template.properties.forEach(property => {
+	templates.forEach((template) => {
+		template.properties.forEach((property) => {
 			if (!existingTypes.has(property.name)) {
 				const defaultType = defaultTypes[property.name] || { type: 'text', defaultValue: '' };
-				newTypes.push({ 
-					name: property.name, 
+				newTypes.push({
+					name: property.name,
 					type: defaultType.type,
-					defaultValue: defaultType.defaultValue
+					defaultValue: defaultType.defaultValue,
 				});
 				existingTypes.add(property.name);
 			}
@@ -242,16 +261,16 @@ export async function rebuildTemplateList(): Promise<void> {
 	try {
 		// Get all items in storage
 		const allItems = await browser.storage.sync.get(null);
-		
+
 		// Filter for template keys and extract IDs
 		const templateIds = Object.keys(allItems)
-			.filter(key => key.startsWith('template_') && key !== 'template_list')
-			.map(key => key.replace('template_', ''));
+			.filter((key) => key.startsWith('template_') && key !== 'template_list')
+			.map((key) => key.replace('template_', ''));
 
 		console.log('Found template IDs:', templateIds);
 
 		// Update the template_list in storage
-		await browser.storage.sync.set({ 'template_list': templateIds });
+		await browser.storage.sync.set({ template_list: templateIds });
 
 		console.log('Template list rebuilt successfully');
 

@@ -4,12 +4,15 @@ const lowercaseWords = ['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on'
 
 export const title = (input: string | string[], param?: string): string | string[] => {
 	const toTitleCase = (str: string): string => {
-		return str.split(/\s+/).map((word, index) => {
-			if (index !== 0 && lowercaseWords.includes(word.toLowerCase())) {
-				return word.toLowerCase();
-			}
-			return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-		}).join(' ');
+		return str
+			.split(/\s+/)
+			.map((word, index) => {
+				if (index !== 0 && lowercaseWords.includes(word.toLowerCase())) {
+					return word.toLowerCase();
+				}
+				return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+			})
+			.join(' ');
 	};
 
 	const processValue = (value: any): any => {
@@ -18,7 +21,7 @@ export const title = (input: string | string[], param?: string): string | string
 		} else if (Array.isArray(value)) {
 			return value.map(processValue);
 		} else if (typeof value === 'object' && value !== null) {
-			const result: {[key: string]: any} = {};
+			const result: { [key: string]: any } = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[toTitleCase(key)] = processValue(val);
 			}

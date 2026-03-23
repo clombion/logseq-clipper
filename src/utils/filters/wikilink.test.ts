@@ -37,4 +37,3 @@ describe('wikilink filter', () => {
 		expect(wikilink('page', '"alias"')).toBe('[[page|alias]]');
 	});
 });
-

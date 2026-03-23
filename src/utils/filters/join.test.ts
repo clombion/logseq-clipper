@@ -35,4 +35,3 @@ describe('join filter', () => {
 		expect(join('["a","b"]', '"\n\n"')).toBe('a\n\nb');
 	});
 });
-

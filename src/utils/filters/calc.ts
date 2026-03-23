@@ -48,7 +48,7 @@ export const calc = (str: string, param?: string): string => {
 		// Parse the operation
 		const operator = operation.slice(0, 2) === '**' ? '**' : operation.charAt(0);
 		const value = Number(operation.slice(operator === '**' ? 2 : 1));
-		
+
 		if (isNaN(value)) {
 			console.error('Invalid calculation value:', operation);
 			return str;
@@ -83,4 +83,4 @@ export const calc = (str: string, param?: string): string => {
 		console.error('Error in calc filter:', error);
 		return str;
 	}
-}; 
+};

@@ -63,4 +63,3 @@ describe('safe_name param validation', () => {
 		expect(result.error).toContain('invalid OS');
 	});
 });
-

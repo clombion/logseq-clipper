@@ -14,7 +14,7 @@ declare global {
 }
 
 // IIFE to scope variables and allow safe re-execution
-(function() {
+(function () {
 	// Prevent duplicate initialization on the same page. After an extension
 	// update the previous content script's runtime context is invalidated,
 	// but window-level flags persist. We detect this by calling a function
@@ -42,9 +42,13 @@ declare global {
 
 	function removeContainer(container: HTMLElement) {
 		container.classList.add('is-closing');
-		container.addEventListener('animationend', () => {
-			container.remove();
-		}, { once: true });
+		container.addEventListener(
+			'animationend',
+			() => {
+				container.remove();
+			},
+			{ once: true },
+		);
 	}
 
 	async function toggleIframe() {
@@ -58,7 +62,10 @@ declare global {
 		container.id = containerId;
 		container.classList.add('is-open');
 
-		const { clipperIframeWidth, clipperIframeHeight } = await browser.storage.local.get(['clipperIframeWidth', 'clipperIframeHeight']);
+		const { clipperIframeWidth, clipperIframeHeight } = await browser.storage.local.get([
+			'clipperIframeWidth',
+			'clipperIframeHeight',
+		]);
 		if (clipperIframeWidth) {
 			container.style.width = `${clipperIframeWidth}px`;
 		}
@@ -92,8 +99,13 @@ declare global {
 
 	function addResizeListener(container: HTMLElement, handle: HTMLElement, direction: string) {
 		let isResizing = false;
-		let startX: number, startY: number, startWidth: number, startHeight: number, startLeft: number, startTop: number;
-	
+		let startX: number,
+			startY: number,
+			startWidth: number,
+			startHeight: number,
+			startLeft: number,
+			startTop: number;
+
 		handle.onmousedown = (e) => {
 			e.stopPropagation();
 			isResizing = true;
@@ -105,19 +117,19 @@ declare global {
 			startTop = container.offsetTop;
 
 			document.body.style.cursor = window.getComputedStyle(handle).cursor;
-	
+
 			const iframe = container.querySelector('#obsidian-clipper-iframe');
 			if (iframe) iframe.classList.add('is-resizing');
-	
+
 			document.onmousemove = (moveEvent) => {
 				if (!isResizing) return;
-	
+
 				const dx = moveEvent.clientX - startX;
 				const dy = moveEvent.clientY - startY;
 
 				const minWidth = parseInt(container.style.minWidth) || 200;
 				const minHeight = parseInt(container.style.minHeight) || 200;
-	
+
 				if (direction.includes('e')) {
 					let newWidth = startWidth + dx;
 					if (newWidth < minWidth) newWidth = minWidth;
@@ -146,13 +158,13 @@ declare global {
 					container.style.top = `${newTop}px`;
 				}
 			};
-	
+
 			document.onmouseup = () => {
 				isResizing = false;
 				const iframe = container.querySelector('#obsidian-clipper-iframe');
 				if (iframe) iframe.classList.remove('is-resizing');
 				document.body.style.cursor = '';
-				
+
 				const newWidth = container.offsetWidth;
 				const newHeight = container.offsetHeight;
 				browser.storage.local.set({ clipperIframeWidth: newWidth, clipperIframeHeight: newHeight });
@@ -164,7 +176,7 @@ declare global {
 	}
 
 	// Firefox
-	browser.runtime.sendMessage({ action: "contentScriptLoaded" });
+	browser.runtime.sendMessage({ action: 'contentScriptLoaded' });
 
 	interface ContentResponse {
 		content: string;
@@ -188,19 +200,19 @@ declare global {
 	}
 
 	browser.runtime.onMessage.addListener((request: any, sender, sendResponse) => {
-		if (request.action === "ping") {
+		if (request.action === 'ping') {
 			sendResponse({});
 			return true;
 		}
 
-		if (request.action === "toggle-iframe") {
+		if (request.action === 'toggle-iframe') {
 			toggleIframe().then(() => {
 				sendResponse({ success: true });
 			});
 			return true;
 		}
 
-		if (request.action === "close-iframe") {
+		if (request.action === 'close-iframe') {
 			const existingContainer = document.getElementById(containerId);
 			if (existingContainer) {
 				removeContainer(existingContainer);
@@ -208,22 +220,22 @@ declare global {
 			return;
 		}
 
-		if (request.action === "copy-text-to-clipboard") {
-			const textArea = document.createElement("textarea");
+		if (request.action === 'copy-text-to-clipboard') {
+			const textArea = document.createElement('textarea');
 			textArea.value = request.text;
 			document.body.appendChild(textArea);
 			textArea.select();
 			try {
 				document.execCommand('copy');
-				sendResponse({success: true});
+				sendResponse({ success: true });
 			} catch (err) {
-				sendResponse({success: false});
+				sendResponse({ success: false });
 			}
 			document.body.removeChild(textArea);
 			return true;
 		}
 
-		if (request.action === "copyMarkdownToClipboard") {
+		if (request.action === 'copyMarkdownToClipboard') {
 			flattenShadowDom(document).then(() => {
 				try {
 					// Extract page content using Defuddle
@@ -233,7 +245,7 @@ declare global {
 					const markdown = createMarkdownContent(defuddled.content, document.URL);
 
 					// Copy to clipboard
-					const textArea = document.createElement("textarea");
+					const textArea = document.createElement('textarea');
 					textArea.value = markdown;
 					document.body.appendChild(textArea);
 					textArea.select();
@@ -249,7 +261,7 @@ declare global {
 			return true;
 		}
 
-		if (request.action === "getPageContent") {
+		if (request.action === 'getPageContent') {
 			// Flatten shadow DOM before extraction (async, needs main world)
 			flattenShadowDom(document).then(async () => {
 				let selectedHtml = '';
@@ -276,29 +288,37 @@ declare global {
 				const doc = parser.parseFromString(document.documentElement.outerHTML, 'text/html');
 
 				// Remove all script and style elements
-				doc.querySelectorAll('script, style').forEach(el => el.remove());
+				doc.querySelectorAll('script, style').forEach((el) => el.remove());
 
 				// Remove style attributes from all elements
-				doc.querySelectorAll('*').forEach(el => el.removeAttribute('style'));
+				doc.querySelectorAll('*').forEach((el) => el.removeAttribute('style'));
 
 				// Convert all relative URLs to absolute
-				doc.querySelectorAll('[src], [href]').forEach(element => {
-					['src', 'href', 'srcset'].forEach(attr => {
+				doc.querySelectorAll('[src], [href]').forEach((element) => {
+					['src', 'href', 'srcset'].forEach((attr) => {
 						const value = element.getAttribute(attr);
 						if (!value) return;
 
 						if (attr === 'srcset') {
-							const newSrcset = value.split(',').map(src => {
-								const [url, size] = src.trim().split(' ');
-								try {
-									const absoluteUrl = new URL(url, document.baseURI).href;
-									return `${absoluteUrl}${size ? ' ' + size : ''}`;
-								} catch (e) {
-									return src;
-								}
-							}).join(', ');
+							const newSrcset = value
+								.split(',')
+								.map((src) => {
+									const [url, size] = src.trim().split(' ');
+									try {
+										const absoluteUrl = new URL(url, document.baseURI).href;
+										return `${absoluteUrl}${size ? ' ' + size : ''}`;
+									} catch (e) {
+										return src;
+									}
+								})
+								.join(', ');
 							element.setAttribute(attr, newSrcset);
-						} else if (!value.startsWith('http') && !value.startsWith('data:') && !value.startsWith('#') && !value.startsWith('//')) {
+						} else if (
+							!value.startsWith('http') &&
+							!value.startsWith('data:') &&
+							!value.startsWith('#') &&
+							!value.startsWith('//')
+						) {
 							try {
 								const absoluteUrl = new URL(value, document.baseURI).href;
 								element.setAttribute(attr, absoluteUrl);
@@ -330,15 +350,15 @@ declare global {
 					site: defuddled.site,
 					title: defuddled.title,
 					wordCount: defuddled.wordCount,
-					metaTags: defuddled.metaTags || []
+					metaTags: defuddled.metaTags || [],
 				};
 				sendResponse(response);
 			});
 			return true;
-		} else if (request.action === "extractContent") {
+		} else if (request.action === 'extractContent') {
 			const content = extractContentBySelector(request.selector, request.attribute, request.extractHtml);
 			sendResponse({ content: content });
-		} else if (request.action === "paintHighlights") {
+		} else if (request.action === 'paintHighlights') {
 			highlighter.loadHighlights().then(() => {
 				if (generalSettings.alwaysShowHighlights) {
 					highlighter.applyHighlights();
@@ -346,20 +366,20 @@ declare global {
 				sendResponse({ success: true });
 			});
 			return true;
-		} else if (request.action === "setHighlighterMode") {
+		} else if (request.action === 'setHighlighterMode') {
 			isHighlighterMode = request.isActive;
 			highlighter.toggleHighlighterMenu(isHighlighterMode);
 			updateHasHighlights();
 			sendResponse({ success: true });
 			return true;
-		} else if (request.action === "getHighlighterMode") {
-			browser.runtime.sendMessage({ action: "getHighlighterMode" }).then(sendResponse);
+		} else if (request.action === 'getHighlighterMode') {
+			browser.runtime.sendMessage({ action: 'getHighlighterMode' }).then(sendResponse);
 			return true;
-		} else if (request.action === "toggleHighlighter") {
+		} else if (request.action === 'toggleHighlighter') {
 			highlighter.toggleHighlighterMenu(request.isActive);
 			updateHasHighlights();
 			sendResponse({ success: true });
-		} else if (request.action === "highlightSelection") {
+		} else if (request.action === 'highlightSelection') {
 			highlighter.toggleHighlighterMenu(request.isActive);
 			const selection = window.getSelection();
 			if (selection && !selection.isCollapsed) {
@@ -367,11 +387,11 @@ declare global {
 			}
 			updateHasHighlights();
 			sendResponse({ success: true });
-		} else if (request.action === "highlightElement") {
+		} else if (request.action === 'highlightElement') {
 			highlighter.toggleHighlighterMenu(request.isActive);
 			if (request.targetElementInfo) {
 				const { mediaType, srcUrl, pageUrl } = request.targetElementInfo;
-				
+
 				let elementToHighlight: Element | null = null;
 
 				// Function to compare URLs, handling both absolute and relative paths
@@ -394,7 +414,11 @@ declare global {
 				if (!elementToHighlight) {
 					const elements = Array.from(document.getElementsByTagName(mediaType));
 					for (const el of elements) {
-						if (el instanceof HTMLImageElement || el instanceof HTMLVideoElement || el instanceof HTMLAudioElement) {
+						if (
+							el instanceof HTMLImageElement ||
+							el instanceof HTMLVideoElement ||
+							el instanceof HTMLAudioElement
+						) {
 							if (urlMatches(el.src, srcUrl)) {
 								elementToHighlight = el;
 								break;
@@ -412,26 +436,28 @@ declare global {
 			}
 			updateHasHighlights();
 			sendResponse({ success: true });
-		} else if (request.action === "clearHighlights") {
+		} else if (request.action === 'clearHighlights') {
 			highlighter.clearHighlights();
 			updateHasHighlights();
 			sendResponse({ success: true });
-		} else if (request.action === "getHighlighterState") {
-			browser.runtime.sendMessage({ action: "getHighlighterMode" })
-				.then(response => {
+		} else if (request.action === 'getHighlighterState') {
+			browser.runtime
+				.sendMessage({ action: 'getHighlighterMode' })
+				.then((response) => {
 					sendResponse(response);
 				})
-				.catch(error => {
-					console.error("Error getting highlighter mode:", error);
+				.catch((error) => {
+					console.error('Error getting highlighter mode:', error);
 					sendResponse({ isActive: false });
 				});
 			return true;
-		} else if (request.action === "toggleReaderMode") {
+		} else if (request.action === 'toggleReaderMode') {
 			// Forward the request to the background script to inject reader mode if needed
-			browser.runtime.sendMessage({ action: "toggleReaderMode", tabId: sender.tab?.id })
+			browser.runtime
+				.sendMessage({ action: 'toggleReaderMode', tabId: sender.tab?.id })
 				.then(sendResponse)
-				.catch(error => {
-					console.error("Error toggling reader mode:", error);
+				.catch((error) => {
+					console.error('Error toggling reader mode:', error);
 					sendResponse({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
 				});
 			return true;
@@ -439,23 +465,27 @@ declare global {
 		return true;
 	});
 
-	function extractContentBySelector(selector: string, attribute?: string, extractHtml: boolean = false): string | string[] {
+	function extractContentBySelector(
+		selector: string,
+		attribute?: string,
+		extractHtml: boolean = false,
+	): string | string[] {
 		return extractContentBySelectorShared(document, selector, attribute, extractHtml);
 	}
 
 	function updateHasHighlights() {
 		const hasHighlights = highlighter.getHighlights().length > 0;
-		browser.runtime.sendMessage({ action: "updateHasHighlights", hasHighlights });
+		browser.runtime.sendMessage({ action: 'updateHasHighlights', hasHighlights });
 	}
 
 	async function initializeHighlighter() {
 		await loadSettings();
 		await highlighter.loadHighlights();
-		
+
 		if (generalSettings.alwaysShowHighlights) {
 			highlighter.applyHighlights();
 		}
-		
+
 		updateHasHighlights();
 	}
 
@@ -469,7 +499,7 @@ declare global {
 	function handlePageUnload() {
 		if (isHighlighterMode) {
 			highlighter.toggleHighlighterMenu(false);
-			browser.runtime.sendMessage({ action: "highlighterModeChanged", isActive: false });
+			browser.runtime.sendMessage({ action: 'highlighterModeChanged', isActive: false });
 			browser.storage.local.set({ isHighlighterMode: false });
 		}
 	}
@@ -485,8 +515,8 @@ declare global {
 			button.addEventListener('click', async (e) => {
 				try {
 					// First try to get the tab ID from the background script
-					const response = await browser.runtime.sendMessage({ action: "ensureContentScriptLoaded" });
-					
+					const response = await browser.runtime.sendMessage({ action: 'ensureContentScriptLoaded' });
+
 					let tabId: number | undefined;
 					if (response && typeof response === 'object') {
 						tabId = (response as { tabId: number }).tabId;
@@ -495,7 +525,10 @@ declare global {
 					// If we didn't get a tab ID, try to get it from the background script
 					if (!tabId) {
 						try {
-							const response = await browser.runtime.sendMessage({ action: "getActiveTab" }) as { tabId?: number; error?: string };
+							const response = (await browser.runtime.sendMessage({ action: 'getActiveTab' })) as {
+								tabId?: number;
+								error?: string;
+							};
 							if (response && !response.error && response.tabId) {
 								tabId = response.tabId;
 							}
@@ -505,15 +538,14 @@ declare global {
 					}
 
 					if (tabId) {
-						await browser.runtime.sendMessage({ action: "toggleHighlighterMode", tabId });
+						await browser.runtime.sendMessage({ action: 'toggleHighlighterMode', tabId });
 					} else {
-						console.error('[Content]','Could not determine tab ID');
+						console.error('[Content]', 'Could not determine tab ID');
 					}
 				} catch (error) {
-					console.error('[Content]','Error in toggle flow:', error);
+					console.error('[Content]', 'Error in toggle flow:', error);
 				}
 			});
 		}
 	});
-
 })();

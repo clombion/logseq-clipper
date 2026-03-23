@@ -27,17 +27,17 @@ export let generalSettings: Settings = {
 		lineHeight: 1.6,
 		maxWidth: 38,
 		theme: 'default',
-		themeMode: 'auto'
+		themeMode: 'auto',
 	},
 	stats: {
 		addToObsidian: 0,
 		saveFile: 0,
 		copyToClipboard: 0,
-		share: 0
+		share: 0,
 	},
 	history: [],
 	ratings: [],
-	saveBehavior: 'addToObsidian'
+	saveBehavior: 'addToObsidian',
 };
 
 export function setLocalStorage(key: string, value: any): Promise<void> {
@@ -45,7 +45,7 @@ export function setLocalStorage(key: string, value: any): Promise<void> {
 }
 
 export function getLocalStorage(key: string): Promise<any> {
-	return browser.storage.local.get(key).then((result: {[key: string]: any}) => result[key]);
+	return browser.storage.local.get(key).then((result: { [key: string]: any }) => result[key]);
 }
 
 interface StorageData {
@@ -93,8 +93,8 @@ interface StorageData {
 const CURRENT_MIGRATION_VERSION = 1;
 
 export async function loadSettings(): Promise<Settings> {
-	const data = await browser.storage.sync.get(null) as StorageData;
-	
+	const data = (await browser.storage.sync.get(null)) as StorageData;
+
 	// Load default settings first
 	const defaultSettings: Settings = {
 		vaults: [],
@@ -119,13 +119,13 @@ export async function loadSettings(): Promise<Settings> {
 			lineHeight: 1.6,
 			maxWidth: 38,
 			theme: 'default',
-			themeMode: 'auto'
+			themeMode: 'auto',
 		},
 		stats: {
 			addToObsidian: 0,
 			saveFile: 0,
 			copyToClipboard: 0,
-			share: 0
+			share: 0,
 		},
 		history: [],
 		ratings: [],
@@ -138,12 +138,12 @@ export async function loadSettings(): Promise<Settings> {
 	}
 
 	// Validate and sanitize data to prevent corruption
-	const sanitizedVaults = Array.isArray(data.vaults) ? data.vaults.filter(v => typeof v === 'string') : [];
-	const sanitizedModels = Array.isArray(data.interpreter_settings?.models) 
-		? data.interpreter_settings.models.filter(m => m && typeof m === 'object' && typeof m.id === 'string') 
+	const sanitizedVaults = Array.isArray(data.vaults) ? data.vaults.filter((v) => typeof v === 'string') : [];
+	const sanitizedModels = Array.isArray(data.interpreter_settings?.models)
+		? data.interpreter_settings.models.filter((m) => m && typeof m === 'object' && typeof m.id === 'string')
 		: [];
-	const sanitizedProviders = Array.isArray(data.interpreter_settings?.providers) 
-		? data.interpreter_settings.providers.filter(p => p && typeof p === 'object' && typeof p.id === 'string') 
+	const sanitizedProviders = Array.isArray(data.interpreter_settings?.providers)
+		? data.interpreter_settings.providers.filter((p) => p && typeof p === 'object' && typeof p.id === 'string')
 		: [];
 
 	// Load user settings
@@ -153,9 +153,12 @@ export async function loadSettings(): Promise<Settings> {
 		betaFeatures: data.general_settings?.betaFeatures ?? defaultSettings.betaFeatures,
 		legacyMode: data.general_settings?.legacyMode ?? defaultSettings.legacyMode,
 		silentOpen: data.general_settings?.silentOpen ?? defaultSettings.silentOpen,
-		openBehavior: typeof data.general_settings?.openBehavior === 'boolean' 
-			? (data.general_settings.openBehavior ? 'embedded' : 'popup') 
-			: (data.general_settings?.openBehavior ?? defaultSettings.openBehavior),
+		openBehavior:
+			typeof data.general_settings?.openBehavior === 'boolean'
+				? data.general_settings.openBehavior
+					? 'embedded'
+					: 'popup'
+				: (data.general_settings?.openBehavior ?? defaultSettings.openBehavior),
 		highlighterEnabled: data.highlighter_settings?.highlighterEnabled ?? defaultSettings.highlighterEnabled,
 		alwaysShowHighlights: data.highlighter_settings?.alwaysShowHighlights ?? defaultSettings.alwaysShowHighlights,
 		highlightBehavior: data.highlighter_settings?.highlightBehavior ?? defaultSettings.highlightBehavior,
@@ -170,13 +173,15 @@ export async function loadSettings(): Promise<Settings> {
 			fontSize: data.reader_settings?.fontSize ?? defaultSettings.readerSettings.fontSize,
 			lineHeight: data.reader_settings?.lineHeight ?? defaultSettings.readerSettings.lineHeight,
 			maxWidth: data.reader_settings?.maxWidth ?? defaultSettings.readerSettings.maxWidth,
-			theme: data.reader_settings?.theme as 'default' | 'flexoki' ?? defaultSettings.readerSettings.theme,
-			themeMode: data.reader_settings?.themeMode as 'auto' | 'light' | 'dark' ?? defaultSettings.readerSettings.themeMode
+			theme: (data.reader_settings?.theme as 'default' | 'flexoki') ?? defaultSettings.readerSettings.theme,
+			themeMode:
+				(data.reader_settings?.themeMode as 'auto' | 'light' | 'dark') ??
+				defaultSettings.readerSettings.themeMode,
 		},
 		stats: data.stats || defaultSettings.stats,
 		history: data.history || defaultSettings.history,
 		ratings: data.ratings || defaultSettings.ratings,
-		saveBehavior: data.general_settings?.saveBehavior ?? defaultSettings.saveBehavior
+		saveBehavior: data.general_settings?.saveBehavior ?? defaultSettings.saveBehavior,
 	};
 
 	generalSettings = loadedSettings;
@@ -202,7 +207,7 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 		highlighter_settings: {
 			highlighterEnabled: generalSettings.highlighterEnabled,
 			alwaysShowHighlights: generalSettings.alwaysShowHighlights,
-			highlightBehavior: generalSettings.highlightBehavior
+			highlightBehavior: generalSettings.highlightBehavior,
 		},
 		interpreter_settings: {
 			interpreterModel: generalSettings.interpreterModel,
@@ -210,7 +215,7 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			providers: generalSettings.providers,
 			interpreterEnabled: generalSettings.interpreterEnabled,
 			interpreterAutoRun: generalSettings.interpreterAutoRun,
-			defaultPromptContext: generalSettings.defaultPromptContext
+			defaultPromptContext: generalSettings.defaultPromptContext,
 		},
 		property_types: generalSettings.propertyTypes,
 		reader_settings: {
@@ -218,9 +223,9 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			lineHeight: generalSettings.readerSettings.lineHeight,
 			maxWidth: generalSettings.readerSettings.maxWidth,
 			theme: generalSettings.readerSettings.theme,
-			themeMode: generalSettings.readerSettings.themeMode
+			themeMode: generalSettings.readerSettings.themeMode,
 		},
-		stats: generalSettings.stats
+		stats: generalSettings.stats,
 	});
 }
 
@@ -234,7 +239,7 @@ export async function incrementStat(
 	vault?: string,
 	path?: string,
 	url?: string,
-	title?: string
+	title?: string,
 ): Promise<void> {
 	const settings = await loadSettings();
 	settings.stats[action]++;
@@ -247,11 +252,11 @@ export async function incrementStat(
 }
 
 export async function addHistoryEntry(
-	action: keyof Settings['stats'], 
-	url: string, 
+	action: keyof Settings['stats'],
+	url: string,
 	title?: string,
 	vault?: string,
-	path?: string
+	path?: string,
 ): Promise<void> {
 	const entry: HistoryEntry = {
 		datetime: new Date().toISOString(),
@@ -259,7 +264,7 @@ export async function addHistoryEntry(
 		action,
 		title,
 		vault,
-		path
+		path,
 	};
 
 	// Get existing history from local storage
@@ -291,12 +296,12 @@ declare global {
 if (typeof window !== 'undefined') {
 	window.debugStorage = (key?: string) => {
 		if (key) {
-			return browser.storage.sync.get(key).then(data => {
+			return browser.storage.sync.get(key).then((data) => {
 				console.log(`Sync storage contents for key "${key}":`, data);
 				return data;
 			});
 		}
-		return browser.storage.sync.get(null).then(data => {
+		return browser.storage.sync.get(null).then((data) => {
 			console.log('Sync storage contents:', data);
 			return data;
 		});

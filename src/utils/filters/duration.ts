@@ -25,11 +25,11 @@ export const duration = (str: string, param?: string): string => {
 		}
 
 		const [, years, months, days, hours, minutes, seconds] = matches;
-		
+
 		// Convert all components to total seconds to ensure proper normalization
 		// Using dayjs.duration({ seconds: 1868 }) does NOT normalize (keeps 1868 in seconds field)
 		// Using dayjs.duration(1868, 'seconds') DOES normalize (converts to 31m 8s)
-		const totalSeconds = 
+		const totalSeconds =
 			(years ? parseInt(years) * 365 * 24 * 3600 : 0) +
 			(months ? parseInt(months) * 30 * 24 * 3600 : 0) +
 			(days ? parseInt(days) * 24 * 3600 : 0) +
@@ -64,15 +64,15 @@ function formatDuration(dur: Duration, format?: string): string {
 	const seconds = dur.seconds();
 
 	const parts: { [key: string]: string | number } = {
-		'HH': padZero(hours),
-		'H': hours.toString(),
-		'mm': padZero(minutes),
-		'm': minutes.toString(),
-		'ss': padZero(seconds),
-		's': seconds.toString()
+		HH: padZero(hours),
+		H: hours.toString(),
+		mm: padZero(minutes),
+		m: minutes.toString(),
+		ss: padZero(seconds),
+		s: seconds.toString(),
 	};
 
-	return format.replace(/HH|H|mm|m|ss|s/g, match => parts[match].toString());
+	return format.replace(/HH|H|mm|m|ss|s/g, (match) => parts[match].toString());
 }
 
 function padZero(num: number): string {

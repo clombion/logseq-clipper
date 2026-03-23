@@ -31,4 +31,3 @@ describe('image filter', () => {
 		expect(result).toContain('image');
 	});
 });
-

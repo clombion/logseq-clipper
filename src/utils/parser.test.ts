@@ -440,5 +440,4 @@ No posts found.
 			expect(varNode.line).toBe(2);
 		});
 	});
-
 });

@@ -18,15 +18,15 @@ export function isDarkMode(): boolean {
 	}
 
 	// Check for dark mode class on html or body
-	if (document.documentElement.classList.contains('dark-mode') || 
-		document.body.classList.contains('dark-mode')) {
+	if (document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode')) {
 		return true;
 	}
 
 	// Check for dark background color
 	const bodyColor = window.getComputedStyle(document.body).backgroundColor;
 	const [r, g, b] = bodyColor.match(/\d+/g)?.map(Number) || [255, 255, 255];
-	if (r + g + b < 384) { // Threshold for considering it "dark"
+	if (r + g + b < 384) {
+		// Threshold for considering it "dark"
 		return true;
 	}
 

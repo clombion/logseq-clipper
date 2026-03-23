@@ -35,9 +35,9 @@ interface ChartPoint {
 
 export async function createUsageChart(container: HTMLElement, data: WeeklyUsage[]): Promise<void> {
 	// Calculate total clips for the period
-	const totalClips = data[0].totalCount !== undefined ? data[0].totalCount : 
-		data.reduce((sum, d) => sum + d.count, 0);
-	
+	const totalClips =
+		data[0].totalCount !== undefined ? data[0].totalCount : data.reduce((sum, d) => sum + d.count, 0);
+
 	// Hide chart container if less than 20 items
 	const usageContainer = document.getElementById('usage-chart-container');
 	if (usageContainer && totalClips < 20) {
@@ -57,14 +57,14 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	container.textContent = '';
 	container.classList.add('usage-chart');
 
-	const maxCount = Math.max(...data.map(d => d.count));
+	const maxCount = Math.max(...data.map((d) => d.count));
 	const chartHeight = 80;
 	const barGap = 4;
 
 	// Create chart container
 	const lineContainer = document.createElement('div');
 	lineContainer.className = 'chart-line';
-	
+
 	// Create SVG for line chart
 	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	svg.setAttribute('width', '100%');
@@ -72,9 +72,9 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	const viewBoxWidth = 1000;
 	svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${chartHeight}`);
 	svg.setAttribute('preserveAspectRatio', 'none');
-	svg.style.marginLeft = `${barGap/2}px`;
-	svg.style.marginRight = `${barGap/2}px`;
-	
+	svg.style.marginLeft = `${barGap / 2}px`;
+	svg.style.marginRight = `${barGap / 2}px`;
+
 	// Create vertical line for cursor tracking
 	const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 	verticalLine.classList.add('chart-vertical-line');
@@ -82,38 +82,38 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	verticalLine.setAttribute('y2', chartHeight.toString());
 	verticalLine.style.display = 'none';
 	svg.appendChild(verticalLine);
-	
+
 	// Create path for the chart line
 	const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 	path.classList.add('chart-line-path');
-	
+
 	// Generate smooth curve path
 	const points: ChartPoint[] = data.map((d, i) => ({
 		x: (i / (data.length - 1)) * viewBoxWidth,
 		y: chartHeight - ((d.count / maxCount) * chartHeight || 0),
 		date: d.period,
-		count: d.count
+		count: d.count,
 	}));
-	
+
 	const pathData = points.reduce((acc, point, i, arr) => {
 		if (i === 0) return `M ${point.x},${point.y}`;
-		
+
 		const prev = arr[i - 1];
 		const tension = 0.2;
 		const dx = point.x - prev.x;
-		
+
 		const cp1x = prev.x + dx * tension;
 		const cp1y = prev.y;
 		const cp2x = point.x - dx * tension;
 		const cp2y = point.y;
-		
+
 		return `${acc} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${point.x},${point.y}`;
 	}, '');
-	
+
 	path.setAttribute('d', pathData);
 	svg.appendChild(path);
 	lineContainer.appendChild(svg);
-	
+
 	// Date labels
 	const labelsContainer = document.createElement('div');
 	labelsContainer.className = 'chart-labels';
@@ -127,9 +127,9 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	endLabel.className = 'chart-date-label';
 	endLabel.textContent = data[data.length - 1].period;
 	labelsContainer.appendChild(endLabel);
-	
+
 	lineContainer.appendChild(labelsContainer);
-	
+
 	// Tooltip
 	const tooltip = document.createElement('div');
 	tooltip.className = 'chart-tooltip';
@@ -139,7 +139,7 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	// Add invisible overlay for mouse tracking
 	const overlay = document.createElement('div');
 	overlay.className = 'chart-overlay';
-	
+
 	// Handle mouse movement
 	overlay.addEventListener('mousemove', (e) => {
 		const rect = overlay.getBoundingClientRect();
@@ -154,12 +154,12 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 		});
 
 		tooltip.textContent = '';
-		
+
 		const dateDiv = document.createElement('div');
 		dateDiv.className = 'tooltip-date';
 		dateDiv.textContent = closestPoint.date;
 		tooltip.appendChild(dateDiv);
-		
+
 		const countDiv = document.createElement('div');
 		countDiv.className = 'tooltip-count';
 		countDiv.textContent = closestPoint.count.toString();
@@ -171,7 +171,7 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 		const minOffset = 10; // leftmost offset (%)
 		const maxOffset = -110; // rightmost offset (%)
 		const offset = minOffset + (maxOffset - minOffset) * position;
-		
+
 		tooltip.style.transform = `translate(${offset}%, 0)`;
 		tooltip.style.left = `${x}px`;
 		tooltip.style.top = `${e.clientY - rect.top - 30}px`;
@@ -194,17 +194,17 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 export function aggregateUsageData(history: HistoryEntry[], options: ChartOptions): WeeklyUsage[] {
 	const periodsData = new Map<string, number>();
 	const today = dayjs();
-	
+
 	// Sort history by datetime in ascending order
-	const sortedHistory = [...history].sort((a, b) => 
-		dayjs(a.datetime).valueOf() - dayjs(b.datetime).valueOf()
-	);
-	
+	const sortedHistory = [...history].sort((a, b) => dayjs(a.datetime).valueOf() - dayjs(b.datetime).valueOf());
+
 	if (sortedHistory.length === 0) {
-		return [{
-			period: formatPeriodDate(today, today, options),
-			count: 0
-		}];
+		return [
+			{
+				period: formatPeriodDate(today, today, options),
+				count: 0,
+			},
+		];
 	}
 
 	let displayStartDate: dayjs.Dayjs;
@@ -218,8 +218,7 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 	} else {
 		// Only 30d option remains
 		displayStartDate = today.subtract(29, 'day').startOf('day');
-		displayPeriods = options.aggregation === 'day' ? 30 : 
-			options.aggregation === 'week' ? 5 : 2;
+		displayPeriods = options.aggregation === 'day' ? 30 : options.aggregation === 'week' ? 5 : 2;
 	}
 
 	// Initialize display periods with 0 counts
@@ -233,10 +232,9 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 	}
 
 	// Count all entries
-	sortedHistory.forEach(entry => {
+	sortedHistory.forEach((entry) => {
 		const entryDate = dayjs(entry.datetime);
-		if (options.timeRange !== 'all' && 
-			(entryDate.isBefore(displayStartDate) || entryDate.isAfter(today))) {
+		if (options.timeRange !== 'all' && (entryDate.isBefore(displayStartDate) || entryDate.isAfter(today))) {
 			return;
 		}
 
@@ -244,7 +242,7 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 		if (options.aggregation !== 'day') {
 			periodStart = periodStart.startOf(options.aggregation);
 		}
-		
+
 		const formattedDate = formatPeriodDate(periodStart, today, options);
 		if (periodsData.has(formattedDate)) {
 			periodsData.set(formattedDate, (periodsData.get(formattedDate) || 0) + 1);
@@ -254,6 +252,6 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 	return Array.from(periodsData.entries()).map(([period, count]) => ({
 		period,
 		count,
-		totalCount: sortedHistory.length
+		totalCount: sortedHistory.length,
 	}));
-} 
+}

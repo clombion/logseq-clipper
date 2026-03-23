@@ -4,17 +4,21 @@ export function createElementWithClass(tagName: string, className: string): HTML
 	return element;
 }
 
-export function createElementWithHTML(tagName: string, htmlContent: string, attributes: Record<string, string> = {}): HTMLElement {
+export function createElementWithHTML(
+	tagName: string,
+	htmlContent: string,
+	attributes: Record<string, string> = {},
+): HTMLElement {
 	const element = document.createElement(tagName);
 
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(htmlContent, 'text/html');
-	
+
 	// Move all child nodes from parsed content to the element
-	Array.from(doc.body.childNodes).forEach(node => {
+	Array.from(doc.body.childNodes).forEach((node) => {
 		element.appendChild(node.cloneNode(true));
 	});
-	
+
 	Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
 	return element;
 }
@@ -37,7 +41,14 @@ export function getElementXPath(element: Node): string {
 	for (let i = 0; i < siblings.length; i++) {
 		const sibling = siblings[i];
 		if (sibling === element) {
-			return getElementXPath(element.parentNode!) + '/' + (element as Element).tagName.toLowerCase() + '[' + (ix + 1) + ']';
+			return (
+				getElementXPath(element.parentNode!) +
+				'/' +
+				(element as Element).tagName.toLowerCase() +
+				'[' +
+				(ix + 1) +
+				']'
+			);
 		}
 		if (sibling.nodeType === Node.ELEMENT_NODE && (sibling as Element).tagName === (element as Element).tagName) {
 			ix++;
@@ -47,7 +58,8 @@ export function getElementXPath(element: Node): string {
 }
 
 export function getElementByXPath(xpath: string): Element | null {
-	return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as Element | null;
+	return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
+		.singleNodeValue as Element | null;
 }
 
 export function isDarkColor(color: string): boolean {
@@ -68,7 +80,7 @@ export function wrapElementWithMark(element: Element): void {
 	while (element.firstChild) {
 		mark.appendChild(element.firstChild);
 	}
-	
+
 	element.appendChild(mark);
 }
 
@@ -79,30 +91,30 @@ export function wrapTextWithMark(element: Element, highlight: { startOffset: num
 	let endNode = null;
 	let startOffset = 0;
 	let endOffset = 0;
-	
+
 	let node;
-	while (node = walker.nextNode() as Text) {
+	while ((node = walker.nextNode() as Text)) {
 		const length = node.length;
-		
+
 		if (!startNode && currentOffset + length > highlight.startOffset) {
 			startNode = node;
 			startOffset = highlight.startOffset - currentOffset;
 		}
-		
+
 		if (!endNode && currentOffset + length >= highlight.endOffset) {
 			endNode = node;
 			endOffset = highlight.endOffset - currentOffset;
 			break;
 		}
-		
+
 		currentOffset += length;
 	}
-	
+
 	if (startNode && endNode) {
 		const range = document.createRange();
 		range.setStart(startNode, startOffset);
 		range.setEnd(endNode, endOffset);
-		
+
 		const mark = document.createElement('mark');
 		range.surroundContents(mark);
 	}

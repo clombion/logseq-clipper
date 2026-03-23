@@ -13,10 +13,10 @@ export function initializeDragAndDrop(): void {
 		document.getElementById('template-list'),
 		document.getElementById('template-properties'),
 		document.getElementById('vault-list'),
-		document.getElementById('model-list')
+		document.getElementById('model-list'),
 	];
 
-	draggableLists.forEach(list => {
+	draggableLists.forEach((list) => {
 		if (list) {
 			list.addEventListener('dragstart', handleDragStart);
 			list.addEventListener('dragover', handleDragOver);
@@ -60,11 +60,11 @@ export function handleDrop(e: DragEvent): void {
 	if (!e.dataTransfer) return;
 	const draggedItemId = e.dataTransfer.getData('text/plain');
 	const list = (e.target as HTMLElement).closest('ul, #template-properties, #model-list');
-	
+
 	if (list && draggedElement) {
 		const items = Array.from(list.children);
 		const newIndex = items.indexOf(draggedElement);
-		
+
 		if (list.id === 'template-list') {
 			handleTemplateReorder(draggedItemId, newIndex);
 		} else if (list.id === 'template-properties') {
@@ -74,10 +74,10 @@ export function handleDrop(e: DragEvent): void {
 		} else if (list.id === 'model-list') {
 			handleModelReorder(newIndex);
 		}
-		
+
 		draggedElement.classList.remove('dragging');
 	}
-	
+
 	draggedElement = null;
 }
 
@@ -90,15 +90,17 @@ export function handleDragEnd(): void {
 
 function handleTemplateReorder(draggedItemId: string, newIndex: number): void {
 	const templates = getTemplates();
-	const oldIndex = templates.findIndex(t => (t as Template).id === draggedItemId);
+	const oldIndex = templates.findIndex((t) => (t as Template).id === draggedItemId);
 	if (oldIndex !== -1 && oldIndex !== newIndex) {
 		const [movedTemplate] = templates.splice(oldIndex, 1);
 		templates.splice(newIndex, 0, movedTemplate);
-		saveTemplateSettings().then(() => {
-			updateTemplateList();
-		}).catch(error => {
-			console.error('Failed to save template settings:', error);
-		});
+		saveTemplateSettings()
+			.then(() => {
+				updateTemplateList();
+			})
+			.catch((error) => {
+				console.error('Failed to save template settings:', error);
+			});
 	}
 }
 
@@ -133,7 +135,7 @@ function handlePropertyReorder(draggedItemId: string, newIndex: number): void {
 		return;
 	}
 
-	const oldIndex = template.properties.findIndex(p => (p as Property).id === draggedItemId);
+	const oldIndex = template.properties.findIndex((p) => (p as Property).id === draggedItemId);
 	if (oldIndex === -1) {
 		console.error('Property not found');
 		return;
@@ -142,11 +144,13 @@ function handlePropertyReorder(draggedItemId: string, newIndex: number): void {
 	if (oldIndex !== newIndex) {
 		const [movedProperty] = template.properties.splice(oldIndex, 1);
 		template.properties.splice(newIndex, 0, movedProperty);
-		saveTemplateSettings().then(() => {
-			updateTemplateList();
-		}).catch(error => {
-			console.error('Failed to save template settings:', error);
-		});
+		saveTemplateSettings()
+			.then(() => {
+				updateTemplateList();
+			})
+			.catch((error) => {
+				console.error('Failed to save template settings:', error);
+			});
 	}
 }
 

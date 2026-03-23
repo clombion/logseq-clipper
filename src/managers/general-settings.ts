@@ -25,7 +25,7 @@ const STORE_URLS = {
 	chrome: 'https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf',
 	firefox: 'https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/',
 	safari: 'https://apps.apple.com/us/app/obsidian-web-clipper/id6720708363',
-	edge: 'https://microsoftedge.microsoft.com/addons/detail/obsidian-web-clipper/eigdjhmgnaaeaonimdklocfekkaanfme'
+	edge: 'https://microsoftedge.microsoft.com/addons/detail/obsidian-web-clipper/eigdjhmgnaaeaonimdklocfekkaanfme',
 };
 
 export function updateVaultList(): void {
@@ -86,11 +86,11 @@ export async function setShortcutInstructions() {
 		// Clear content
 		shortcutInstructionsElement.textContent = '';
 		shortcutInstructionsElement.appendChild(document.createTextNode(getMessage('shortcutInstructionsIntro') + ' '));
-		
+
 		// Browser-specific instructions
 		let instructionsText = '';
 		let url = '';
-		
+
 		switch (browser) {
 			case 'chrome':
 				instructionsText = getMessage('shortcutInstructionsChrome', ['$URL']);
@@ -115,17 +115,17 @@ export async function setShortcutInstructions() {
 			default:
 				instructionsText = getMessage('shortcutInstructionsDefault');
 		}
-		
+
 		if (url) {
 			// Split text around the URL placeholder and add strong element
 			const parts = instructionsText.split('$URL');
 			if (parts.length === 2) {
 				shortcutInstructionsElement.appendChild(document.createTextNode(parts[0]));
-				
+
 				const strongElement = document.createElement('strong');
 				strongElement.textContent = url;
 				shortcutInstructionsElement.appendChild(strongElement);
-				
+
 				shortcutInstructionsElement.appendChild(document.createTextNode(parts[1]));
 			} else {
 				// Fallback if no placeholder found
@@ -178,7 +178,7 @@ export function initializeGeneralSettings(): void {
 		// Get clip history and ratings
 		const history = await getClipHistory();
 		const totalClips = history.length;
-		const existingRatings = await getLocalStorage('ratings') || [];
+		const existingRatings = (await getLocalStorage('ratings')) || [];
 
 		// Show rating section only total clips >= 20 and no previous ratings
 		const rateExtensionSection = document.getElementById('rate-extension');
@@ -190,10 +190,10 @@ export function initializeGeneralSettings(): void {
 			const starRating = document.querySelector('.star-rating');
 			if (starRating) {
 				const stars = starRating.querySelectorAll('.star');
-				stars.forEach(star => {
+				stars.forEach((star) => {
 					star.addEventListener('click', async () => {
 						const rating = parseInt(star.getAttribute('data-rating') || '0');
-						stars.forEach(s => {
+						stars.forEach((s) => {
 							if (parseInt(s.getAttribute('data-rating') || '0') <= rating) {
 								s.classList.add('is-active');
 							} else {
@@ -201,7 +201,7 @@ export function initializeGeneralSettings(): void {
 							}
 						});
 						await handleRating(rating);
-						
+
 						// Hide the rating section after rating
 						if (rateExtensionSection) {
 							rateExtensionSection.style.display = 'none';
@@ -266,7 +266,7 @@ function saveSettingsFromForm(): void {
 		silentOpen: silentOpenToggle?.checked ?? generalSettings.silentOpen,
 		highlighterEnabled: highlighterToggle?.checked ?? generalSettings.highlighterEnabled,
 		alwaysShowHighlights: alwaysShowHighlightsToggle?.checked ?? generalSettings.alwaysShowHighlights,
-		highlightBehavior: highlightBehaviorSelect?.value ?? generalSettings.highlightBehavior
+		highlightBehavior: highlightBehaviorSelect?.value ?? generalSettings.highlightBehavior,
 	};
 
 	saveSettings(updatedSettings);
@@ -308,10 +308,10 @@ async function initializeKeyboardShortcuts(): Promise<void> {
 		shortcutsList.appendChild(messageItem);
 	} else {
 		// For other browsers, proceed with displaying the shortcuts
-		getCommands().then(commands => {
-			commands.forEach(command => {
+		getCommands().then((commands) => {
+			commands.forEach((command) => {
 				const shortcutItem = createElementWithClass('div', 'shortcut-item');
-				
+
 				const descriptionSpan = document.createElement('span');
 				descriptionSpan.textContent = command.description;
 				shortcutItem.appendChild(descriptionSpan);
@@ -345,13 +345,9 @@ function initializeSilentOpenToggle(): void {
 }
 
 function initializeOpenBehaviorDropdown(): void {
-	initializeSettingDropdown(
-		'open-behavior-dropdown',
-		generalSettings.openBehavior,
-		(value) => {
-			saveSettings({ ...generalSettings, openBehavior: value as 'popup' | 'embedded' });
-		}
-	);
+	initializeSettingDropdown('open-behavior-dropdown', generalSettings.openBehavior, (value) => {
+		saveSettings({ ...generalSettings, openBehavior: value as 'popup' | 'embedded' });
+	});
 }
 
 function initializeResetDefaultTemplateButton(): void {
@@ -362,34 +358,36 @@ function initializeResetDefaultTemplateButton(): void {
 }
 
 function initializeSaveBehaviorDropdown(): void {
-    const dropdown = document.getElementById('save-behavior-dropdown') as HTMLSelectElement;
-    if (!dropdown) return;
+	const dropdown = document.getElementById('save-behavior-dropdown') as HTMLSelectElement;
+	if (!dropdown) return;
 
-    dropdown.value = generalSettings.saveBehavior;
-    dropdown.addEventListener('change', () => {
-        const newValue = dropdown.value as 'addToObsidian' | 'copyToClipboard' | 'saveFile';
-        saveSettings({ saveBehavior: newValue });
-    });
+	dropdown.value = generalSettings.saveBehavior;
+	dropdown.addEventListener('change', () => {
+		const newValue = dropdown.value as 'addToObsidian' | 'copyToClipboard' | 'saveFile';
+		saveSettings({ saveBehavior: newValue });
+	});
 }
 
 export function resetDefaultTemplate(): void {
 	const defaultTemplate = createDefaultTemplate();
 	const currentTemplates = getTemplates();
 	const defaultIndex = currentTemplates.findIndex((t: Template) => t.name === getMessage('defaultTemplateName'));
-	
+
 	if (defaultIndex !== -1) {
 		currentTemplates[defaultIndex] = defaultTemplate;
 	} else {
 		currentTemplates.unshift(defaultTemplate);
 	}
 
-	saveTemplateSettings().then(() => {
-		updateTemplateList();
-		showTemplateEditor(defaultTemplate);
-	}).catch(error => {
-		console.error('Failed to reset default template:', error);
-		alert(getMessage('failedToResetTemplate'));
-	});
+	saveTemplateSettings()
+		.then(() => {
+			updateTemplateList();
+			showTemplateEditor(defaultTemplate);
+		})
+		.catch((error) => {
+			console.error('Failed to reset default template:', error);
+			alert(getMessage('failedToResetTemplate'));
+		});
 }
 
 function initializeExportImportAllSettingsButtons(): void {
@@ -440,9 +438,9 @@ async function initializeUsageChart(): Promise<void> {
 	const updateChart = async () => {
 		const options = {
 			timeRange: periodSelect.value as '30d' | 'all',
-			aggregation: aggregationSelect.value as 'day' | 'week' | 'month'
+			aggregation: aggregationSelect.value as 'day' | 'week' | 'month',
 		};
-		
+
 		const chartData = aggregateUsageData(history, options);
 		await createUsageChart(chartContainer, chartData);
 	};
@@ -457,18 +455,18 @@ async function initializeUsageChart(): Promise<void> {
 
 async function handleRating(rating: number) {
 	// Get existing ratings from storage
-	const existingRatings = await getLocalStorage('ratings') || [];
-	
+	const existingRatings = (await getLocalStorage('ratings')) || [];
+
 	// Add new rating
 	const newRating = {
 		rating,
-		date: new Date().toISOString()
+		date: new Date().toISOString(),
 	};
-	
+
 	// Update both storage and generalSettings
 	const updatedRatings = [...existingRatings, newRating];
 	generalSettings.ratings = updatedRatings;
-	
+
 	// Save to storage
 	await setLocalStorage('ratings', updatedRatings);
 	await saveSettings();
@@ -504,7 +502,7 @@ async function handleRating(rating: number) {
 function initializeSettingDropdown(
 	elementId: string,
 	defaultValue: string,
-	onChange: (newValue: string) => void
+	onChange: (newValue: string) => void,
 ): void {
 	const dropdown = document.getElementById(elementId) as HTMLSelectElement;
 	if (!dropdown) return;

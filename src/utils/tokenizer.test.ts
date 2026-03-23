@@ -3,12 +3,12 @@ import { tokenize, Token, TokenType } from './tokenizer';
 
 // Helper functions
 function getTypes(tokens: Token[]): TokenType[] {
-	return tokens.map(t => t.type);
+	return tokens.map((t) => t.type);
 }
 
 function containsTokenTypes(tokens: Token[], expected: TokenType[]): boolean {
 	const types = tokens.map((t: Token) => t.type);
-	return expected.every(type => types.includes(type));
+	return expected.every((type) => types.includes(type));
 }
 
 describe('Tokenizer', () => {
@@ -80,12 +80,19 @@ describe('Tokenizer', () => {
 			expect(result.errors).toHaveLength(0);
 			const types = getTypes(result.tokens);
 			expect(types).toEqual([
-				'tag_start', 'keyword_if', 'identifier', 'tag_end',
+				'tag_start',
+				'keyword_if',
+				'identifier',
+				'tag_end',
 				'text',
-				'tag_start', 'keyword_else', 'tag_end',
+				'tag_start',
+				'keyword_else',
+				'tag_end',
 				'text',
-				'tag_start', 'keyword_endif', 'tag_end',
-				'eof'
+				'tag_start',
+				'keyword_endif',
+				'tag_end',
+				'eof',
 			]);
 		});
 
@@ -93,7 +100,15 @@ describe('Tokenizer', () => {
 			const result = tokenize('{% for item in items %}');
 			expect(result.errors).toHaveLength(0);
 			const types = getTypes(result.tokens);
-			expect(types).toEqual(['tag_start', 'keyword_for', 'identifier', 'keyword_in', 'identifier', 'tag_end', 'eof']);
+			expect(types).toEqual([
+				'tag_start',
+				'keyword_for',
+				'identifier',
+				'keyword_in',
+				'identifier',
+				'tag_end',
+				'eof',
+			]);
 		});
 
 		test('tokenizes set tag', () => {
@@ -265,7 +280,7 @@ describe('Tokenizer', () => {
 			const result = tokenize('line1\n{{x}}');
 			expect(result.errors).toHaveLength(0);
 
-			const varStart = result.tokens.find(t => t.type === 'variable_start');
+			const varStart = result.tokens.find((t) => t.type === 'variable_start');
 			expect(varStart?.line).toBe(2);
 			expect(varStart?.column).toBe(1);
 		});
@@ -274,7 +289,7 @@ describe('Tokenizer', () => {
 			const result = tokenize('{% if x %}\nyes\n{% endif %}');
 			expect(result.errors).toHaveLength(0);
 
-			const endif = result.tokens.find(t => t.type === 'keyword_endif');
+			const endif = result.tokens.find((t) => t.type === 'keyword_endif');
 			expect(endif?.line).toBe(3);
 		});
 	});
@@ -287,53 +302,59 @@ describe('Tokenizer', () => {
 			const types = getTypes(result.tokens);
 			expect(types).toEqual([
 				'text',
-				'variable_start', 'identifier', 'variable_end',
+				'variable_start',
+				'identifier',
+				'variable_end',
 				'text',
-				'variable_start', 'identifier', 'variable_end',
+				'variable_start',
+				'identifier',
+				'variable_end',
 				'text',
-				'eof'
+				'eof',
 			]);
 		});
 
 		test('tokenizes schema variable', () => {
 			const result = tokenize('{{schema:@Article:author}}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier');
+			const identifier = result.tokens.find((t) => t.type === 'identifier');
 			expect(identifier?.value).toBe('schema');
 		});
 
 		test('tokenizes selector variable', () => {
 			const result = tokenize('{% for item in selector:.comment %}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier' && t.value.startsWith('selector:'));
+			const identifier = result.tokens.find((t) => t.type === 'identifier' && t.value.startsWith('selector:'));
 			expect(identifier?.value).toBe('selector:.comment');
 		});
 
 		test('tokenizes selector with attribute brackets', () => {
 			const result = tokenize('{% set comments = selector:div[slot="comment"] %}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier' && t.value.startsWith('selector:'));
+			const identifier = result.tokens.find((t) => t.type === 'identifier' && t.value.startsWith('selector:'));
 			expect(identifier?.value).toBe('selector:div[slot="comment"]');
 		});
 
 		test('tokenizes selector with pseudo-class', () => {
 			const result = tokenize('{{selector:article.post:first-child}}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier' && t.value.startsWith('selector:'));
+			const identifier = result.tokens.find((t) => t.type === 'identifier' && t.value.startsWith('selector:'));
 			expect(identifier?.value).toBe('selector:article.post:first-child');
 		});
 
 		test('tokenizes selector with nested brackets', () => {
 			const result = tokenize('{{selector:div[data-type="content"][class*="highlight"]}}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier' && t.value.startsWith('selector:'));
+			const identifier = result.tokens.find((t) => t.type === 'identifier' && t.value.startsWith('selector:'));
 			expect(identifier?.value).toBe('selector:div[data-type="content"][class*="highlight"]');
 		});
 
 		test('tokenizes selectorHtml with brackets', () => {
 			const result = tokenize('{{selectorHtml:div[data-type="content"]|trim}}');
 			expect(result.errors).toHaveLength(0);
-			const identifier = result.tokens.find(t => t.type === 'identifier' && t.value.startsWith('selectorHtml:'));
+			const identifier = result.tokens.find(
+				(t) => t.type === 'identifier' && t.value.startsWith('selectorHtml:'),
+			);
 			expect(identifier?.value).toBe('selectorHtml:div[data-type="content"]');
 			expect(containsTokenTypes(result.tokens, ['pipe', 'identifier'])).toBe(true);
 		});
@@ -343,10 +364,20 @@ describe('Tokenizer', () => {
 		test('tokenizes filter with empty string argument', () => {
 			const result = tokenize('{{"test"|replace:"%":""}}');
 			expect(result.errors).toHaveLength(0);
-			expect(containsTokenTypes(result.tokens, [
-				'variable_start', 'string', 'pipe', 'identifier', 'colon', 'string', 'colon', 'string', 'variable_end'
-			])).toBe(true);
-			const stringTokens = result.tokens.filter(t => t.type === 'string');
+			expect(
+				containsTokenTypes(result.tokens, [
+					'variable_start',
+					'string',
+					'pipe',
+					'identifier',
+					'colon',
+					'string',
+					'colon',
+					'string',
+					'variable_end',
+				]),
+			).toBe(true);
+			const stringTokens = result.tokens.filter((t) => t.type === 'string');
 			expect(stringTokens).toHaveLength(3);
 			expect(stringTokens[0].value).toBe('test');
 			expect(stringTokens[1].value).toBe('%');
@@ -356,7 +387,7 @@ describe('Tokenizer', () => {
 		test('tokenizes string with spaces and empty string argument', () => {
 			const result = tokenize('{{"cacao percentage of this chocolate"|replace:"%":""}}');
 			expect(result.errors).toHaveLength(0);
-			const stringTokens = result.tokens.filter(t => t.type === 'string');
+			const stringTokens = result.tokens.filter((t) => t.type === 'string');
 			expect(stringTokens).toHaveLength(3);
 			expect(stringTokens[0].value).toBe('cacao percentage of this chocolate');
 			expect(stringTokens[1].value).toBe('%');
@@ -375,7 +406,7 @@ describe('Tokenizer', () => {
 		test('reports unterminated string', () => {
 			const result = tokenize('{% set x = "unterminated %}');
 			expect(result.errors.length).toBeGreaterThan(0);
-			const hasUnterminatedError = result.errors.some(e => e.message.includes('Unclosed string'));
+			const hasUnterminatedError = result.errors.some((e) => e.message.includes('Unclosed string'));
 			expect(hasUnterminatedError).toBe(true);
 		});
 	});

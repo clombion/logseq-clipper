@@ -32,4 +32,3 @@ describe('date filter', () => {
 		expect(result).toBe('');
 	});
 });
-

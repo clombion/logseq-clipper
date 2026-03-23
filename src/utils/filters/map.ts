@@ -46,9 +46,11 @@ export const map = (str: string, param?: string): string => {
 			}
 
 			// Check if the expression is an object literal or a string literal
-			if ((expr.startsWith('{') && expr.endsWith('}')) ||
+			if (
+				(expr.startsWith('{') && expr.endsWith('}')) ||
 				(expr.startsWith('"') && expr.endsWith('"')) ||
-				(expr.startsWith("'") && expr.endsWith("'"))) {
+				(expr.startsWith("'") && expr.endsWith("'"))
+			) {
 				// Use a simple object to store the mapped properties
 				const mappedItem: { [key: string]: any } = {};
 
@@ -57,7 +59,7 @@ export const map = (str: string, param?: string): string => {
 					const assignments = expr.match(/\{(.+)\}/)?.[1].split(',') || [];
 
 					assignments.forEach((assignment) => {
-						const [key, value] = assignment.split(':').map(s => s.trim());
+						const [key, value] = assignment.split(':').map((s) => s.trim());
 						// Remove any surrounding quotes from the key
 						const cleanKey = key.replace(/^['"](.+)['"]$/, '$1');
 						debugLog('Map', 'Processing assignment:', { cleanKey, value });
@@ -78,8 +80,8 @@ export const map = (str: string, param?: string): string => {
 			} else {
 				// If it's not an object literal or string literal, treat it as a simple expression
 				return evaluateExpression(expression, item, argName);
-				}
-			});
+			}
+		});
 
 		debugLog('Map', 'Mapped array:', JSON.stringify(mappedArray, null, 2));
 		return JSON.stringify(mappedArray);
@@ -107,12 +109,15 @@ function evaluateExpression(expression: string, item: any, argName: string): any
 
 function getNestedProperty(obj: any, path: string): any {
 	debugLog('Map', 'Getting nested property:', { obj: JSON.stringify(obj), path });
-	const result = path.split(/[\.\[\]]/).filter(Boolean).reduce((current, key) => {
-		if (current && Array.isArray(current) && /^\d+$/.test(key)) {
-			return current[parseInt(key, 10)];
-		}
-		return current && current[key] !== undefined ? current[key] : undefined;
-	}, obj);
+	const result = path
+		.split(/[\.\[\]]/)
+		.filter(Boolean)
+		.reduce((current, key) => {
+			if (current && Array.isArray(current) && /^\d+$/.test(key)) {
+				return current[parseInt(key, 10)];
+			}
+			return current && current[key] !== undefined ? current[key] : undefined;
+		}, obj);
 	debugLog('Map', 'Nested property result:', result);
 	return result;
 }

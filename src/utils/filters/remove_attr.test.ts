@@ -28,4 +28,3 @@ describe('remove_attr filter', () => {
 		expect(result).toContain('href="url"');
 	});
 });
-

@@ -26,18 +26,14 @@ async function openViaObsidianCli(
 	path: string,
 	vault: string,
 	behavior: Template['behavior'],
-	silent: boolean
+	silent: boolean,
 ): Promise<string> {
 	const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
 	const vaultArgs = vault ? [`vault=${vault}`] : [];
 
 	if (isDailyNote) {
 		const command = behavior === 'append-daily' ? 'daily:append' : 'daily:prepend';
-		const { stdout } = await execFileAsync('obsidian', [
-			command,
-			`content=${fileContent}`,
-			...vaultArgs,
-		]);
+		const { stdout } = await execFileAsync('obsidian', [command, `content=${fileContent}`, ...vaultArgs]);
 		return stdout.trim();
 	}
 
@@ -57,13 +53,7 @@ async function openViaObsidianCli(
 	}
 
 	// create or overwrite
-	const args = [
-		'create',
-		`path=${filePath}`,
-		`content=${fileContent}`,
-		'open',
-		...vaultArgs,
-	];
+	const args = ['create', `path=${filePath}`, `content=${fileContent}`, 'open', ...vaultArgs];
 	if (behavior === 'overwrite') {
 		args.push('overwrite');
 	}
@@ -81,7 +71,7 @@ async function openViaUri(
 	path: string,
 	vault: string,
 	behavior: Template['behavior'],
-	silent: boolean
+	silent: boolean,
 ): Promise<void> {
 	const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
 
@@ -133,9 +123,9 @@ export async function openInObsidian(
 	vault: string,
 	behavior: Template['behavior'],
 	silent: boolean,
-	forceUri: boolean
+	forceUri: boolean,
 ): Promise<string> {
-	if (!forceUri && await hasObsidianCli()) {
+	if (!forceUri && (await hasObsidianCli())) {
 		const result = await openViaObsidianCli(fileContent, noteName, path, vault, behavior, silent);
 		return result;
 	}

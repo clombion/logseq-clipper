@@ -25,8 +25,8 @@ const memoizedInternalMatchPattern = memoize(
 				return `${pattern}:${url}`;
 			}
 			return `${pattern}:${url.split('/').slice(0, 3).join('/')}`;
-		}
-	}
+		},
+	},
 );
 
 interface TriggerMatch {
@@ -60,8 +60,8 @@ class Trie {
 			if (!node.children.has(char)) break;
 			node = node.children.get(char)!;
 			if (node.templates.length > 0) {
-				const matchingTemplate = node.templates.find(t => 
-					memoizedInternalMatchPattern(url.slice(0, url.indexOf(char) + 1), url, schemaOrgData)
+				const matchingTemplate = node.templates.find((t) =>
+					memoizedInternalMatchPattern(url.slice(0, url.indexOf(char) + 1), url, schemaOrgData),
 				);
 				if (matchingTemplate) {
 					lastMatch = matchingTemplate;
@@ -85,7 +85,7 @@ export function initializeTriggers(templates: Template[]): void {
 
 	templates.forEach((template, index) => {
 		if (template.triggers) {
-			template.triggers.forEach(trigger => {
+			template.triggers.forEach((trigger) => {
 				const priority = templates.length - index; // Higher priority for earlier templates
 				if (trigger.startsWith('/') && trigger.endsWith('/')) {
 					regexTriggers.push({ template, regex: new RegExp(trigger.slice(1, -1)), priority });
@@ -136,8 +136,8 @@ const memoizedFindMatchingTemplate = memoizeWithExpiration(
 	},
 	{
 		expirationMs: 30000, // Cache for 30 seconds
-		keyFn: (url: string) => url // Use the full URL as the cache key
-	}
+		keyFn: (url: string) => url, // Use the full URL as the cache key
+	},
 );
 
 export const findMatchingTemplate = memoizedFindMatchingTemplate;
@@ -148,24 +148,26 @@ export function matchPattern(pattern: string, url: string, schemaOrgData: any): 
 
 function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	const [, schemaType, schemaKey, expectedValue] = pattern.match(/schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/) || [];
-	
+
 	if (!schemaType && !schemaKey) return false;
 
 	// Ensure schemaOrgData is always an array
 	const schemaArray = Array.isArray(schemaOrgData) ? schemaOrgData : [schemaOrgData];
 
-	const matchingSchemas = schemaArray.flatMap(schema => {
-		// Handle nested arrays of schemas
-		if (Array.isArray(schema)) {
-			return schema;
-		}
-		return [schema];
-	}).filter((schema: any) => {
-		if (!schema || typeof schema !== 'object') return false;
-		if (!schemaType) return true;
-		const types = Array.isArray(schema['@type']) ? schema['@type'] : [schema['@type']];
-		return types.includes(schemaType.slice(1));
-	});
+	const matchingSchemas = schemaArray
+		.flatMap((schema) => {
+			// Handle nested arrays of schemas
+			if (Array.isArray(schema)) {
+				return schema;
+			}
+			return [schema];
+		})
+		.filter((schema: any) => {
+			if (!schema || typeof schema !== 'object') return false;
+			if (!schemaType) return true;
+			const types = Array.isArray(schema['@type']) ? schema['@type'] : [schema['@type']];
+			return types.includes(schemaType.slice(1));
+		});
 
 	for (const schema of matchingSchemas) {
 		if (schemaKey) {

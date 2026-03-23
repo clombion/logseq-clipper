@@ -7,11 +7,7 @@ import { debugLog } from './debug';
 import dayjs from 'dayjs';
 import { AnyHighlightData, TextHighlightData, HighlightData } from './highlighter';
 import { generalSettings } from './storage-utils';
-import {
-	getElementByXPath,
-	wrapElementWithMark,
-	wrapTextWithMark
-} from './dom-utils';
+import { getElementByXPath, wrapElementWithMark, wrapTextWithMark } from './dom-utils';
 
 // Define ElementHighlightData type inline since it's not exported from highlighter.ts
 interface ElementHighlightData extends HighlightData {
@@ -21,15 +17,13 @@ interface ElementHighlightData extends HighlightData {
 function canHighlightElement(element: Element): boolean {
 	// List of elements that can't be nested inside mark
 	const unsupportedElements = ['img', 'video', 'audio', 'iframe', 'canvas', 'svg', 'math', 'table'];
-	
+
 	// Check if the element contains any unsupported elements
-	const hasUnsupportedElements = unsupportedElements.some(tag => 
-		element.getElementsByTagName(tag).length > 0
-	);
-	
+	const hasUnsupportedElements = unsupportedElements.some((tag) => element.getElementsByTagName(tag).length > 0);
+
 	// Check if the element itself is an unsupported type
 	const isUnsupportedType = unsupportedElements.includes(element.tagName.toLowerCase());
-	
+
 	return !hasUnsupportedElements && !isUnsupportedType;
 }
 
@@ -61,11 +55,11 @@ interface ContentResponse {
 }
 
 async function sendExtractRequest(tabId: number): Promise<ContentResponse> {
-	const response = await browser.runtime.sendMessage({
-		action: "sendMessageToTab",
+	const response = (await browser.runtime.sendMessage({
+		action: 'sendMessageToTab',
 		tabId: tabId,
-		message: { action: "getPageContent" }
-	}) as ContentResponse & { success?: boolean; error?: string };
+		message: { action: 'getPageContent' },
+	})) as ContentResponse & { success?: boolean; error?: string };
 
 	// Check for explicit error from background script
 	if (response && 'success' in response && !response.success && response.error) {
@@ -83,7 +77,7 @@ async function sendExtractRequest(tabId: number): Promise<ContentResponse> {
 						xpath: '',
 						content: `<div>` + highlight + `</div>`,
 						startOffset: 0,
-						endOffset: highlight.length
+						endOffset: highlight.length,
 					};
 				}
 				return highlight as AnyHighlightData;
@@ -131,7 +125,7 @@ export async function initializePageContent(
 	site: string,
 	wordCount: number,
 	language: string,
-	metaTags: { name?: string | null; property?: string | null; content: string | null }[]
+	metaTags: { name?: string | null; property?: string | null; content: string | null }[],
 ) {
 	try {
 		currentUrl = currentUrl.replace(/#:~:text=[^&]+(&|$)/, '');
@@ -143,14 +137,19 @@ export async function initializePageContent(
 		}
 
 		// Process highlights after getting the base content
-		if (generalSettings.highlighterEnabled && generalSettings.highlightBehavior !== 'no-highlights' && highlights && highlights.length > 0) {
+		if (
+			generalSettings.highlighterEnabled &&
+			generalSettings.highlightBehavior !== 'no-highlights' &&
+			highlights &&
+			highlights.length > 0
+		) {
 			content = processHighlights(content, highlights);
 		}
 
 		const markdownBody = createMarkdownContent(content, currentUrl);
 
 		// Convert each highlight to markdown individually
-		const highlightsData = highlights.map(highlight => {
+		const highlightsData = highlights.map((highlight) => {
 			const highlightData: {
 				text: string;
 				timestamp: string;
@@ -195,7 +194,7 @@ export async function initializePageContent(
 
 		return {
 			noteName,
-			currentVariables
+			currentVariables,
 		};
 	} catch (error: unknown) {
 		console.error('Error in initializePageContent:', error);
@@ -219,7 +218,7 @@ function processHighlights(content: string, highlights: AnyHighlightData[]): str
 	}
 
 	if (generalSettings.highlightBehavior === 'replace-content') {
-		return highlights.map(highlight => highlight.content).join('');
+		return highlights.map((highlight) => highlight.content).join('');
 	}
 
 	if (generalSettings.highlightBehavior === 'highlight-inline') {
@@ -239,14 +238,14 @@ function processHighlights(content: string, highlights: AnyHighlightData[]): str
 		// Serialize back to HTML
 		const serializer = new XMLSerializer();
 		let result = '';
-		Array.from(tempDiv.childNodes).forEach(node => {
+		Array.from(tempDiv.childNodes).forEach((node) => {
 			if (node.nodeType === Node.ELEMENT_NODE) {
 				result += serializer.serializeToString(node);
 			} else if (node.nodeType === Node.TEXT_NODE) {
 				result += node.textContent;
 			}
 		});
-		
+
 		return result;
 	}
 
@@ -256,7 +255,7 @@ function processHighlights(content: string, highlights: AnyHighlightData[]): str
 
 function filterAndSortHighlights(highlights: AnyHighlightData[]): (TextHighlightData | ElementHighlightData)[] {
 	return highlights
-		.filter((h): h is (TextHighlightData | ElementHighlightData) => {
+		.filter((h): h is TextHighlightData | ElementHighlightData => {
 			if (h.type === 'text') {
 				return !!(h.xpath?.trim() || h.content?.trim());
 			}
@@ -291,13 +290,8 @@ function processHighlight(highlight: TextHighlightData | ElementHighlightData, t
 }
 
 function processXPathHighlight(highlight: TextHighlightData | ElementHighlightData, tempDiv: HTMLDivElement) {
-	const element = document.evaluate(
-		highlight.xpath,
-		tempDiv,
-		null,
-		XPathResult.FIRST_ORDERED_NODE_TYPE,
-		null
-	).singleNodeValue as Element;
+	const element = document.evaluate(highlight.xpath, tempDiv, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
+		.singleNodeValue as Element;
 
 	if (!element) {
 		debugLog('Highlights', 'Could not find element for xpath:', highlight.xpath);
@@ -319,9 +313,9 @@ function processContentBasedHighlight(highlight: TextHighlightData | ElementHigh
 	// Serialize the inner content
 	const serializer = new XMLSerializer();
 	let innerContent = '';
-	
+
 	if (contentDiv.children.length === 1 && contentDiv.firstElementChild?.tagName === 'DIV') {
-		Array.from(contentDiv.firstElementChild.childNodes).forEach(node => {
+		Array.from(contentDiv.firstElementChild.childNodes).forEach((node) => {
 			if (node.nodeType === Node.ELEMENT_NODE) {
 				innerContent += serializer.serializeToString(node);
 			} else if (node.nodeType === Node.TEXT_NODE) {
@@ -329,7 +323,7 @@ function processContentBasedHighlight(highlight: TextHighlightData | ElementHigh
 			}
 		});
 	} else {
-		Array.from(contentDiv.childNodes).forEach(node => {
+		Array.from(contentDiv.childNodes).forEach((node) => {
 			if (node.nodeType === Node.ELEMENT_NODE) {
 				innerContent += serializer.serializeToString(node);
 			} else if (node.nodeType === Node.TEXT_NODE) {
@@ -347,14 +341,14 @@ function processContentBasedHighlight(highlight: TextHighlightData | ElementHigh
 }
 
 function processContentParagraphs(sourceParagraphs: Element[], tempDiv: HTMLDivElement) {
-	sourceParagraphs.forEach(sourceParagraph => {
+	sourceParagraphs.forEach((sourceParagraph) => {
 		const sourceText = stripHtml(sourceParagraph.outerHTML).trim();
 		debugLog('Highlights', 'Looking for paragraph:', sourceText);
-		
+
 		const paragraphs = Array.from(tempDiv.querySelectorAll('p'));
 		for (const targetParagraph of paragraphs) {
 			const targetText = stripHtml(targetParagraph.outerHTML).trim();
-			
+
 			if (targetText === sourceText) {
 				debugLog('Highlights', 'Found matching paragraph:', targetParagraph.outerHTML);
 				wrapElementWithMark(targetParagraph);
@@ -367,24 +361,24 @@ function processContentParagraphs(sourceParagraphs: Element[], tempDiv: HTMLDivE
 function processInlineContent(content: string, tempDiv: HTMLDivElement) {
 	const searchText = stripHtml(content).trim();
 	debugLog('Highlights', 'Searching for text:', searchText);
-	
+
 	const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
-	
+
 	let node;
-	while (node = walker.nextNode() as Text) {
+	while ((node = walker.nextNode() as Text)) {
 		const nodeText = node.textContent || '';
 		const index = nodeText.indexOf(searchText);
-		
+
 		if (index !== -1) {
 			debugLog('Highlights', 'Found matching text in node:', {
 				text: nodeText,
-				index: index
+				index: index,
 			});
-			
+
 			const range = document.createRange();
 			range.setStart(node, index);
 			range.setEnd(node, index + searchText.length);
-			
+
 			const mark = document.createElement('mark');
 			range.surroundContents(mark);
 			debugLog('Highlights', 'Created mark element:', mark.outerHTML);

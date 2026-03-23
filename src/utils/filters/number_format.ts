@@ -10,9 +10,9 @@ export const number_format = (input: string, param?: string): string => {
 			const num = typeof value === 'string' ? parseFloat(value) : value;
 			return formatNumber(num, decimals, decPoint, thousandsSep);
 		} else if (Array.isArray(value)) {
-			return value.map(item => processValue(item, decimals, decPoint, thousandsSep));
+			return value.map((item) => processValue(item, decimals, decPoint, thousandsSep));
 		} else if (typeof value === 'object' && value !== null) {
-			const result: {[key: string]: any} = {};
+			const result: { [key: string]: any } = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[key] = processValue(val, decimals, decPoint, thousandsSep);
 			}
@@ -33,7 +33,7 @@ export const number_format = (input: string, param?: string): string => {
 		if (param) {
 			// Remove outer parentheses if present
 			const cleanParam = param.replace(/^\((.*)\)$/, '$1');
-			
+
 			// Split parameters, respecting quotes and escapes
 			const params: string[] = [];
 			let current = '';

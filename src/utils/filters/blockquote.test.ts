@@ -22,4 +22,3 @@ describe('blockquote filter', () => {
 		expect(blockquote('Hello\nWorld')).toBe('> Hello\n> World');
 	});
 });
-

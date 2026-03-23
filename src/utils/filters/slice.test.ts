@@ -65,4 +65,3 @@ describe('slice param validation', () => {
 		expect(result.error).toContain('at most 2');
 	});
 });
-

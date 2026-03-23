@@ -29,4 +29,3 @@ describe('first filter', () => {
 		expect(result).toBe('[object Object]');
 	});
 });
-

@@ -41,7 +41,7 @@ export const template = (input: string | any[], param?: string): string => {
 
 	debugLog('Template', 'Object to process:', obj);
 
-	const result = obj.map(item => replaceTemplateVariables(item, param)).join('\n\n');
+	const result = obj.map((item) => replaceTemplateVariables(item, param)).join('\n\n');
 	debugLog('Template', 'Processing result:', result);
 	return result;
 };
@@ -79,7 +79,10 @@ function replaceTemplateVariables(obj: any, template: string): string {
 	debugLog('Template', 'Result after newline replacement:', result);
 
 	// Remove any empty lines (which might be caused by undefined values)
-	result = result.split('\n').filter(line => line.trim() !== '').join('\n');
+	result = result
+		.split('\n')
+		.filter((line) => line.trim() !== '')
+		.join('\n');
 	debugLog('Template', 'Result after empty line removal:', result);
 
 	return result.trim();

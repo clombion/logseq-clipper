@@ -18,7 +18,7 @@ export function initializePropertyTypesManager(): void {
 }
 
 function ensureTagsProperty(): void {
-	const tagsProperty = generalSettings.propertyTypes.find(pt => pt.name === 'tags');
+	const tagsProperty = generalSettings.propertyTypes.find((pt) => pt.name === 'tags');
 	if (!tagsProperty) {
 		addPropertyType('tags', 'multitext', '');
 	} else if (tagsProperty.type !== 'multitext') {
@@ -37,20 +37,20 @@ export function updatePropertyTypesList(): void {
 	const propertyUsageCounts = countPropertyUsage();
 
 	// Sort all property types alphabetically
-	const sortedPropertyTypes = [...generalSettings.propertyTypes].sort((a, b) => 
-		a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+	const sortedPropertyTypes = [...generalSettings.propertyTypes].sort((a, b) =>
+		a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
 	);
 
 	const usedProperties = new Set<string>();
-	templates.forEach(template => {
-		template.properties.forEach(property => {
+	templates.forEach((template) => {
+		template.properties.forEach((property) => {
 			usedProperties.add(property.name);
 		});
 	});
 
 	let hasUnusedProperties = false;
 
-	sortedPropertyTypes.forEach(propertyType => {
+	sortedPropertyTypes.forEach((propertyType) => {
 		const isUsed = usedProperties.has(propertyType.name);
 		if (!isUsed && propertyType.name !== 'tags') {
 			hasUnusedProperties = true;
@@ -71,8 +71,8 @@ export function updatePropertyTypesList(): void {
 
 function countPropertyUsage(): Record<string, number> {
 	const usageCounts: Record<string, number> = {};
-	templates.forEach(template => {
-		template.properties.forEach(property => {
+	templates.forEach((template) => {
+		template.properties.forEach((property) => {
 			usageCounts[property.name] = (usageCounts[property.name] || 0) + 1;
 		});
 	});
@@ -85,12 +85,14 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 	const propertySelectDiv = createElementWithClass('div', 'property-select');
 	const propertySelectedDiv = createElementWithClass('div', 'property-selected');
 	propertySelectedDiv.dataset.value = propertyType.type;
-	propertySelectedDiv.appendChild(createElementWithHTML('i', '', { 'data-lucide': getPropertyTypeIcon(propertyType.type) }));
+	propertySelectedDiv.appendChild(
+		createElementWithHTML('i', '', { 'data-lucide': getPropertyTypeIcon(propertyType.type) }),
+	);
 	propertySelectDiv.appendChild(propertySelectedDiv);
 
 	const select = document.createElement('select') as HTMLSelectElement;
 	select.className = 'property-type';
-	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach(type => {
+	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach((type) => {
 		const option = document.createElement('option');
 		option.value = type;
 		const messageKey = `propertyType${type.charAt(0).toUpperCase() + type.slice(1)}`;
@@ -107,7 +109,7 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 		type: 'text',
 		value: unescapeValue(propertyType.defaultValue || ''),
 		class: 'property-default-value',
-		placeholder: 'Default value'
+		placeholder: 'Default value',
 	}) as HTMLInputElement;
 
 	const usageSpan = createElementWithClass('span', 'tree-item-flair');
@@ -136,12 +138,12 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 	}
 
 	if (propertyType.name !== 'tags') {
-		select.addEventListener('change', function() {
+		select.addEventListener('change', function () {
 			updateSelectedOption(this.value, propertySelectedDiv);
 			updatePropertyType(propertyType.name, this.value, defaultValueInput.value).then(updatePropertyTypesList);
 		});
 
-		defaultValueInput.addEventListener('change', function() {
+		defaultValueInput.addEventListener('change', function () {
 			updatePropertyType(propertyType.name, select.value, this.value).then(updatePropertyTypesList);
 		});
 	} else {
@@ -155,14 +157,14 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 
 function updateSelectedOption(value: string, propertySelected: HTMLElement): void {
 	const iconName = getPropertyTypeIcon(value);
-	
+
 	// Clear existing content
 	propertySelected.textContent = '';
-	
+
 	// Create and append the new icon element
 	const iconElement = createElementWithHTML('i', '', { 'data-lucide': iconName });
 	propertySelected.appendChild(iconElement);
-	
+
 	propertySelected.setAttribute('data-value', value);
 	initializeIcons(propertySelected);
 }
@@ -193,13 +195,7 @@ function setupImportExportButtons(): void {
 }
 
 function showTypesImportModal(): void {
-	showImportModal(
-		'import-modal',
-		importTypesFromJson,
-		'.json',
-		false,
-		'importProperties'
-	);
+	showImportModal('import-modal', importTypesFromJson, '.json', false, 'importProperties');
 }
 
 async function importTypesFromJson(jsonContent: string): Promise<void> {
@@ -233,7 +229,7 @@ async function mergePropertyTypes(newTypes: PropertyType[]): Promise<void> {
 			console.log('Ensuring tags is multitext');
 			await updatePropertyType('tags', 'multitext', '');
 		} else {
-			const existingType = generalSettings.propertyTypes.find(pt => pt.name === newType.name);
+			const existingType = generalSettings.propertyTypes.find((pt) => pt.name === newType.name);
 			if (existingType) {
 				console.log(`Existing type found for ${newType.name}: ${existingType.type}`);
 				if (existingType.type !== newType.type) {
@@ -270,10 +266,13 @@ async function resolveConflict(name: string, field: string, existingValue: strin
 }
 
 async function exportTypesJson(): Promise<void> {
-	const typesObject = generalSettings.propertyTypes.reduce((acc, { name, type }) => {
-		acc[name] = type;
-		return acc;
-	}, {} as Record<string, string>);
+	const typesObject = generalSettings.propertyTypes.reduce(
+		(acc, { name, type }) => {
+			acc[name] = type;
+			return acc;
+		},
+		{} as Record<string, string>,
+	);
 
 	const content = JSON.stringify({ types: typesObject }, null, 2);
 	const fileName = 'types.json';
@@ -282,13 +281,13 @@ async function exportTypesJson(): Promise<void> {
 		content,
 		fileName,
 		mimeType: 'application/json',
-		onError: (error) => console.error('Failed to export types:', error)
+		onError: (error) => console.error('Failed to export types:', error),
 	});
 }
 
 export async function addPropertyType(name: string, type: string = 'text', defaultValue: string = ''): Promise<void> {
 	console.log(`addPropertyType called with: name=${name}, type=${type}, defaultValue=${defaultValue}`);
-	const existingPropertyType = generalSettings.propertyTypes.find(pt => pt.name === name);
+	const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === name);
 	if (!existingPropertyType) {
 		console.log(`Adding new property type: ${name} with type ${type}`);
 		const newPropertyType: PropertyType = { name, type };
@@ -313,7 +312,7 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 }
 
 export async function updatePropertyType(name: string, newType: string, newDefaultValue?: string): Promise<void> {
-	const index = generalSettings.propertyTypes.findIndex(p => p.name === name);
+	const index = generalSettings.propertyTypes.findIndex((p) => p.name === name);
 	if (index !== -1) {
 		generalSettings.propertyTypes[index].type = newType;
 		if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
@@ -332,7 +331,7 @@ export async function updatePropertyType(name: string, newType: string, newDefau
 }
 
 export async function removePropertyType(name: string): Promise<void> {
-	generalSettings.propertyTypes = generalSettings.propertyTypes.filter(p => p.name !== name);
+	generalSettings.propertyTypes = generalSettings.propertyTypes.filter((p) => p.name !== name);
 	await saveSettings();
 	updatePropertyTypesList();
 }
@@ -346,17 +345,19 @@ function setupDeleteUnusedPropertiesButton(): void {
 
 async function deleteUnusedProperties(): Promise<void> {
 	const usedProperties = new Set<string>();
-	
+
 	// Collect all properties used in templates
-	templates.forEach(template => {
-		template.properties.forEach(property => {
+	templates.forEach((template) => {
+		template.properties.forEach((property) => {
 			usedProperties.add(property.name);
 		});
 	});
 
 	// Filter out unused properties
-	const unusedProperties = generalSettings.propertyTypes.filter(pt => !usedProperties.has(pt.name) && pt.name !== 'tags');
-	
+	const unusedProperties = generalSettings.propertyTypes.filter(
+		(pt) => !usedProperties.has(pt.name) && pt.name !== 'tags',
+	);
+
 	if (unusedProperties.length === 0) {
 		alert(getMessage('noUnusedProperties'));
 		return;
@@ -364,7 +365,9 @@ async function deleteUnusedProperties(): Promise<void> {
 
 	const confirmMessage = `Are you sure you want to remove ${unusedProperties.length} unused properties?`;
 	if (confirm(confirmMessage)) {
-		generalSettings.propertyTypes = generalSettings.propertyTypes.filter(pt => usedProperties.has(pt.name) || pt.name === 'tags');
+		generalSettings.propertyTypes = generalSettings.propertyTypes.filter(
+			(pt) => usedProperties.has(pt.name) || pt.name === 'tags',
+		);
 		await saveSettings();
 		updatePropertyTypesList();
 	}

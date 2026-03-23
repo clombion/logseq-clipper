@@ -78,4 +78,3 @@ describe('calc param validation', () => {
 		expect(result.error).toContain('number');
 	});
 });
-

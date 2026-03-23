@@ -1,7 +1,7 @@
 export function showModal(modal: HTMLElement | null): void {
 	if (modal) {
 		modal.style.display = 'flex';
-		
+
 		const modalBg = modal.querySelector('.modal-bg');
 		if (modalBg) {
 			modalBg.addEventListener('click', () => hideModal(modal));
@@ -24,7 +24,7 @@ export function showModal(modal: HTMLElement | null): void {
 export function hideModal(modal: HTMLElement | null): void {
 	if (modal) {
 		modal.style.display = 'none';
-		
+
 		// Remove the event listener when hiding the modal
 		const modalBg = modal.querySelector('.modal-bg');
 		if (modalBg) {

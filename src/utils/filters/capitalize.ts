@@ -1,6 +1,5 @@
 export const capitalize = (input: string): string => {
-	const capitalizeString = (str: string): string => 
-		str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+	const capitalizeString = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
 	try {
 		const parseAndCapitalize = (value: any): any => {
@@ -9,7 +8,7 @@ export const capitalize = (input: string): string => {
 			} else if (Array.isArray(value)) {
 				return value.map(parseAndCapitalize);
 			} else if (typeof value === 'object' && value !== null) {
-				const result: {[key: string]: any} = {};
+				const result: { [key: string]: any } = {};
 				for (const [key, val] of Object.entries(value)) {
 					result[capitalizeString(key)] = parseAndCapitalize(val);
 				}

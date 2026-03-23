@@ -34,4 +34,3 @@ describe('unique filter', () => {
 		expect(unique('hello')).toBe('hello');
 	});
 });
-

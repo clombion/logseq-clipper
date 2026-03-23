@@ -30,4 +30,3 @@ describe('length filter', () => {
 		expect(length('hello')).toBe('5');
 	});
 });
-

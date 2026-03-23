@@ -10,13 +10,16 @@ export function initializeAutoSave(): void {
 		return;
 	}
 
-	const debounce = <T extends (...args: any[]) => any>(func: T, delay: number): ((...args: Parameters<T>) => void) => {
+	const debounce = <T extends (...args: any[]) => any>(
+		func: T,
+		delay: number,
+	): ((...args: Parameters<T>) => void) => {
 		let debounceTimer: NodeJS.Timeout | null = null;
-		return function(this: any, ...args: Parameters<T>) {
+		return function (this: any, ...args: Parameters<T>) {
 			const context = this;
 			if (debounceTimer) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => func.apply(context, args), delay);
-		}
+		};
 	};
 
 	const autoSave = debounce(async () => {

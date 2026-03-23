@@ -6,8 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["src/**"],
-		"ignores": ["src/utils/__mocks__/**"]
+		"includes": ["src/**", "!src/utils/__mocks__/**"]
 	},
 	"formatter": {
 		"enabled": true,

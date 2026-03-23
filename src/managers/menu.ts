@@ -16,7 +16,7 @@ export function initializeMenu(menuBtnId: string, menuId: string): void {
 			}
 		});
 
-		menu.querySelectorAll('.menu-item').forEach(item => {
+		menu.querySelectorAll('.menu-item').forEach((item) => {
 			item.addEventListener('click', () => {
 				closeMenu(menu);
 			});
@@ -39,15 +39,11 @@ export function closeMenu(menu: HTMLElement): void {
 	document.body.classList.remove('menu-open');
 }
 
-export function addMenuItemListener(
-	selector: string, 
-	menuId: string, 
-	callback: (event: Event) => void
-): void {
+export function addMenuItemListener(selector: string, menuId: string, callback: (event: Event) => void): void {
 	const menuItems = document.querySelectorAll(selector);
 	const menu = document.getElementById(menuId);
 	if (menuItems.length && menu) {
-		menuItems.forEach(menuItem => {
+		menuItems.forEach((menuItem) => {
 			menuItem.addEventListener('click', (event) => {
 				event.preventDefault();
 				closeMenu(menu);

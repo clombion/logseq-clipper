@@ -7,7 +7,13 @@ import { createMarkdownContent } from 'defuddle/full';
 import { compileTemplate, SelectorProcessor } from './utils/template-compiler';
 import { AsyncResolver, RenderContext } from './utils/renderer';
 import { applyFilters } from './utils/filters';
-import { buildVariables, generateFrontmatter, extractContentBySelector, selectorContentToString, formatPropertyValue } from './utils/shared';
+import {
+	buildVariables,
+	generateFrontmatter,
+	extractContentBySelector,
+	selectorContentToString,
+	formatPropertyValue,
+} from './utils/shared';
 import { sanitizeFileName } from './utils/string-utils';
 import { Template, Property } from './types/types';
 
@@ -55,12 +61,7 @@ export function createAsyncResolver(doc: DocLike): AsyncResolver {
 			const selector = attrMatch ? attrMatch[1] : selectorPart;
 			const attribute = attrMatch ? attrMatch[2] : undefined;
 
-			return extractContentBySelector(
-				doc,
-				selector.replace(/\\"/g, '"'),
-				attribute,
-				extractHtml
-			);
+			return extractContentBySelector(doc, selector.replace(/\\"/g, '"'), attribute, extractHtml);
 		}
 		return undefined;
 	};
@@ -105,7 +106,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 	if (!schemaType && !schemaKey) return false;
 
 	const schemaArray = Array.isArray(schemaOrgData) ? schemaOrgData : [schemaOrgData];
-	const flattened = schemaArray.flatMap((s: any) => Array.isArray(s) ? s : [s]);
+	const flattened = schemaArray.flatMap((s: any) => (Array.isArray(s) ? s : [s]));
 
 	for (const schema of flattened) {
 		if (!schema || typeof schema !== 'object') continue;
@@ -212,8 +213,7 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 	const asyncResolver = createAsyncResolver(doc);
 	const selectorProcessor = createSelectorProcessor(doc);
 
-	const compile = (text: string) =>
-		compileTemplate(0, text, variables, url, asyncResolver, selectorProcessor);
+	const compile = (text: string) => compileTemplate(0, text, variables, url, asyncResolver, selectorProcessor);
 
 	// Compile note name
 	const compiledNoteName = await compile(template.noteNameFormat);
@@ -226,7 +226,7 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 			const propType = prop.type || 'text';
 			value = formatPropertyValue(value, propType, prop.value);
 			return { name: prop.name, value, type: prop.type };
-		})
+		}),
 	);
 
 	// Build property type map

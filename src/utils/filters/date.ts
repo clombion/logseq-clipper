@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
-import isoWeek from "dayjs/plugin/isoWeek";
-import weekOfYear from "dayjs/plugin/weekOfYear";
+import isoWeek from 'dayjs/plugin/isoWeek';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 
@@ -24,9 +24,9 @@ export const date = (str: string, param?: string): string => {
 
 	// Remove outer parentheses if present
 	param = param.replace(/^\((.*)\)$/, '$1');
-	
+
 	// Split by comma, but respect both single and double quoted strings
-	const params = param.split(/,(?=(?:(?:[^"']*["'][^"']*["'])*[^"']*$))/).map(p => {
+	const params = param.split(/,(?=(?:(?:[^"']*["'][^"']*["'])*[^"']*$))/).map((p) => {
 		// Trim whitespace and remove surrounding quotes (both single and double)
 		return p.trim().replace(/^(['"])([\s\S]*)\1$/, '$2');
 	});

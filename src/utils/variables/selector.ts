@@ -25,12 +25,12 @@ export async function resolveSelector(tabId: number, selectorExpr: string): Prom
 	const selector = rawSelector.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
 	try {
-		const response = await browser.tabs.sendMessage(tabId, {
-			action: "extractContent",
+		const response = (await browser.tabs.sendMessage(tabId, {
+			action: 'extractContent',
 			selector: selector,
 			attribute: attribute,
-			extractHtml: extractHtml
-		}) as { content: string | string[] };
+			extractHtml: extractHtml,
+		})) as { content: string | string[] };
 
 		// Return the raw content (could be array or string)
 		return response ? response.content : undefined;
@@ -55,20 +55,20 @@ export async function processSelector(tabId: number, match: string, currentUrl: 
 	const selector = rawSelector.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
 	try {
-		const response = await browser.tabs.sendMessage(tabId, { 
-			action: "extractContent", 
+		const response = (await browser.tabs.sendMessage(tabId, {
+			action: 'extractContent',
 			selector: selector,
 			attribute: attribute,
-			extractHtml: extractHtml
-		}) as { content: string };
+			extractHtml: extractHtml,
+		})) as { content: string };
 
 		let content = response ? response.content : '';
-	
+
 		const contentString = selectorContentToString(content);
-	
+
 		debugLog('ContentExtractor', 'Applying filters:', { selector, filterString: filtersString });
 		const filteredContent = applyFilters(contentString, filtersString, currentUrl);
-	
+
 		return filteredContent;
 	} catch (error) {
 		console.error('Error extracting content by selector:', error, { selector, attribute, extractHtml });

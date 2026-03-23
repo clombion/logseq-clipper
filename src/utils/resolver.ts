@@ -27,8 +27,7 @@ export function resolveVariable(name: string, variables: { [key: string]: any })
 	const trimmed = name.trim();
 
 	// String literal (single or double quotes)
-	if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-		(trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+	if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
 		return trimmed.slice(1, -1).replace(/\\(.)/g, '$1');
 	}
 
@@ -101,12 +100,12 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 	const attribute = attrMatch ? attrMatch[2] : undefined;
 
 	try {
-		const response = await browser.tabs.sendMessage(tabId, {
-			action: "extractContent",
+		const response = (await browser.tabs.sendMessage(tabId, {
+			action: 'extractContent',
 			selector: selector.replace(/\\"/g, '"'),
 			attribute: attribute,
-			extractHtml: extractHtml
-		}) as { content: string | string[] };
+			extractHtml: extractHtml,
+		})) as { content: string | string[] };
 
 		return response ? response.content : undefined;
 	} catch (error) {
@@ -129,8 +128,7 @@ function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: an
 	// e.g., schema:author might be stored as {{schema:Article:author}}
 	const shortKey = schemaKey.replace('schema:', '');
 	if (!shortKey.includes('@')) {
-		const matchingKey = Object.keys(variables).find(key =>
-			key.includes('@') && key.endsWith(`:${shortKey}}}`));
+		const matchingKey = Object.keys(variables).find((key) => key.includes('@') && key.endsWith(`:${shortKey}}}`));
 		if (matchingKey) {
 			return variables[matchingKey];
 		}

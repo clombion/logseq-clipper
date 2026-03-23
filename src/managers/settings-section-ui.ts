@@ -9,8 +9,8 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	const sections = document.querySelectorAll('.settings-section');
 	const sidebarItems = document.querySelectorAll('#sidebar li[data-section]');
 
-	sections.forEach(s => s.classList.remove('active'));
-	sidebarItems.forEach(item => item.classList.remove('active'));
+	sections.forEach((s) => s.classList.remove('active'));
+	sidebarItems.forEach((item) => item.classList.remove('active'));
 
 	const selectedSection = document.getElementById(`${section}-section`);
 	const selectedSidebarItem = document.querySelector(`#sidebar li[data-section="${section}"]`);
@@ -39,14 +39,14 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 }
 
 function updateSidebarActiveState(activeSection: string): void {
-	document.querySelectorAll('#sidebar li').forEach(item => item.classList.remove('active'));
+	document.querySelectorAll('#sidebar li').forEach((item) => item.classList.remove('active'));
 	const activeItem = document.querySelector(`#sidebar li[data-section="${activeSection}"]`);
 	if (activeItem) activeItem.classList.add('active');
 }
 
 function updateTemplateListActiveState(templateId: string): void {
 	const templateListItems = document.querySelectorAll('#template-list li');
-	templateListItems.forEach(item => {
+	templateListItems.forEach((item) => {
 		item.classList.remove('active');
 		if ((item as HTMLElement).dataset.id === templateId) {
 			item.classList.add('active');
@@ -61,14 +61,18 @@ export function initializeSidebar(): void {
 	const hamburgerMenu = document.getElementById('hamburger-menu');
 
 	if (sidebar) {
-		sidebar.addEventListener('click', (event) => {	
+		sidebar.addEventListener('click', (event) => {
 			const target = event.target as HTMLElement;
-			if (target.dataset.section === 'general'
-				|| target.dataset.section === 'properties'
-				|| target.dataset.section === 'highlighter'
-				|| target.dataset.section === 'interpreter'
-				|| target.dataset.section === 'reader') {
-				showSettingsSection(target.dataset.section as 'general' | 'properties' | 'highlighter' | 'interpreter' | 'reader');
+			if (
+				target.dataset.section === 'general' ||
+				target.dataset.section === 'properties' ||
+				target.dataset.section === 'highlighter' ||
+				target.dataset.section === 'interpreter' ||
+				target.dataset.section === 'reader'
+			) {
+				showSettingsSection(
+					target.dataset.section as 'general' | 'properties' | 'highlighter' | 'interpreter' | 'reader',
+				);
 			}
 			if (settingsContainer) {
 				settingsContainer.classList.remove('sidebar-open');

@@ -10,7 +10,18 @@ interface NavigatorExtended extends Navigator {
 
 declare const window: KagiWindow | undefined;
 
-export async function detectBrowser(): Promise<'chrome' | 'firefox' | 'firefox-mobile' | 'brave' | 'edge' | 'safari' | 'mobile-safari' | 'ipad-os' | 'orion' | 'other'> {
+export async function detectBrowser(): Promise<
+	| 'chrome'
+	| 'firefox'
+	| 'firefox-mobile'
+	| 'brave'
+	| 'edge'
+	| 'safari'
+	| 'mobile-safari'
+	| 'ipad-os'
+	| 'orion'
+	| 'other'
+> {
 	try {
 		// Check if we're in a background script context
 		if (typeof window === 'undefined' || !window) {
@@ -22,22 +33,22 @@ export async function detectBrowser(): Promise<'chrome' | 'firefox' | 'firefox-m
 			}
 			return 'other';
 		}
-		
+
 		// Check for Orion first since its userAgent is Safari
 		if (typeof window.KAGI !== 'undefined') {
 			return 'orion';
 		}
 
 		const userAgent = navigator.userAgent.toLowerCase();
-		
+
 		if (userAgent.includes('firefox')) {
 			return userAgent.includes('mobile') ? 'firefox-mobile' : 'firefox';
-		} else if (userAgent.indexOf("edg/") > -1) {
+		} else if (userAgent.indexOf('edg/') > -1) {
 			return 'edge';
-		} else if (userAgent.indexOf("chrome") > -1) {
+		} else if (userAgent.indexOf('chrome') > -1) {
 			// Check for Brave
 			const nav = navigator as NavigatorExtended;
-			if (nav.brave && await nav.brave.isBrave()) {
+			if (nav.brave && (await nav.brave.isBrave())) {
 				return 'brave';
 			}
 			return 'chrome';
@@ -58,8 +69,7 @@ export async function detectBrowser(): Promise<'chrome' | 'firefox' | 'firefox-m
 }
 
 function isIPad(): boolean {
-	return navigator.userAgent.includes('iPad') ||
-		(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+	return navigator.userAgent.includes('iPad') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
 export async function addBrowserClassToHtml() {
@@ -77,7 +87,7 @@ export async function addBrowserClassToHtml() {
 		'is-safari',
 		'is-mobile-safari',
 		'is-ipad-os',
-		'is-orion'
+		'is-orion',
 	);
 
 	// Add the appropriate class based on the detected browser
@@ -95,7 +105,7 @@ export async function addBrowserClassToHtml() {
 			htmlElement.classList.add('is-chromium', 'is-chrome');
 			break;
 		case 'brave':
-			htmlElement.classList.add('is-chromium','is-brave');
+			htmlElement.classList.add('is-chromium', 'is-brave');
 			break;
 		case 'safari':
 			htmlElement.classList.add('is-safari');

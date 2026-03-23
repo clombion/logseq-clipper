@@ -26,4 +26,3 @@ describe('pascal filter', () => {
 		expect(pascal('')).toBe('');
 	});
 });
-

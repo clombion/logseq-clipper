@@ -26,4 +26,3 @@ describe('snake filter', () => {
 		expect(snake('')).toBe('');
 	});
 });
-

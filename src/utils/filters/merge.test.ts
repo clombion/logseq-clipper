@@ -34,4 +34,3 @@ describe('merge filter', () => {
 		expect(parsed).toEqual(['a', 'b', 'c']);
 	});
 });
-

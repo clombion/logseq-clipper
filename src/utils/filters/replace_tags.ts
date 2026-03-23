@@ -6,8 +6,9 @@ export const replace_tags = (html: string, params: string = ''): string => {
 	params = params.replace(/^(['"])([\s\S]*)\1$/, '$2').replace(/\\(['"])/g, '$1');
 
 	// Split by comma, but respect quoted strings
-	const transformations = params.split(/,(?=(?:(?:[^"']*["'][^"']*["'])*[^"']*$))/)
-		.map(transform => transform.trim())
+	const transformations = params
+		.split(/,(?=(?:(?:[^"']*["'][^"']*["'])*[^"']*$))/)
+		.map((transform) => transform.trim())
 		.filter(Boolean);
 
 	// If no transformations specified, return the original HTML
@@ -17,9 +18,12 @@ export const replace_tags = (html: string, params: string = ''): string => {
 
 	let result = html;
 
-	transformations.forEach(transform => {
-		const [source, target] = transform.split(/(?<!\\)":"/).map(tag => {
-			return tag.trim().replace(/^["']|["']$/g, '').replace(/\\(.)/g, '$1');
+	transformations.forEach((transform) => {
+		const [source, target] = transform.split(/(?<!\\)":"/).map((tag) => {
+			return tag
+				.trim()
+				.replace(/^["']|["']$/g, '')
+				.replace(/\\(.)/g, '$1');
 		});
 
 		if (!source) {
@@ -39,4 +43,4 @@ export const replace_tags = (html: string, params: string = ''): string => {
 	});
 
 	return result;
-}; 
+};

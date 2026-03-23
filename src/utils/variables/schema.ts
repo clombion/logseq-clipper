@@ -1,18 +1,25 @@
 import { applyFilters } from '../filters';
 
 function splitListString(str: string): string[] {
-	return str
-		// Split on numbered items (1. 2. etc) or bullet points (- * •)
-		.split(/(?=\d+\.|[-*•]\s)/)
-		.map(item => item
-			// Remove list markers
-			.replace(/^(?:\d+\.|[-*•])\s*/, '')
-			.trim()
-		)
-		.filter(item => item.length > 0);
+	return (
+		str
+			// Split on numbered items (1. 2. etc) or bullet points (- * •)
+			.split(/(?=\d+\.|[-*•]\s)/)
+			.map((item) =>
+				item
+					// Remove list markers
+					.replace(/^(?:\d+\.|[-*•])\s*/, '')
+					.trim(),
+			)
+			.filter((item) => item.length > 0)
+	);
 }
 
-export async function processSchema(match: string, variables: { [key: string]: string }, currentUrl: string): Promise<string> {
+export async function processSchema(
+	match: string,
+	variables: { [key: string]: string },
+	currentUrl: string,
+): Promise<string> {
 	const [, fullSchemaKey] = match.match(/{{schema:(.*?)}}/) || [];
 	if (!fullSchemaKey) {
 		return '';
@@ -30,7 +37,9 @@ export async function processSchema(match: string, variables: { [key: string]: s
 		// Handle shorthand notation for nested arrays
 		let fullArrayKey = arrayKey;
 		if (!arrayKey.includes('@')) {
-			const matchingKey = Object.keys(variables).find(key => key.includes('@') && key.endsWith(`:${arrayKey}}}`));
+			const matchingKey = Object.keys(variables).find(
+				(key) => key.includes('@') && key.endsWith(`:${arrayKey}}}`),
+			);
 			if (matchingKey) {
 				fullArrayKey = matchingKey.replace('{{schema:', '').replace('}}', '');
 			}
@@ -38,7 +47,7 @@ export async function processSchema(match: string, variables: { [key: string]: s
 
 		try {
 			const rawValue = variables[`{{schema:${fullArrayKey}}}`] || '[]';
-			
+
 			// Check if the raw value looks like any kind of list
 			if (rawValue.trim().match(/^(?:\d+\.|[-*•]\s)/m)) {
 				const list = splitListString(rawValue);
@@ -53,10 +62,14 @@ export async function processSchema(match: string, variables: { [key: string]: s
 				const arrayValue = JSON.parse(rawValue);
 				if (Array.isArray(arrayValue)) {
 					if (indexOrStar === '*') {
-						schemaValue = JSON.stringify(arrayValue.map(item => getNestedProperty(item, propertyKey.slice(1))).filter(Boolean));
+						schemaValue = JSON.stringify(
+							arrayValue.map((item) => getNestedProperty(item, propertyKey.slice(1))).filter(Boolean),
+						);
 					} else {
 						const index = parseInt(indexOrStar, 10);
-						schemaValue = arrayValue[index] ? getNestedProperty(arrayValue[index], propertyKey.slice(1)) : '';
+						schemaValue = arrayValue[index]
+							? getNestedProperty(arrayValue[index], propertyKey.slice(1))
+							: '';
 					}
 				}
 			}
@@ -68,7 +81,9 @@ export async function processSchema(match: string, variables: { [key: string]: s
 	} else {
 		// Handle non-array schemas
 		if (!schemaKey.includes('@')) {
-			const matchingKey = Object.keys(variables).find(key => key.includes('@') && key.endsWith(`:${schemaKey}}}`));
+			const matchingKey = Object.keys(variables).find(
+				(key) => key.includes('@') && key.endsWith(`:${schemaKey}}}`),
+			);
 			if (matchingKey) {
 				schemaValue = variables[matchingKey];
 			}

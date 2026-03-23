@@ -26,4 +26,3 @@ describe('capitalize filter', () => {
 		expect(capitalize('h')).toBe('H');
 	});
 });
-

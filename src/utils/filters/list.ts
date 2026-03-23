@@ -13,7 +13,7 @@ export const validateListParams = (param: string | undefined): ParamValidationRe
 	if (!validListTypes.includes(param)) {
 		return {
 			valid: false,
-			error: `invalid list type "${param}". Use "numbered", "task", or "numbered-task"`
+			error: `invalid list type "${param}". Use "numbered", "task", or "numbered-task"`,
 		};
 	}
 
@@ -42,7 +42,7 @@ export const list = (input: string | any[], param?: string): string => {
 			default:
 				prefix = '- ';
 		}
-		
+
 		if (Array.isArray(item)) {
 			return processArray(item, type, depth + 1);
 		}
@@ -50,14 +50,16 @@ export const list = (input: string | any[], param?: string): string => {
 	};
 
 	const processArray = (arr: any[], type: ListType, depth: number = 0): string => {
-		return arr.map((item, index) => {
-			let itemType = type;
-			if (type === 'numbered' || type === 'numbered-task') {
-				const number = index + 1;
-				return processListItem(item, itemType, depth).replace(/^\d+/, number.toString());
-			}
-			return processListItem(item, itemType, depth);
-		}).join('\n');
+		return arr
+			.map((item, index) => {
+				let itemType = type;
+				if (type === 'numbered' || type === 'numbered-task') {
+					const number = index + 1;
+					return processListItem(item, itemType, depth).replace(/^\d+/, number.toString());
+				}
+				return processListItem(item, itemType, depth);
+			})
+			.join('\n');
 	};
 
 	const determineListType = (param?: string): ListType => {

@@ -31,4 +31,3 @@ describe('footnote filter', () => {
 		expect(footnote('plain text')).toBe('plain text');
 	});
 });
-

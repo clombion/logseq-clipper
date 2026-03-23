@@ -1,15 +1,20 @@
-import { 
+import {
 	deleteTemplate,
 	duplicateTemplate,
-	findTemplateById, 
-	getEditingTemplateIndex, 
-	loadTemplates, 
-	saveTemplateSettings, 
+	findTemplateById,
+	getEditingTemplateIndex,
+	loadTemplates,
+	saveTemplateSettings,
 	templates,
 	cleanupTemplateStorage,
-	rebuildTemplateList
+	rebuildTemplateList,
 } from '../managers/template-manager';
-import { updateTemplateList, showTemplateEditor, initializeAddPropertyButton, initializeTemplateValidation } from '../managers/template-ui';
+import {
+	updateTemplateList,
+	showTemplateEditor,
+	initializeAddPropertyButton,
+	initializeTemplateValidation,
+} from '../managers/template-ui';
 import { initializeGeneralSettings } from '../managers/general-settings';
 import { initializeInterpreterSettings } from '../managers/interpreter-settings';
 import { showSettingsSection, initializeSidebar } from '../managers/settings-section-ui';
@@ -23,7 +28,14 @@ import { updateUrl, getUrlParameters } from '../utils/routing';
 import { addBrowserClassToHtml } from '../utils/browser-detection';
 import { initializeMenu } from '../managers/menu';
 import { addMenuItemListener } from '../managers/menu';
-import { translatePage, getCurrentLanguage, setLanguage, getAvailableLanguages, getMessage, setupLanguageAndDirection } from '../utils/i18n';
+import {
+	translatePage,
+	getCurrentLanguage,
+	setLanguage,
+	getAvailableLanguages,
+	getMessage,
+	setupLanguageAndDirection,
+} from '../utils/i18n';
 
 declare global {
 	interface Window {
@@ -41,17 +53,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 	async function initializeSettings(): Promise<void> {
 		try {
 			await translatePage();
-			
+
 			await initializeGeneralSettings();
 			await initializeReaderSettings();
-			
+
 			// Initialize interpreter settings with error handling
 			try {
 				await initializeInterpreterSettings();
 			} catch (error) {
 				console.error('Error initializing interpreter settings, continuing with defaults:', error);
 			}
-			
+
 			// Load templates with error handling
 			let loadedTemplates;
 			try {
@@ -85,18 +97,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 				const errorDiv = document.createElement('div');
 				errorDiv.style.padding = '20px';
 				errorDiv.style.textAlign = 'center';
-				
+
 				const heading = document.createElement('h2');
 				heading.textContent = 'Settings error';
 				errorDiv.appendChild(heading);
-				
+
 				const message = document.createElement('p');
 				message.textContent = 'There was an error loading your settings. This may be due to corrupted data.';
 				errorDiv.appendChild(message);
-				
+
 				errorContainer.appendChild(errorDiv);
 			}
-			
+
 			// Try to initialize at least the sidebar for navigation
 			try {
 				initializeSidebar();
@@ -110,14 +122,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 		try {
 			await setupLanguageAndDirection();
 			await translatePage();
-			
+
 			// Populate language options
 			const languages = getAvailableLanguages();
 			const currentLanguage = await getCurrentLanguage();
-			
+
 			// Clear existing options
 			languageSelect.textContent = '';
-			
+
 			// Add language options
 			languages.forEach((lang: { code: string; name: string }) => {
 				const option = document.createElement('option');
@@ -162,14 +174,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 		if (editingTemplateIndex !== -1) {
 			const currentTemplate = templates[editingTemplateIndex];
 			const newTemplate = duplicateTemplate(currentTemplate.id);
-			saveTemplateSettings().then(() => {
-				updateTemplateList();
-				showTemplateEditor(newTemplate);
-				updateUrl('templates', newTemplate.id);
-			}).catch(error => {
-				console.error('Failed to duplicate template:', error);
-				alert(getMessage('failedToDuplicateTemplate'));
-			});
+			saveTemplateSettings()
+				.then(() => {
+					updateTemplateList();
+					showTemplateEditor(newTemplate);
+					updateUrl('templates', newTemplate.id);
+				})
+				.catch((error) => {
+					console.error('Failed to duplicate template:', error);
+					alert(getMessage('failedToDuplicateTemplate'));
+				});
 		}
 	}
 
@@ -198,7 +212,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 	async function handleUrlParameters(): Promise<void> {
 		const { section, templateId } = getUrlParameters();
 
-		if (section === 'general' || section === 'interpreter' || section === 'properties' || section === 'highlighter' || section === 'reader') {
+		if (
+			section === 'general' ||
+			section === 'interpreter' ||
+			section === 'properties' ||
+			section === 'highlighter' ||
+			section === 'reader'
+		) {
 			showSettingsSection(section);
 		} else if (templateId) {
 			const template = findTemplateById(templateId);

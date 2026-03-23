@@ -69,4 +69,3 @@ describe('date_modify param validation', () => {
 		expect(result.error).toContain('invalid format');
 	});
 });
-

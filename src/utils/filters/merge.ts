@@ -26,9 +26,9 @@ export const merge = (str: string, param?: string): string => {
 	try {
 		// Split the parameter by commas, but not within quotes
 		const additionalItems = param.match(/(?:[^,"']+|"[^"]*"|'[^']*')+/g) || [];
-		
+
 		// Process each item to remove quotes
-		const processedItems = additionalItems.map(item => {
+		const processedItems = additionalItems.map((item) => {
 			item = item.trim();
 			return item.replace(/^(['"])([\s\S]*)\1$/, '$2');
 		});
@@ -38,4 +38,4 @@ export const merge = (str: string, param?: string): string => {
 		console.error('Error processing parameters in merge filter:', error);
 		return JSON.stringify(array);
 	}
-}; 
+};

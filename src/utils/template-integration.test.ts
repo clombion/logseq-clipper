@@ -14,8 +14,12 @@ import { createAsyncResolver, createSelectorProcessor } from '../api';
 
 const FROZEN_DATE = new Date('2025-01-15T12:00:00Z');
 
-beforeAll(() => { vi.useFakeTimers({ now: FROZEN_DATE }); });
-afterAll(() => { vi.useRealTimers(); });
+beforeAll(() => {
+	vi.useFakeTimers({ now: FROZEN_DATE });
+});
+afterAll(() => {
+	vi.useRealTimers();
+});
 
 // ---------------------------------------------------------------------------
 // Fixture types
@@ -58,8 +62,7 @@ async function runFixture(html: string, url: string, template: FixtureTemplate):
 	const asyncResolver = createAsyncResolver(document);
 	const selectorProcessor = createSelectorProcessor(document);
 
-	const compileFn = (text: string) =>
-		compileTemplate(0, text, variables, url, asyncResolver, selectorProcessor);
+	const compileFn = (text: string) => compileTemplate(0, text, variables, url, asyncResolver, selectorProcessor);
 
 	// Compile properties with type-aware formatting
 	const compiledProperties = await Promise.all(
@@ -67,7 +70,7 @@ async function runFixture(html: string, url: string, template: FixtureTemplate):
 			let value = await compileFn(prop.value);
 			value = formatPropertyValue(value, prop.type, prop.value);
 			return { name: prop.name, value };
-		})
+		}),
 	);
 
 	// Build type map from template properties
@@ -92,8 +95,8 @@ const FIXTURES_DIR = join(__dirname, 'fixtures', 'templates');
 const EXPECTED_DIR = join(__dirname, 'fixtures', 'expected');
 
 function getFixtures(): Array<{ name: string; jsonPath: string; htmlPath: string }> {
-	const files = readdirSync(FIXTURES_DIR).filter(f => f.endsWith('.json'));
-	return files.map(file => {
+	const files = readdirSync(FIXTURES_DIR).filter((f) => f.endsWith('.json'));
+	return files.map((file) => {
 		const name = basename(file, extname(file));
 		return {
 			name,
@@ -144,10 +147,7 @@ describe('Template fixtures', () => {
 				console.log(`Created baseline for ${name}`);
 				return;
 			}
-			throw new Error(
-				`No expected output for fixture "${name}". ` +
-				`Run with UPDATE_FIXTURES=1 to create it.`
-			);
+			throw new Error(`No expected output for fixture "${name}". ` + `Run with UPDATE_FIXTURES=1 to create it.`);
 		}
 
 		expect(result.trim()).toEqual(expected.trim());

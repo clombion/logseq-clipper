@@ -28,4 +28,3 @@ describe('remove_tags filter', () => {
 		expect(remove_tags('<p>text</p>', 'div')).toBe('<p>text</p>');
 	});
 });
-

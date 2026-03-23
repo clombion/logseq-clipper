@@ -11,7 +11,7 @@ export const validateSafeNameParams = (param: string | undefined): ParamValidati
 	if (!validOsParams.includes(param.toLowerCase().trim())) {
 		return {
 			valid: false,
-			error: `invalid OS "${param}". Use "windows", "mac", or "linux"`
+			error: `invalid OS "${param}". Use "windows", "mac", or "linux"`,
 		};
 	}
 
@@ -34,14 +34,10 @@ export const safe_name = (str: string, param?: string): string => {
 				.replace(/[\s.]+$/, '');
 			break;
 		case 'mac':
-			sanitized = sanitized
-				.replace(/[\/:\x00-\x1F]/g, '')
-				.replace(/^\./, '_');
+			sanitized = sanitized.replace(/[\/:\x00-\x1F]/g, '').replace(/^\./, '_');
 			break;
 		case 'linux':
-			sanitized = sanitized
-				.replace(/[\/\x00-\x1F]/g, '')
-				.replace(/^\./, '_');
+			sanitized = sanitized.replace(/[\/\x00-\x1F]/g, '').replace(/^\./, '_');
 			break;
 		default:
 			// Most conservative approach (combination of all rules)

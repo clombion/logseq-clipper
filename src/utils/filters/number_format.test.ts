@@ -30,4 +30,3 @@ describe('number_format filter', () => {
 		expect(number_format('-1234567')).toBe('-1,234,567');
 	});
 });
-

@@ -1,14 +1,14 @@
-import { 
-	handleTextSelection, 
-	highlightElement, 
-	AnyHighlightData, 
-	highlights, 
+import {
+	handleTextSelection,
+	highlightElement,
+	AnyHighlightData,
+	highlights,
 	isApplyingHighlights,
 	sortHighlights,
 	applyHighlights,
 	saveHighlights,
 	updateHighlights,
-	updateHighlighterMenu
+	updateHighlighterMenu,
 } from './highlighter';
 import { throttle } from './throttle';
 import { getElementByXPath, isDarkColor } from './dom-utils';
@@ -25,15 +25,38 @@ const LINE_BY_LINE_OVERLAY_TAGS = ['P'];
 function isIgnoredElement(element: Element): boolean {
 	const tagName = element.tagName.toUpperCase();
 	const isDisallowedTag = ![
-		'SPAN', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
-		'MATH', 'FIGURE', 'UL', 'OL', 'TABLE', 'LI', 'TR', 'TD', 'TH', 'CODE', 'PRE', 'BLOCKQUOTE', 'EM', 'STRONG', 'A'
+		'SPAN',
+		'P',
+		'H1',
+		'H2',
+		'H3',
+		'H4',
+		'H5',
+		'H6',
+		'MATH',
+		'FIGURE',
+		'UL',
+		'OL',
+		'TABLE',
+		'LI',
+		'TR',
+		'TD',
+		'TH',
+		'CODE',
+		'PRE',
+		'BLOCKQUOTE',
+		'EM',
+		'STRONG',
+		'A',
 	].includes(tagName);
 
-	return element.tagName.toLowerCase() === 'html' || 
-		element.tagName.toLowerCase() === 'body' || 
+	return (
+		element.tagName.toLowerCase() === 'html' ||
+		element.tagName.toLowerCase() === 'body' ||
 		element.classList.contains('obsidian-highlighter-menu') ||
 		element.closest('.obsidian-highlighter-menu') !== null ||
-		isDisallowedTag;
+		isDisallowedTag
+	);
 }
 
 // Handles mouse move events for hover effects
@@ -83,7 +106,7 @@ export function handleMouseUp(event: MouseEvent | TouchEvent) {
 				elementToProcess = target.closest('table');
 				if (!elementToProcess) {
 					// Clicked table cell/row not in a table, so do nothing.
-					return; 
+					return;
 				}
 				// If a table is found, elementToProcess is now the table.
 				// highlightElement will verify if 'TABLE' is an allowed tag.
@@ -122,8 +145,10 @@ export function handleTouchMove(event: TouchEvent) {
 	const touch = event.touches[0];
 	const moveThreshold = 10; // pixels
 
-	if (Math.abs(touch.clientX - touchStartX) > moveThreshold ||
-		Math.abs(touch.clientY - touchStartY) > moveThreshold) {
+	if (
+		Math.abs(touch.clientX - touchStartX) > moveThreshold ||
+		Math.abs(touch.clientY - touchStartY) > moveThreshold
+	) {
 		isTouchMoved = true;
 	}
 
@@ -132,7 +157,7 @@ export function handleTouchMove(event: TouchEvent) {
 
 // Update event listeners for highlight overlays
 export function updateHighlightListeners() {
-	document.querySelectorAll('.obsidian-highlight-overlay').forEach(highlight => {
+	document.querySelectorAll('.obsidian-highlight-overlay').forEach((highlight) => {
 		highlight.removeEventListener('click', handleHighlightClick);
 		highlight.removeEventListener('touchend', handleHighlightClick);
 		highlight.addEventListener('click', handleHighlightClick);
@@ -141,10 +166,10 @@ export function updateHighlightListeners() {
 }
 
 // Find a text node at a given offset within an element
-function findTextNodeAtOffset(element: Element, offset: number): { node: Node, offset: number } | null {
+function findTextNodeAtOffset(element: Element, offset: number): { node: Node; offset: number } | null {
 	let currentOffset = 0;
 	const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-	
+
 	let node: Node | null = treeWalker.currentNode;
 	while (node) {
 		const nodeLength = node.textContent?.length || 0;
@@ -156,19 +181,19 @@ function findTextNodeAtOffset(element: Element, offset: number): { node: Node, o
 		currentOffset += nodeLength;
 		node = treeWalker.nextNode();
 	}
-	
+
 	// If we couldn't find the exact offset, return the first text node with offset 0
 	const firstNode = document.createTreeWalker(element, NodeFilter.SHOW_TEXT).firstChild();
 	if (firstNode) {
 		return { node: firstNode, offset: 0 };
 	}
-	
+
 	return null;
 }
 
 // Calculate the average line height of a set of rectangles
 function calculateAverageLineHeight(rects: DOMRectList): number {
-	const heights = Array.from(rects).map(rect => rect.height);
+	const heights = Array.from(rects).map((rect) => rect.height);
 	const sum = heights.reduce((a, b) => a + b, 0);
 	return sum / heights.length;
 }
@@ -179,7 +204,7 @@ function processRangeForOverlayRects(
 	existingOverlays: Element[],
 	index: number,
 	notes: string[] | undefined,
-	targetElementForFallback: Element
+	targetElementForFallback: Element,
 ) {
 	const rects = range.getClientRects();
 
@@ -190,8 +215,8 @@ function processRangeForOverlayRects(
 	}
 
 	const averageLineHeight = calculateAverageLineHeight(rects);
-	const textRects = Array.from(rects).filter(rect => rect.height <= averageLineHeight * 1.5);
-	const complexRects = Array.from(rects).filter(rect => rect.height > averageLineHeight * 1.5);
+	const textRects = Array.from(rects).filter((rect) => rect.height <= averageLineHeight * 1.5);
+	const complexRects = Array.from(rects).filter((rect) => rect.height > averageLineHeight * 1.5);
 
 	if (textRects.length > 0) {
 		mergeHighlightOverlayRects(textRects, content, existingOverlays, true, index, notes);
@@ -203,11 +228,14 @@ function processRangeForOverlayRects(
 
 // Plan out the overlay rectangles depending on the type of highlight
 export function planHighlightOverlayRects(target: Element, highlight: AnyHighlightData, index: number) {
-	const existingOverlays = Array.from(document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`));
+	const existingOverlays = Array.from(
+		document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`),
+	);
 	const tagName = target.tagName.toUpperCase(); // Get tagName early for P check
-	
+
 	if (highlight.type === 'complex' || highlight.type === 'element') {
-		if (LINE_BY_LINE_OVERLAY_TAGS.includes(tagName)) { // LINE_BY_LINE_OVERLAY_TAGS is now just ['P']
+		if (LINE_BY_LINE_OVERLAY_TAGS.includes(tagName)) {
+			// LINE_BY_LINE_OVERLAY_TAGS is now just ['P']
 			const range = document.createRange();
 			try {
 				range.selectNodeContents(target);
@@ -229,7 +257,7 @@ export function planHighlightOverlayRects(target: Element, highlight: AnyHighlig
 		try {
 			const startNodeResult = findTextNodeAtOffset(target, highlight.startOffset);
 			const endNodeResult = findTextNodeAtOffset(target, highlight.endOffset);
-			
+
 			if (startNodeResult && endNodeResult) {
 				try {
 					// Try to set start position
@@ -239,7 +267,7 @@ export function planHighlightOverlayRects(target: Element, highlight: AnyHighlig
 						// Fallback to node start
 						range.setStart(startNodeResult.node, 0);
 					}
-					
+
 					// Try to set end position
 					try {
 						range.setEnd(endNodeResult.node, endNodeResult.offset);
@@ -247,13 +275,27 @@ export function planHighlightOverlayRects(target: Element, highlight: AnyHighlig
 						// Fallback to node end
 						range.setEnd(endNodeResult.node, endNodeResult.node.textContent?.length || 0);
 					}
-					
-					processRangeForOverlayRects(range, highlight.content, existingOverlays, index, highlight.notes, target);
 
-				} catch (error) { // Catch errors from setStart/setEnd or processRange itself
+					processRangeForOverlayRects(
+						range,
+						highlight.content,
+						existingOverlays,
+						index,
+						highlight.notes,
+						target,
+					);
+				} catch (error) {
+					// Catch errors from setStart/setEnd or processRange itself
 					console.warn('Error setting range or processing rects for text highlight:', error);
 					const rect = target.getBoundingClientRect(); // Fallback
-					mergeHighlightOverlayRects([rect], highlight.content, existingOverlays, false, index, highlight.notes);
+					mergeHighlightOverlayRects(
+						[rect],
+						highlight.content,
+						existingOverlays,
+						false,
+						index,
+						highlight.notes,
+					);
 				}
 			} else {
 				// Fallback to element highlight if start/end nodes not found
@@ -261,7 +303,8 @@ export function planHighlightOverlayRects(target: Element, highlight: AnyHighlig
 				const rect = target.getBoundingClientRect();
 				mergeHighlightOverlayRects([rect], highlight.content, existingOverlays, false, index, highlight.notes);
 			}
-		} catch (error) { // Outer catch for findTextNodeAtOffset or other unexpected issues
+		} catch (error) {
+			// Outer catch for findTextNodeAtOffset or other unexpected issues
 			console.error('Error creating text highlight:', error);
 			const rect = target.getBoundingClientRect();
 			mergeHighlightOverlayRects([rect], highlight.content, existingOverlays, false, index, highlight.notes);
@@ -272,7 +315,14 @@ export function planHighlightOverlayRects(target: Element, highlight: AnyHighlig
 }
 
 // Merge a set of rectangles, to avoid adjacent and overlapping highlights where possible
-function mergeHighlightOverlayRects(rects: DOMRect[], content: string, existingOverlays: Element[], isText: boolean = false, index: number, notes?: string[]) {
+function mergeHighlightOverlayRects(
+	rects: DOMRect[],
+	content: string,
+	existingOverlays: Element[],
+	isText: boolean = false,
+	index: number,
+	notes?: string[],
+) {
 	let mergedRects: DOMRect[] = [];
 	let currentRect: DOMRect | null = null;
 
@@ -293,7 +343,7 @@ function mergeHighlightOverlayRects(rects: DOMRect[], content: string, existingO
 	}
 
 	for (const rect of mergedRects) {
-		const isDuplicate = existingOverlays.some(overlay => {
+		const isDuplicate = existingOverlays.some((overlay) => {
 			const overlayRect = overlay.getBoundingClientRect();
 			return (
 				Math.abs(rect.left - overlayRect.left) < 1 &&
@@ -310,23 +360,29 @@ function mergeHighlightOverlayRects(rects: DOMRect[], content: string, existingO
 }
 
 // Create an overlay element
-function createHighlightOverlayElement(rect: DOMRect, content: string, isText: boolean = false, index: number, notes?: string[]) {
+function createHighlightOverlayElement(
+	rect: DOMRect,
+	content: string,
+	isText: boolean = false,
+	index: number,
+	notes?: string[],
+) {
 	const overlay = document.createElement('div');
 	overlay.className = 'obsidian-highlight-overlay';
 	overlay.dataset.highlightIndex = index.toString();
-	
+
 	overlay.style.position = 'absolute';
 
 	overlay.style.left = `${rect.left + window.scrollX - 2}px`;
 	overlay.style.top = `${rect.top + window.scrollY - 2}px`;
 	overlay.style.width = `${rect.width + 4}px`;
 	overlay.style.height = `${rect.height + 4}px`;
-	
+
 	overlay.setAttribute('data-content', content);
 	if (notes && notes.length > 0) {
 		overlay.setAttribute('data-notes', JSON.stringify(notes));
 	}
-	
+
 	// Get the background color of the element under the highlight
 	const elementAtPoint = document.elementFromPoint(rect.left, rect.top);
 	if (elementAtPoint) {
@@ -335,7 +391,7 @@ function createHighlightOverlayElement(rect: DOMRect, content: string, isText: b
 			overlay.classList.add('obsidian-highlight-overlay-dark');
 		}
 	}
-	
+
 	overlay.addEventListener('click', handleHighlightClick);
 	overlay.addEventListener('touchend', handleHighlightClick);
 	document.body.appendChild(overlay);
@@ -361,7 +417,9 @@ function updateHighlightOverlayPositions() {
 	highlights.forEach((highlight, index) => {
 		const target = getElementByXPath(highlight.xpath);
 		if (target) {
-			const existingOverlays = document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`);
+			const existingOverlays = document.querySelectorAll(
+				`.obsidian-highlight-overlay[data-highlight-index="${index}"]`,
+			);
 			if (existingOverlays.length > 0) {
 				removeExistingHighlightOverlays(index);
 			}
@@ -372,7 +430,9 @@ function updateHighlightOverlayPositions() {
 
 // Remove existing highlight overlays for a specific index
 function removeExistingHighlightOverlays(index: number) {
-	document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`).forEach(el => el.remove());
+	document
+		.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`)
+		.forEach((el) => el.remove());
 }
 
 const throttledUpdateHighlights = throttle(() => {
@@ -386,14 +446,15 @@ window.addEventListener('scroll', throttledUpdateHighlights);
 
 const observer = new MutationObserver((mutations) => {
 	if (!isApplyingHighlights) {
-		const shouldUpdate = mutations.some(mutation => 
-			(mutation.type === 'childList' && 
-			 (mutation.target instanceof Element) && 
-			 !mutation.target.id.startsWith('obsidian-highlight')) || 
-			(mutation.type === 'attributes' && 
-			 (mutation.attributeName === 'style' || mutation.attributeName === 'class') &&
-			 (mutation.target instanceof Element) &&
-			 !mutation.target.id.startsWith('obsidian-highlight'))
+		const shouldUpdate = mutations.some(
+			(mutation) =>
+				(mutation.type === 'childList' &&
+					mutation.target instanceof Element &&
+					!mutation.target.id.startsWith('obsidian-highlight')) ||
+				(mutation.type === 'attributes' &&
+					(mutation.attributeName === 'style' || mutation.attributeName === 'class') &&
+					mutation.target instanceof Element &&
+					!mutation.target.id.startsWith('obsidian-highlight')),
 		);
 		if (shouldUpdate) {
 			throttledUpdateHighlights();
@@ -401,12 +462,12 @@ const observer = new MutationObserver((mutations) => {
 	}
 });
 
-observer.observe(document.body, { 
-	childList: true, 
-	subtree: true, 
+observer.observe(document.body, {
+	childList: true,
+	subtree: true,
 	attributes: true,
 	attributeFilter: ['style', 'class'],
-	characterData: false
+	characterData: false,
 });
 
 // Create or update the hover overlay used to indicate which element will be highlighted
@@ -428,7 +489,11 @@ function createOrUpdateHoverOverlay(target: Element) {
 	// (or if it's html, body etc.).
 	if (elementForHoverRect && !isIgnoredElement(elementForHoverRect)) {
 		// This is a valid element to get bounds from.
-	} else if (target.parentElement && !isIgnoredElement(target.parentElement) && !['TD', 'TH', 'TR'].includes(eventTargetTagName)) {
+	} else if (
+		target.parentElement &&
+		!isIgnoredElement(target.parentElement) &&
+		!['TD', 'TH', 'TR'].includes(eventTargetTagName)
+	) {
 		// If the primary elementForHoverRect (table or original target) was not valid (null or ignored),
 		// AND the original event target was not a table cell (because for cells, we only care about the table's validity),
 		// THEN consider the original event target's parent as the element for the hover rectangle.
@@ -450,7 +515,7 @@ function createOrUpdateHoverOverlay(target: Element) {
 		hoverOverlay.id = 'obsidian-highlight-hover-overlay';
 		document.body.appendChild(hoverOverlay);
 	}
-	
+
 	const rect = elementForHoverRect.getBoundingClientRect();
 
 	hoverOverlay.style.position = 'absolute';
@@ -461,7 +526,7 @@ function createOrUpdateHoverOverlay(target: Element) {
 	hoverOverlay.style.display = 'block';
 
 	// Remove 'is-hovering' class from all highlight overlays
-	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach(el => {
+	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach((el) => {
 		el.classList.remove('is-hovering');
 	});
 
@@ -473,7 +538,7 @@ function createOrUpdateHoverOverlay(target: Element) {
 		const index = target.getAttribute('data-highlight-index');
 		if (index) {
 			// Add 'is-hovering' class to all highlight overlays with the same index
-			document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`).forEach(el => {
+			document.querySelectorAll(`.obsidian-highlight-overlay[data-highlight-index="${index}"]`).forEach((el) => {
 				el.classList.add('is-hovering');
 			});
 			// Add 'on-highlight' class to hover overlay
@@ -490,7 +555,7 @@ export function removeHoverOverlay() {
 	lastHoverTarget = null;
 
 	// Remove 'is-hovering' class from all highlight overlays
-	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach(el => {
+	document.querySelectorAll('.obsidian-highlight-overlay.is-hovering').forEach((el) => {
 		el.classList.remove('is-hovering');
 	});
 }
@@ -500,7 +565,7 @@ async function handleHighlightClick(event: Event) {
 	event.stopPropagation();
 	event.preventDefault(); // Prevent default touch behavior
 	const overlay = event.currentTarget as HTMLElement;
-	
+
 	try {
 		if (!overlay || !overlay.dataset) {
 			return;
@@ -536,6 +601,6 @@ export function removeExistingHighlights() {
 	const existingHighlights = document.querySelectorAll('.obsidian-highlight-overlay');
 	console.log('existingHighlights', existingHighlights.length);
 	if (existingHighlights.length > 0) {
-		existingHighlights.forEach(el => el.remove());
+		existingHighlights.forEach((el) => el.remove());
 	}
 }

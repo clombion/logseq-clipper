@@ -8,7 +8,7 @@ import {
 	planHighlightOverlayRects,
 	removeExistingHighlights,
 	handleTouchStart,
-	handleTouchMove
+	handleTouchMove,
 } from './highlighter-overlays';
 import { detectBrowser, addBrowserClassToHtml } from './browser-detection';
 import { generalSettings, loadSettings } from './storage-utils';
@@ -22,35 +22,35 @@ function createSVG(config: {
 	viewBox?: string;
 	className?: string;
 	paths?: string[];
-	lines?: Array<{x1: string, y1: string, x2: string, y2: string}>;
+	lines?: Array<{ x1: string; y1: string; x2: string; y2: string }>;
 }): SVGElement {
 	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-	
+
 	if (config.width) svg.setAttribute('width', config.width);
 	if (config.height) svg.setAttribute('height', config.height);
 	if (config.viewBox) svg.setAttribute('viewBox', config.viewBox);
 	if (config.className) svg.setAttribute('class', config.className);
-	
+
 	// Default attributes for all SVGs
 	svg.setAttribute('fill', 'none');
 	svg.setAttribute('stroke', 'currentColor');
 	svg.setAttribute('stroke-width', '2');
 	svg.setAttribute('stroke-linecap', 'round');
 	svg.setAttribute('stroke-linejoin', 'round');
-	
+
 	// Add paths
 	if (config.paths) {
-		config.paths.forEach(pathData => {
+		config.paths.forEach((pathData) => {
 			const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 			path.setAttribute('d', pathData);
 			svg.appendChild(path);
 		});
 	}
-	
+
 	// Add lines
 	if (config.lines) {
-		config.lines.forEach(lineData => {
+		config.lines.forEach((lineData) => {
 			const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 			line.setAttribute('x1', lineData.x1);
 			line.setAttribute('y1', lineData.y1);
@@ -59,7 +59,7 @@ function createSVG(config: {
 			svg.appendChild(line);
 		});
 	}
-	
+
 	return svg;
 }
 
@@ -81,12 +81,41 @@ let redoHistory: HistoryAction[] = [];
 const MAX_HISTORY_LENGTH = 30;
 
 const ALLOWED_HIGHLIGHT_TAGS = [
-	'SPAN', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
-	'MATH', 'FIGURE', 'UL', 'OL', 'TABLE', 'LI', 'CODE', 'PRE', 'BLOCKQUOTE', 'EM', 'STRONG', 'A'
+	'SPAN',
+	'P',
+	'H1',
+	'H2',
+	'H3',
+	'H4',
+	'H5',
+	'H6',
+	'MATH',
+	'FIGURE',
+	'UL',
+	'OL',
+	'TABLE',
+	'LI',
+	'CODE',
+	'PRE',
+	'BLOCKQUOTE',
+	'EM',
+	'STRONG',
+	'A',
 ];
 
 const BLOCK_LEVEL_TAGS_FOR_SPLIT = [
-	'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'PRE', 'BLOCKQUOTE', 'FIGURE', 'TABLE'
+	'P',
+	'H1',
+	'H2',
+	'H3',
+	'H4',
+	'H5',
+	'H6',
+	'LI',
+	'PRE',
+	'BLOCKQUOTE',
+	'FIGURE',
+	'TABLE',
 ];
 
 export interface HighlightData {
@@ -136,7 +165,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 		disableLinkClicks();
 		createHighlighterMenu();
 		addBrowserClassToHtml();
-		browser.runtime.sendMessage({ action: "highlighterModeChanged", isActive: true });
+		browser.runtime.sendMessage({ action: 'highlighterModeChanged', isActive: true });
 		applyHighlights();
 	} else {
 		document.removeEventListener('mouseup', handleMouseUp);
@@ -148,7 +177,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 		removeHoverOverlay();
 		enableLinkClicks();
 		removeHighlighterMenu();
-		browser.runtime.sendMessage({ action: "highlighterModeChanged", isActive: false });
+		browser.runtime.sendMessage({ action: 'highlighterModeChanged', isActive: false });
 		if (!generalSettings.alwaysShowHighlights) {
 			removeExistingHighlights();
 		}
@@ -212,7 +241,7 @@ async function handleClipButtonClick(e: Event) {
 	const browserType = await detectBrowser();
 
 	try {
-		const response = await browser.runtime.sendMessage({action: "openPopup"});
+		const response = await browser.runtime.sendMessage({ action: 'openPopup' });
 		if (response && typeof response === 'object' && 'success' in response) {
 			if (!response.success) {
 				throw new Error((response as { error?: string }).error || 'Unknown error');
@@ -223,7 +252,9 @@ async function handleClipButtonClick(e: Event) {
 	} catch (error) {
 		console.error('Error opening popup:', error);
 		if (browserType === 'firefox') {
-			alert("Additional permissions required. To open Web Clipper from the highlighter, go to about:config and set this to true:\n\nextensions.openPopupWithoutUserGesture.enabled");
+			alert(
+				'Additional permissions required. To open Web Clipper from the highlighter, go to about:config and set this to true:\n\nextensions.openPopupWithoutUserGesture.enabled',
+			);
 		} else {
 			console.error('Failed to open popup:', error);
 		}
@@ -233,19 +264,19 @@ async function handleClipButtonClick(e: Event) {
 export function createHighlighterMenu() {
 	// Check if the menu already exists
 	let menu = document.querySelector('.obsidian-highlighter-menu');
-	
+
 	// If the menu doesn't exist, create it
 	if (!menu) {
 		menu = document.createElement('div');
 		menu.className = 'obsidian-highlighter-menu';
 		document.body.appendChild(menu);
 	}
-	
+
 	const highlightCount = highlights.length;
 	const highlightText = `${highlightCount}`;
 
 	menu.textContent = '';
-	
+
 	// Add clip button or no highlights message
 	if (highlightCount > 0) {
 		const clipButton = document.createElement('button');
@@ -253,27 +284,23 @@ export function createHighlighterMenu() {
 		clipButton.className = 'mod-cta';
 		clipButton.textContent = 'Clip highlights';
 		menu.appendChild(clipButton);
-		
+
 		// Add clear highlights button
 		const clearButton = document.createElement('button');
 		clearButton.id = 'obsidian-clear-highlights';
 		clearButton.textContent = highlightText + ' ';
-		
+
 		// Add trash icon
 		const trashSvg = createSVG({
 			width: '16',
 			height: '16',
 			viewBox: '0 0 24 24',
 			className: 'lucide lucide-trash-2',
-			paths: [
-				'M3 6h18',
-				'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6',
-				'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'
-			],
+			paths: ['M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'],
 			lines: [
-				{x1: '10', y1: '11', x2: '10', y2: '17'},
-				{x1: '14', y1: '11', x2: '14', y2: '17'}
-			]
+				{ x1: '10', y1: '11', x2: '10', y2: '17' },
+				{ x1: '14', y1: '11', x2: '14', y2: '17' },
+			],
 		});
 		clearButton.appendChild(trashSvg);
 		menu.appendChild(clearButton);
@@ -283,7 +310,7 @@ export function createHighlighterMenu() {
 		noHighlights.textContent = 'Select elements to highlight';
 		menu.appendChild(noHighlights);
 	}
-	
+
 	// Add undo button
 	const undoButton = document.createElement('button');
 	undoButton.id = 'obsidian-undo-highlights';
@@ -292,14 +319,11 @@ export function createHighlighterMenu() {
 		height: '16',
 		viewBox: '0 0 24 24',
 		className: 'lucide lucide-undo-2',
-		paths: [
-			'M9 14 4 9l5-5',
-			'M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11'
-		]
+		paths: ['M9 14 4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11'],
 	});
 	undoButton.appendChild(undoSvg);
 	menu.appendChild(undoButton);
-	
+
 	// Add redo button
 	const redoButton = document.createElement('button');
 	redoButton.id = 'obsidian-redo-highlights';
@@ -308,14 +332,11 @@ export function createHighlighterMenu() {
 		height: '16',
 		viewBox: '0 0 24 24',
 		className: 'lucide lucide-redo-2',
-		paths: [
-			'm15 14 5-5-5-5',
-			'M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13'
-		]
+		paths: ['m15 14 5-5-5-5', 'M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13'],
 	});
 	redoButton.appendChild(redoSvg);
 	menu.appendChild(redoButton);
-	
+
 	// Add exit button
 	const exitButton = document.createElement('button');
 	exitButton.id = 'obsidian-exit-highlighter';
@@ -324,10 +345,7 @@ export function createHighlighterMenu() {
 		height: '16',
 		viewBox: '0 0 24 24',
 		className: 'lucide lucide-x',
-		paths: [
-			'M18 6 6 18',
-			'm6 6 12 12'
-		]
+		paths: ['M18 6 6 18', 'm6 6 12 12'],
 	});
 	exitButton.appendChild(exitSvg);
 	menu.appendChild(exitButton);
@@ -443,7 +461,10 @@ export function highlightElement(element: Element, notes?: string[]) {
 	if (!ALLOWED_HIGHLIGHT_TAGS.includes(finalTagName)) {
 		// If the targetElement itself is not allowed, try its parent.
 		// This primarily applies to cases where the original element was not a table cell/row.
-		if (targetElement.parentElement && ALLOWED_HIGHLIGHT_TAGS.includes(targetElement.parentElement.tagName.toUpperCase())) {
+		if (
+			targetElement.parentElement &&
+			ALLOWED_HIGHLIGHT_TAGS.includes(targetElement.parentElement.tagName.toUpperCase())
+		) {
 			targetElement = targetElement.parentElement;
 		} else {
 			console.log('Element type not allowed for highlighting:', finalTagName);
@@ -454,14 +475,17 @@ export function highlightElement(element: Element, notes?: string[]) {
 	const xpath = getElementXPath(targetElement);
 	const content = targetElement.outerHTML;
 	const isBlockElement = window.getComputedStyle(targetElement).display === 'block';
-	addHighlight({ 
-		xpath, 
-		content, 
-		type: isBlockElement ? 'element' : 'text', 
-		id: Date.now().toString(),
-		startOffset: 0,
-		endOffset: targetElement.textContent?.length || 0
-	}, notes);
+	addHighlight(
+		{
+			xpath,
+			content,
+			type: isBlockElement ? 'element' : 'text',
+			id: Date.now().toString(),
+			startOffset: 0,
+			endOffset: targetElement.textContent?.length || 0,
+		},
+		notes,
+	);
 }
 
 // Handle text selection for highlighting
@@ -479,17 +503,17 @@ export function handleTextSelection(selection: Selection, notes?: string[]) {
 			// Merge current new highlight with the accumulating batch from this selection + pre-existing ones
 			currentBatchHighlights = mergeOverlappingHighlights(currentBatchHighlights, newHighlightWithNotes);
 		}
-		
+
 		highlights = currentBatchHighlights; // Update global highlights with the final merged result
-		
+
 		// Only add to history if something actually changed from the initial global state
 		if (JSON.stringify(oldGlobalHighlights) !== JSON.stringify(highlights)) {
-			addToHistory('add', oldGlobalHighlights, highlights); 
+			addToHistory('add', oldGlobalHighlights, highlights);
 		}
-		
+
 		sortHighlights(); // Sort once after all additions
 		applyHighlights(); // Apply once
-		saveHighlights();  // Save once
+		saveHighlights(); // Save once
 		updateHighlighterMenu(); // Update menu once
 	}
 	selection.removeAllRanges();
@@ -501,17 +525,13 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 	if (range.collapsed) return newHighlights;
 
 	const uniqueParentBlocks = new Set<Element>();
-	const textNodeIterator = document.createNodeIterator(
-		range.commonAncestorContainer,
-		NodeFilter.SHOW_TEXT,
-		{
-			acceptNode: (node) => {
-				return range.intersectsNode(node) && node.nodeValue && node.nodeValue.trim().length > 0
-					? NodeFilter.FILTER_ACCEPT
-					: NodeFilter.FILTER_REJECT;
-			}
-		}
-	);
+	const textNodeIterator = document.createNodeIterator(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, {
+		acceptNode: (node) => {
+			return range.intersectsNode(node) && node.nodeValue && node.nodeValue.trim().length > 0
+				? NodeFilter.FILTER_ACCEPT
+				: NodeFilter.FILTER_REJECT;
+		},
+	});
 
 	let currentTextNode;
 	while ((currentTextNode = textNodeIterator.nextNode())) {
@@ -563,16 +583,18 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 
 			// Final check: ensure the created range is actually within the current blockElement
 			// and not collapsed.
-			if (!currentBlockSelectionRange.collapsed && 
-				(blockElement.contains(currentBlockSelectionRange.commonAncestorContainer) || blockElement === currentBlockSelectionRange.commonAncestorContainer)) {
-				
+			if (
+				!currentBlockSelectionRange.collapsed &&
+				(blockElement.contains(currentBlockSelectionRange.commonAncestorContainer) ||
+					blockElement === currentBlockSelectionRange.commonAncestorContainer)
+			) {
 				const contentFragment = currentBlockSelectionRange.cloneContents();
 				const tempDivForBlock = document.createElement('div');
 				tempDivForBlock.appendChild(contentFragment);
 
 				const serializer = new XMLSerializer();
 				let htmlContent = '';
-				Array.from(tempDivForBlock.childNodes).forEach(node => {
+				Array.from(tempDivForBlock.childNodes).forEach((node) => {
 					if (node.nodeType === Node.ELEMENT_NODE) {
 						htmlContent += serializer.serializeToString(node);
 					} else if (node.nodeType === Node.TEXT_NODE) {
@@ -581,26 +603,36 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 				});
 				const selectedTextContent = sanitizeAndPreserveFormatting(htmlContent);
 
-				if (selectedTextContent.trim() === "") continue; // Skip empty highlights
+				if (selectedTextContent.trim() === '') continue; // Skip empty highlights
 
 				newHighlights.push({
 					xpath: getElementXPath(blockElement),
 					content: selectedTextContent,
 					type: 'text',
-					id: Date.now().toString() + "_" + i, // Unique ID for the batch
-					startOffset: getTextOffset(blockElement, currentBlockSelectionRange.startContainer, currentBlockSelectionRange.startOffset),
-					endOffset: getTextOffset(blockElement, currentBlockSelectionRange.endContainer, currentBlockSelectionRange.endOffset)
+					id: Date.now().toString() + '_' + i, // Unique ID for the batch
+					startOffset: getTextOffset(
+						blockElement,
+						currentBlockSelectionRange.startContainer,
+						currentBlockSelectionRange.startOffset,
+					),
+					endOffset: getTextOffset(
+						blockElement,
+						currentBlockSelectionRange.endContainer,
+						currentBlockSelectionRange.endOffset,
+					),
 				});
 			}
 		} catch (e) {
-			console.warn("Error creating range for block element:", blockElement, e);
+			console.warn('Error creating range for block element:', blockElement, e);
 		}
 	}
 
 	// Fallback: If no block-level highlights were created but there was a selection,
 	// try to create a single highlight based on the closest highlightable parent.
 	if (newHighlights.length === 0 && !range.collapsed) {
-		console.warn("Splitting selection by block failed or no suitable blocks found, falling back to single highlight for selection.");
+		console.warn(
+			'Splitting selection by block failed or no suitable blocks found, falling back to single highlight for selection.',
+		);
 		const parentElement = getHighlightableParent(range.commonAncestorContainer);
 		if (ALLOWED_HIGHLIGHT_TAGS.includes(parentElement.tagName.toUpperCase())) {
 			const tempDivSingle = document.createElement('div');
@@ -608,7 +640,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 
 			const serializer = new XMLSerializer();
 			let htmlContent = '';
-			Array.from(tempDivSingle.childNodes).forEach(node => {
+			Array.from(tempDivSingle.childNodes).forEach((node) => {
 				if (node.nodeType === Node.ELEMENT_NODE) {
 					htmlContent += serializer.serializeToString(node);
 				} else if (node.nodeType === Node.TEXT_NODE) {
@@ -616,18 +648,21 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 				}
 			});
 			const content = sanitizeAndPreserveFormatting(htmlContent);
-			if (content.trim() !== "") {
+			if (content.trim() !== '') {
 				newHighlights.push({
 					xpath: getElementXPath(parentElement),
 					content: content,
 					type: 'text',
 					id: Date.now().toString(),
 					startOffset: getTextOffset(parentElement, range.startContainer, range.startOffset),
-					endOffset: getTextOffset(parentElement, range.endContainer, range.endOffset)
+					endOffset: getTextOffset(parentElement, range.endContainer, range.endOffset),
 				});
 			}
 		} else {
-			console.log("Fallback highlight's parent is not in ALLOWED_HIGHLIGHT_TAGS, skipping highlight:", parentElement.tagName);
+			console.log(
+				"Fallback highlight's parent is not in ALLOWED_HIGHLIGHT_TAGS, skipping highlight:",
+				parentElement.tagName,
+			);
 		}
 	}
 
@@ -639,23 +674,23 @@ function sanitizeAndPreserveFormatting(html: string): string {
 	// Use DOMParser for safer HTML parsing
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(html, 'text/html');
-	
+
 	// Remove any script tags
-	doc.querySelectorAll('script').forEach(el => el.remove());
+	doc.querySelectorAll('script').forEach((el) => el.remove());
 
 	// Get the body content and serialize it back
 	const serializer = new XMLSerializer();
 	let result = '';
-	
+
 	// Serialize all child nodes of the body
-	Array.from(doc.body.childNodes).forEach(node => {
+	Array.from(doc.body.childNodes).forEach((node) => {
 		if (node.nodeType === Node.ELEMENT_NODE) {
 			result += serializer.serializeToString(node);
 		} else if (node.nodeType === Node.TEXT_NODE) {
 			result += node.textContent;
 		}
 	});
-	
+
 	// Close any unclosed tags
 	return balanceTags(result);
 }
@@ -703,16 +738,16 @@ function getHighlightableParent(node: Node): Element {
 function getTextOffset(container: Element, targetNode: Node, targetOffset: number): number {
 	let offset = 0;
 	const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-	
+
 	let node: Node | null = treeWalker.currentNode;
 	while (node) {
 		if (node === targetNode) {
 			return offset + targetOffset;
 		}
-		offset += (node.textContent?.length || 0);
+		offset += node.textContent?.length || 0;
 		node = treeWalker.nextNode();
 	}
-	
+
 	return offset;
 }
 
@@ -736,7 +771,7 @@ export function sortHighlights() {
 		const elementB = getElementByXPath(b.xpath);
 		if (elementA && elementB) {
 			const verticalDiff = getElementVerticalPosition(elementA) - getElementVerticalPosition(elementB);
-			
+
 			// If elements are at the same vertical position (same paragraph)
 			if (verticalDiff === 0) {
 				// If both are text highlights in the same element, sort by offset
@@ -746,7 +781,7 @@ export function sortHighlights() {
 				// Otherwise, sort by horizontal position
 				return elementA.getBoundingClientRect().left - elementB.getBoundingClientRect().left;
 			}
-			
+
 			return verticalDiff;
 		}
 		return 0;
@@ -768,7 +803,7 @@ function doHighlightsOverlap(highlight1: AnyHighlightData, highlight2: AnyHighli
 	if (element1 === element2) {
 		// For text highlights in the same element, check for overlap
 		if (highlight1.type === 'text' && highlight2.type === 'text') {
-			return (highlight1.startOffset < highlight2.endOffset && highlight2.startOffset < highlight1.endOffset);
+			return highlight1.startOffset < highlight2.endOffset && highlight2.startOffset < highlight1.endOffset;
 		}
 		// For other types, consider them overlapping if they're in the same element
 		return true;
@@ -787,7 +822,10 @@ function areHighlightsAdjacent(highlight1: AnyHighlightData, highlight2: AnyHigh
 }
 
 // Merge overlapping highlights
-function mergeOverlappingHighlights(existingHighlights: AnyHighlightData[], newHighlight: AnyHighlightData): AnyHighlightData[] {
+function mergeOverlappingHighlights(
+	existingHighlights: AnyHighlightData[],
+	newHighlight: AnyHighlightData,
+): AnyHighlightData[] {
 	let mergedHighlights: AnyHighlightData[] = [];
 	let merged = false;
 
@@ -797,7 +835,10 @@ function mergeOverlappingHighlights(existingHighlights: AnyHighlightData[], newH
 				mergedHighlights.push(mergeHighlights(existing, newHighlight));
 				merged = true;
 			} else {
-				mergedHighlights[mergedHighlights.length - 1] = mergeHighlights(mergedHighlights[mergedHighlights.length - 1], existing);
+				mergedHighlights[mergedHighlights.length - 1] = mergeHighlights(
+					mergedHighlights[mergedHighlights.length - 1],
+					existing,
+				);
 			}
 		} else {
 			mergedHighlights.push(existing);
@@ -817,7 +858,7 @@ function mergeHighlights(highlight1: AnyHighlightData, highlight2: AnyHighlightD
 	const element2 = getElementByXPath(highlight2.xpath);
 
 	if (!element1 || !element2) {
-		throw new Error("Cannot merge highlights: elements not found");
+		throw new Error('Cannot merge highlights: elements not found');
 	}
 
 	// If one highlight is an element and the other is text, prioritize the element highlight
@@ -837,12 +878,17 @@ function mergeHighlights(highlight1: AnyHighlightData, highlight2: AnyHighlightD
 	}
 
 	// If the merged element is different from both original elements, or if either highlight is complex, create a complex highlight
-	if (mergedElement !== element1 || mergedElement !== element2 || highlight1.type === 'complex' || highlight2.type === 'complex') {
+	if (
+		mergedElement !== element1 ||
+		mergedElement !== element2 ||
+		highlight1.type === 'complex' ||
+		highlight2.type === 'complex'
+	) {
 		return {
 			xpath: getElementXPath(mergedElement),
 			content: mergedElement.outerHTML,
 			type: 'complex',
-			id: Date.now().toString()
+			id: Date.now().toString(),
 		};
 	}
 
@@ -850,12 +896,15 @@ function mergeHighlights(highlight1: AnyHighlightData, highlight2: AnyHighlightD
 	if (highlight1.type === 'text' && highlight2.type === 'text' && highlight1.xpath === highlight2.xpath) {
 		return {
 			xpath: highlight1.xpath,
-			content: mergedElement.textContent?.slice(Math.min(highlight1.startOffset, highlight2.startOffset), 
-													  Math.max(highlight1.endOffset, highlight2.endOffset)) || '',
+			content:
+				mergedElement.textContent?.slice(
+					Math.min(highlight1.startOffset, highlight2.startOffset),
+					Math.max(highlight1.endOffset, highlight2.endOffset),
+				) || '',
 			type: 'text',
 			id: Date.now().toString(),
 			startOffset: Math.min(highlight1.startOffset, highlight2.startOffset),
-			endOffset: Math.max(highlight1.endOffset, highlight2.endOffset)
+			endOffset: Math.max(highlight1.endOffset, highlight2.endOffset),
 		};
 	}
 
@@ -864,7 +913,7 @@ function mergeHighlights(highlight1: AnyHighlightData, highlight2: AnyHighlightD
 		xpath: getElementXPath(mergedElement),
 		content: mergedElement.outerHTML,
 		type: 'complex',
-		id: Date.now().toString()
+		id: Date.now().toString(),
 	};
 }
 
@@ -923,14 +972,14 @@ export function applyHighlights() {
 	}
 
 	if (isApplyingHighlights) return;
-	
+
 	const currentHighlightsState = JSON.stringify(highlights);
 	if (currentHighlightsState === lastAppliedHighlights) return;
-	
+
 	isApplyingHighlights = true;
 
 	removeExistingHighlights();
-	
+
 	highlights.forEach((highlight, index) => {
 		const container = getElementByXPath(highlight.xpath);
 		if (container) {
@@ -945,15 +994,18 @@ export function applyHighlights() {
 
 // Notify that highlights have been updated
 async function notifyHighlightsUpdated() {
-	const response = await browser.runtime.sendMessage({ action: "getActiveTab" }) as { tabId?: number; error?: string };
+	const response = (await browser.runtime.sendMessage({ action: 'getActiveTab' })) as {
+		tabId?: number;
+		error?: string;
+	};
 	if (response.tabId) {
-		browser.runtime.sendMessage({ action: "highlightsUpdated", tabId: response.tabId });
+		browser.runtime.sendMessage({ action: 'highlightsUpdated', tabId: response.tabId });
 	}
 }
 
 // Get all highlight contents
 export function getHighlights(): string[] {
-	return highlights.map(h => h.content);
+	return highlights.map((h) => h.content);
 }
 
 // Load highlights from browser storage
@@ -962,13 +1014,13 @@ export async function loadHighlights() {
 	const result = await browser.storage.local.get('highlights');
 	const allHighlights = (result.highlights || {}) as HighlightsStorage;
 	const storedData = allHighlights[url];
-	
+
 	if (storedData && Array.isArray(storedData.highlights) && storedData.highlights.length > 0) {
 		highlights = storedData.highlights;
-		
+
 		// Load settings to check if "Always show highlights" is enabled
 		await loadSettings();
-		
+
 		if (generalSettings.alwaysShowHighlights) {
 			applyHighlights();
 			document.body.classList.add('obsidian-highlighter-always-show');
@@ -990,7 +1042,7 @@ export function clearHighlights() {
 			highlights = [];
 			removeExistingHighlights();
 			console.log('Highlights cleared for:', url);
-			browser.runtime.sendMessage({ action: "highlightsCleared" });
+			browser.runtime.sendMessage({ action: 'highlightsCleared' });
 			notifyHighlightsUpdated();
 			updateHighlighterMenu();
 			addToHistory('remove', oldHighlights, []);
@@ -1019,7 +1071,7 @@ function handleKeyDown(event: KeyboardEvent) {
 function exitHighlighterMode() {
 	console.log('Exiting highlighter mode');
 	toggleHighlighterMenu(false);
-	browser.runtime.sendMessage({ action: "setHighlighterMode", isActive: false });
+	browser.runtime.sendMessage({ action: 'setHighlighterMode', isActive: false });
 
 	// Remove highlight overlays if "Always show highlights" is off
 	if (!generalSettings.alwaysShowHighlights) {
@@ -1069,7 +1121,7 @@ function findLastTextNode(element: Element): Text | null {
 	const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
 	let lastNode = null;
 	let currentNode;
-	while(currentNode = treeWalker.nextNode()) {
+	while ((currentNode = treeWalker.nextNode())) {
 		lastNode = currentNode;
 	}
 	return lastNode as Text | null;

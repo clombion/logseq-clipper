@@ -131,4 +131,3 @@ describe('nth filter via renderer', () => {
 		expect(parsed).toEqual([2, 3, 6, 7]);
 	});
 });
-

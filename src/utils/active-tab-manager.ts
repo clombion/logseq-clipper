@@ -9,19 +9,17 @@ export async function updateCurrentActiveTab(windowId: number) {
 		currentActiveTabId = tabs[0].id;
 		currentWindowId = windowId;
 		browser.runtime.sendMessage({
-			action: "activeTabChanged",
+			action: 'activeTabChanged',
 			tabId: currentActiveTabId,
 			url: tabs[0].url,
 			isValidUrl: isValidUrl(tabs[0].url),
-			isBlankPage: isBlankPage(tabs[0].url)
+			isBlankPage: isBlankPage(tabs[0].url),
 		});
 	}
 }
 
 export function isValidUrl(url: string): boolean {
-	return url.startsWith('http://') || 
-		   url.startsWith('https://') || 
-		   url.startsWith('file:///');
+	return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file:///');
 }
 
 export function isBlankPage(url: string): boolean {

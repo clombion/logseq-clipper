@@ -34,9 +34,9 @@ export const round = (input: string, param?: string): string => {
 			const num = parseFloat(value);
 			return isNaN(num) ? value : roundNumber(num, decimalPlaces).toString();
 		} else if (Array.isArray(value)) {
-			return value.map(item => processValue(item, decimalPlaces));
+			return value.map((item) => processValue(item, decimalPlaces));
 		} else if (typeof value === 'object' && value !== null) {
-			const result: {[key: string]: any} = {};
+			const result: { [key: string]: any } = {};
 			for (const [key, val] of Object.entries(value)) {
 				result[key] = processValue(val, decimalPlaces);
 			}

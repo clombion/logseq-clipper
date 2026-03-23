@@ -60,4 +60,3 @@ describe('list param validation', () => {
 		expect(result.error).toContain('invalid list type');
 	});
 });
-

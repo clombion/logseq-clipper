@@ -23,4 +23,3 @@ describe('last filter', () => {
 		expect(last('[]')).toBe('[]');
 	});
 });
-

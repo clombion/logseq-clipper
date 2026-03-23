@@ -158,7 +158,7 @@ export function parse(input: string): ParserResult {
 	const tokenizerResult = tokenize(input);
 
 	// Convert tokenizer errors to parser errors
-	const errors: ParserError[] = tokenizerResult.errors.map(e => ({
+	const errors: ParserError[] = tokenizerResult.errors.map((e) => ({
 		message: e.message,
 		line: e.line,
 		column: e.column,
@@ -705,7 +705,10 @@ function parseFilterArgument(state: ParserState): Expression | null {
 			}
 
 			// Stop if we hit pipe or variable_end without closing bracket
-			if (bracketDepth === 0 && (token.type === 'pipe' || token.type === 'variable_end' || token.type === 'comma')) {
+			if (
+				bracketDepth === 0 &&
+				(token.type === 'pipe' || token.type === 'variable_end' || token.type === 'comma')
+			) {
 				break;
 			}
 
@@ -758,12 +761,12 @@ function parseFilterArgument(state: ParserState): Expression | null {
 				}
 
 				// Preserve quotes around string tokens so the map filter
-			// can distinguish string literals from property expressions
-			if (token.type === 'string') {
-				value += `"${token.value}"`;
-			} else {
-				value += token.value;
-			}
+				// can distinguish string literals from property expressions
+				if (token.type === 'string') {
+					value += `"${token.value}"`;
+				} else {
+					value += token.value;
+				}
 				advance(state);
 			}
 
@@ -1067,7 +1070,7 @@ function parseComparisonExpression(state: ParserState): Expression | null {
 
 	const comparisonOps: TokenType[] = ['op_eq', 'op_neq', 'op_gt', 'op_lt', 'op_gte', 'op_lte', 'op_contains'];
 
-	if (comparisonOps.some(op => check(state, op))) {
+	if (comparisonOps.some((op) => check(state, op))) {
 		const opToken = advance(state);
 		const right = parsePostfixExpression(state);
 		if (!right) {
@@ -1080,13 +1083,13 @@ function parseComparisonExpression(state: ParserState): Expression | null {
 		}
 
 		const operatorMap: Record<string, string> = {
-			'op_eq': '==',
-			'op_neq': '!=',
-			'op_gt': '>',
-			'op_lt': '<',
-			'op_gte': '>=',
-			'op_lte': '<=',
-			'op_contains': 'contains',
+			op_eq: '==',
+			op_neq: '!=',
+			op_gt: '>',
+			op_lt: '<',
+			op_gte: '>=',
+			op_lte: '<=',
+			op_contains: 'contains',
 		};
 
 		return {
@@ -1405,13 +1408,14 @@ function formatExpression(expr: Expression, indent: number): string {
 			return `${pad}Identifier: ${expr.name}\n`;
 
 		case 'binary':
-			return `${pad}Binary: ${expr.operator}\n` +
+			return (
+				`${pad}Binary: ${expr.operator}\n` +
 				formatExpression(expr.left, indent + 1) +
-				formatExpression(expr.right, indent + 1);
+				formatExpression(expr.right, indent + 1)
+			);
 
 		case 'unary':
-			return `${pad}Unary: ${expr.operator}\n` +
-				formatExpression(expr.argument, indent + 1);
+			return `${pad}Unary: ${expr.operator}\n` + formatExpression(expr.argument, indent + 1);
 
 		case 'filter':
 			let result = `${pad}Filter: ${expr.name}\n`;
@@ -1473,12 +1477,7 @@ const PRESET_VARIABLES = new Set([
 /**
  * Special variable prefixes that indicate dynamic variables
  */
-const SPECIAL_PREFIXES = [
-	'schema:',
-	'selector:',
-	'selectorHtml:',
-	'meta:',
-];
+const SPECIAL_PREFIXES = ['schema:', 'selector:', 'selectorHtml:', 'meta:'];
 
 /**
  * Calculate Levenshtein distance between two strings (for fuzzy matching)
@@ -1498,11 +1497,7 @@ function levenshteinDistance(a: string, b: string): number {
 			if (b.charAt(i - 1) === a.charAt(j - 1)) {
 				matrix[i][j] = matrix[i - 1][j - 1];
 			} else {
-				matrix[i][j] = Math.min(
-					matrix[i - 1][j - 1] + 1,
-					matrix[i][j - 1] + 1,
-					matrix[i - 1][j] + 1
-				);
+				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
 			}
 		}
 	}
@@ -1599,11 +1594,7 @@ interface ScopedReference {
 /**
  * Collect all variable references and set definitions from the AST
  */
-function collectVariables(
-	nodes: ASTNode[],
-	definedVariables: Set<string>,
-	references: ScopedReference[]
-): void {
+function collectVariables(nodes: ASTNode[], definedVariables: Set<string>, references: ScopedReference[]): void {
 	for (const node of nodes) {
 		switch (node.type) {
 			case 'variable': {
@@ -1645,14 +1636,15 @@ function collectVariables(
 /**
  * Collect variable references from an expression
  */
-function collectExpression(
-	expr: Expression,
-	definedVariables: Set<string>,
-	references: ScopedReference[]
-): void {
+function collectExpression(expr: Expression, definedVariables: Set<string>, references: ScopedReference[]): void {
 	switch (expr.type) {
 		case 'identifier': {
-			references.push({ name: expr.name, line: expr.line, column: expr.column, scope: new Set(definedVariables) });
+			references.push({
+				name: expr.name,
+				line: expr.line,
+				column: expr.column,
+				scope: new Set(definedVariables),
+			});
 			break;
 		}
 		case 'filter':
@@ -1839,7 +1831,7 @@ function collectFilters(nodes: ASTNode[]): FilterUsage[] {
 			case 'if':
 				collectFiltersFromExpression(node.condition, usages);
 				node.consequent.forEach(processNode);
-				node.elseifs.forEach(elseif => {
+				node.elseifs.forEach((elseif) => {
 					collectFiltersFromExpression(elseif.condition, usages);
 					elseif.body.forEach(processNode);
 				});

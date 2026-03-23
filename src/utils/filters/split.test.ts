@@ -57,4 +57,3 @@ describe('split filter via renderer', () => {
 		expect(result.output).toContain('def');
 	});
 });
-

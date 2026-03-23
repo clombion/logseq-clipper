@@ -96,7 +96,11 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 // Schema.org data processing
 // ---------------------------------------------------------------------------
 
-export function addSchemaOrgDataToVariables(schemaData: any, variables: Record<string, string>, prefix: string = ''): void {
+export function addSchemaOrgDataToVariables(
+	schemaData: any,
+	variables: Record<string, string>,
+	prefix: string = '',
+): void {
 	if (Array.isArray(schemaData)) {
 		schemaData.forEach((item, index) => {
 			if (!item || typeof item !== 'object') return;
@@ -142,20 +146,18 @@ export function addSchemaOrgDataToVariables(schemaData: any, variables: Record<s
  * Generate YAML frontmatter from compiled properties.
  * Property types are passed in as a map rather than read from browser storage.
  */
-export function generateFrontmatter(
-	properties: Property[],
-	propertyTypes: Record<string, string> = {}
-): string {
+export function generateFrontmatter(properties: Property[], propertyTypes: Record<string, string> = {}): string {
 	let frontmatter = '---\n';
 	for (const property of properties) {
 		const trimmedName = property.name.trim();
-		const needsQuotes = /[:\s\{\}\[\],&*#?|<>=!%@\\-]/.test(trimmedName)
-			|| /^\d/.test(trimmedName)
-			|| /^(true|false|null|yes|no|on|off)$/i.test(trimmedName);
+		const needsQuotes =
+			/[:\s\{\}\[\],&*#?|<>=!%@\\-]/.test(trimmedName) ||
+			/^\d/.test(trimmedName) ||
+			/^(true|false|null|yes|no|on|off)$/i.test(trimmedName);
 		const propertyKey = needsQuotes
-			? (property.name.includes('"')
+			? property.name.includes('"')
 				? `'${property.name.replace(/'/g, "''")}'`
-				: `"${property.name}"`)
+				: `"${property.name}"`
 			: property.name;
 		frontmatter += `${propertyKey}:`;
 
@@ -168,15 +170,15 @@ export function generateFrontmatter(
 					try {
 						items = JSON.parse(property.value);
 					} catch {
-						items = property.value.split(',').map(item => item.trim());
+						items = property.value.split(',').map((item) => item.trim());
 					}
 				} else {
-					items = property.value.split(/,(?![^\[]*\]\])/).map(item => item.trim());
+					items = property.value.split(/,(?![^\[]*\]\])/).map((item) => item.trim());
 				}
-				items = items.filter(item => item !== '');
+				items = items.filter((item) => item !== '');
 				if (items.length > 0) {
 					frontmatter += '\n';
-					items.forEach(item => {
+					items.forEach((item) => {
 						frontmatter += `  - "${escapeDoubleQuotes(item)}"\n`;
 					});
 				} else {
@@ -258,7 +260,7 @@ export function extractContentBySelector(
 	doc: { querySelectorAll: (selector: string) => any },
 	selector: string,
 	attribute?: string,
-	extractHtml: boolean = false
+	extractHtml: boolean = false,
 ): string | string[] {
 	try {
 		const elements = doc.querySelectorAll(selector);

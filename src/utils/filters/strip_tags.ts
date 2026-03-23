@@ -1,11 +1,14 @@
 export const strip_tags = (html: string, keepTags: string = ''): string => {
 	// Remove outer parentheses if present
 	keepTags = keepTags.replace(/^\((.*)\)$/, '$1');
-	
+
 	// Remove any surrounding quotes (both single and double) and unescape internal quotes
 	keepTags = keepTags.replace(/^(['"])([\s\S]*)\1$/, '$2').replace(/\\(['"])/g, '$1');
-	
-	const keepTagsList = keepTags.split(',').map(tag => tag.trim()).filter(Boolean);
+
+	const keepTagsList = keepTags
+		.split(',')
+		.map((tag) => tag.trim())
+		.filter(Boolean);
 
 	let result: string;
 
@@ -14,13 +17,14 @@ export const strip_tags = (html: string, keepTags: string = ''): string => {
 		result = html.replace(/<\/?[^>]+(>|$)/g, '');
 	} else {
 		// Create a regex that matches all tags except those in keepTagsList
-		const escapedTags = keepTagsList.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+		const escapedTags = keepTagsList.map((tag) => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
 		const regex = new RegExp(`<(?!\\/?(?:${escapedTags})\\b)[^>]+>`, 'gi');
 		result = html.replace(regex, '');
 	}
 
 	// Convert HTML entities to their corresponding characters
-	result = result.replace(/&nbsp;/g, ' ')
+	result = result
+		.replace(/&nbsp;/g, ' ')
 		.replace(/&amp;/g, '&')
 		.replace(/&lt;/g, '<')
 		.replace(/&gt;/g, '>')

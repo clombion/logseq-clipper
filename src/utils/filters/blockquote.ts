@@ -1,16 +1,21 @@
 export const blockquote = (input: string | string[]): string => {
 	const processBlockquote = (str: string, depth: number = 1): string => {
 		const prefix = '> '.repeat(depth);
-		return str.split('\n').map(line => `${prefix}${line}`).join('\n');
+		return str
+			.split('\n')
+			.map((line) => `${prefix}${line}`)
+			.join('\n');
 	};
 
 	const processArray = (arr: any[], depth: number = 1): string => {
-		return arr.map(item => {
-			if (Array.isArray(item)) {
-				return processArray(item, depth + 1);
-			}
-			return processBlockquote(String(item), depth);
-		}).join('\n');
+		return arr
+			.map((item) => {
+				if (Array.isArray(item)) {
+					return processArray(item, depth + 1);
+				}
+				return processBlockquote(String(item), depth);
+			})
+			.join('\n');
 	};
 
 	try {

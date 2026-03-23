@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
-import isoWeek from "dayjs/plugin/isoWeek";
-import weekOfYear from "dayjs/plugin/weekOfYear";
+import isoWeek from 'dayjs/plugin/isoWeek';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 import type { ParamValidationResult } from '../filters';
@@ -10,7 +10,22 @@ dayjs.extend(isoWeek);
 dayjs.extend(weekOfYear);
 dayjs.extend(advancedFormat);
 
-const validUnits = ['year', 'years', 'month', 'months', 'week', 'weeks', 'day', 'days', 'hour', 'hours', 'minute', 'minutes', 'second', 'seconds'];
+const validUnits = [
+	'year',
+	'years',
+	'month',
+	'months',
+	'week',
+	'weeks',
+	'day',
+	'days',
+	'hour',
+	'hours',
+	'minute',
+	'minutes',
+	'second',
+	'seconds',
+];
 
 export const validateDateModifyParams = (param: string | undefined): ParamValidationResult => {
 	if (!param) {
@@ -31,7 +46,7 @@ export const validateDateModifyParams = (param: string | undefined): ParamValida
 	const [, , , unit] = match;
 	const normalizedUnit = unit.toLowerCase().replace(/s$/, '');
 
-	if (!validUnits.some(u => u.replace(/s$/, '') === normalizedUnit)) {
+	if (!validUnits.some((u) => u.replace(/s$/, '') === normalizedUnit)) {
 		return { valid: false, error: `invalid unit "${unit}". Use year, month, week, day, hour, minute, or second` };
 	}
 
@@ -57,7 +72,7 @@ export const date_modify = (str: string, param?: string): string => {
 
 	// Remove outer parentheses if present
 	param = param.replace(/^\((.*)\)$/, '$1');
-	
+
 	// Remove any surrounding quotes and trim whitespace
 	param = param.replace(/^(['"])([\s\S]*)\1$/, '$2').trim();
 

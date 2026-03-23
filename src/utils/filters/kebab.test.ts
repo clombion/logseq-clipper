@@ -26,4 +26,3 @@ describe('kebab filter', () => {
 		expect(kebab('')).toBe('');
 	});
 });
-

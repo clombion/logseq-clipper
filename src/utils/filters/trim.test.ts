@@ -26,4 +26,3 @@ describe('trim filter', () => {
 		expect(trim('  hello   world  ')).toBe('hello   world');
 	});
 });
-

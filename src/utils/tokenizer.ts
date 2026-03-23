@@ -12,11 +12,11 @@
 
 export type TokenType =
 	// Structural tokens
-	| 'text'              // Raw text content between tags
-	| 'variable_start'    // {{ or {{-
-	| 'variable_end'      // }} or -}}
-	| 'tag_start'         // {% or {%-
-	| 'tag_end'           // %} or -%}
+	| 'text' // Raw text content between tags
+	| 'variable_start' // {{ or {{-
+	| 'variable_end' // }} or -}}
+	| 'tag_start' // {% or {%-
+	| 'tag_end' // %} or -%}
 
 	// Keywords
 	| 'keyword_if'
@@ -29,44 +29,44 @@ export type TokenType =
 	| 'keyword_set'
 
 	// Operators
-	| 'op_eq'             // ==
-	| 'op_neq'            // !=
-	| 'op_gte'            // >=
-	| 'op_lte'            // <=
-	| 'op_gt'             // >
-	| 'op_lt'             // <
-	| 'op_and'            // and, &&
-	| 'op_or'             // or, ||
-	| 'op_not'            // not, !
-	| 'op_contains'       // contains
-	| 'op_nullish'        // ??
-	| 'op_assign'         // =
+	| 'op_eq' // ==
+	| 'op_neq' // !=
+	| 'op_gte' // >=
+	| 'op_lte' // <=
+	| 'op_gt' // >
+	| 'op_lt' // <
+	| 'op_and' // and, &&
+	| 'op_or' // or, ||
+	| 'op_not' // not, !
+	| 'op_contains' // contains
+	| 'op_nullish' // ??
+	| 'op_assign' // =
 
 	// Literals and identifiers
-	| 'identifier'        // variable names, property access
-	| 'string'            // "string" or 'string'
-	| 'number'            // 123, 45.67
-	| 'boolean'           // true, false
-	| 'null'              // null
+	| 'identifier' // variable names, property access
+	| 'string' // "string" or 'string'
+	| 'number' // 123, 45.67
+	| 'boolean' // true, false
+	| 'null' // null
 
 	// Punctuation
-	| 'pipe'              // |
-	| 'lparen'            // (
-	| 'rparen'            // )
-	| 'lbracket'          // [
-	| 'rbracket'          // ]
-	| 'lbrace'            // {
-	| 'rbrace'            // }
-	| 'colon'             // :
-	| 'comma'             // ,
-	| 'dot'               // .
-	| 'star'              // *
-	| 'slash'             // /
-	| 'arrow'             // =>
-	| 'dollar'            // $
+	| 'pipe' // |
+	| 'lparen' // (
+	| 'rparen' // )
+	| 'lbracket' // [
+	| 'rbracket' // ]
+	| 'lbrace' // {
+	| 'rbrace' // }
+	| 'colon' // :
+	| 'comma' // ,
+	| 'dot' // .
+	| 'star' // *
+	| 'slash' // /
+	| 'arrow' // =>
+	| 'dollar' // $
 
 	// Special
-	| 'eof';              // End of input
+	| 'eof'; // End of input
 
 // ============================================================================
 // Token Interface
@@ -78,8 +78,8 @@ export interface Token {
 	line: number;
 	column: number;
 	// For structural tokens, track if whitespace trim is active
-	trimLeft?: boolean;   // For *_start tokens
-	trimRight?: boolean;  // For *_end tokens
+	trimLeft?: boolean; // For *_start tokens
+	trimRight?: boolean; // For *_end tokens
 }
 
 export interface TokenizerError {
@@ -114,21 +114,21 @@ interface TokenizerState {
 // ============================================================================
 
 const KEYWORDS: Record<string, TokenType> = {
-	'if': 'keyword_if',
-	'elseif': 'keyword_elseif',
-	'else': 'keyword_else',
-	'endif': 'keyword_endif',
-	'for': 'keyword_for',
-	'in': 'keyword_in',
-	'endfor': 'keyword_endfor',
-	'set': 'keyword_set',
-	'and': 'op_and',
-	'or': 'op_or',
-	'not': 'op_not',
-	'contains': 'op_contains',
-	'true': 'boolean',
-	'false': 'boolean',
-	'null': 'null',
+	if: 'keyword_if',
+	elseif: 'keyword_elseif',
+	else: 'keyword_else',
+	endif: 'keyword_endif',
+	for: 'keyword_for',
+	in: 'keyword_in',
+	endfor: 'keyword_endfor',
+	set: 'keyword_set',
+	and: 'op_and',
+	or: 'op_or',
+	not: 'op_not',
+	contains: 'op_contains',
+	true: 'boolean',
+	false: 'boolean',
+	null: 'null',
 };
 
 // ============================================================================
@@ -210,7 +210,7 @@ function tokenizeText(state: TokenizerState): void {
 				value: '{{',
 				line: state.line,
 				column: state.column - 2,
-				trimLeft: false,  // Variables preserve whitespace by default
+				trimLeft: false, // Variables preserve whitespace by default
 			});
 
 			state.mode = 'variable';
@@ -236,7 +236,7 @@ function tokenizeText(state: TokenizerState): void {
 				value: '{%',
 				line: state.line,
 				column: state.column - 2,
-				trimLeft: false,  // Preserve whitespace before tags
+				trimLeft: false, // Preserve whitespace before tags
 			});
 
 			state.mode = 'tag';
@@ -272,7 +272,7 @@ function tokenizeVariable(state: TokenizerState): void {
 			value: '}}',
 			line: state.line,
 			column: state.column,
-			trimRight: false,  // Variables preserve whitespace by default
+			trimRight: false, // Variables preserve whitespace by default
 		});
 		advance(state, 2);
 		state.mode = 'text';
@@ -310,7 +310,7 @@ function tokenizeVariable(state: TokenizerState): void {
 	// This handles cases like: {{titl\n{% set...
 	if (lookAhead(state, '{%') || lookAhead(state, '{{')) {
 		// Find the line where the variable started for better error reporting
-		const varStartIndex = [...state.tokens].reverse().findIndex(t => t.type === 'variable_start');
+		const varStartIndex = [...state.tokens].reverse().findIndex((t) => t.type === 'variable_start');
 		const actualIndex = varStartIndex >= 0 ? state.tokens.length - 1 - varStartIndex : -1;
 		const varStartToken = actualIndex >= 0 ? state.tokens[actualIndex] : null;
 		const startLine = varStartToken?.line || state.line;
@@ -346,7 +346,7 @@ function tokenizeTag(state: TokenizerState): void {
 			value: '%}',
 			line: state.line,
 			column: state.column,
-			trimRight: true,  // Tags always trim whitespace
+			trimRight: true, // Tags always trim whitespace
 		});
 		advance(state, 2);
 		state.mode = 'text';
@@ -392,7 +392,7 @@ function tokenizeTag(state: TokenizerState): void {
 	// This handles cases like: {% if x\n{% set...
 	if (lookAhead(state, '{%') || lookAhead(state, '{{')) {
 		// Find the line where the tag started for better error reporting
-		const tagStartIndex = [...state.tokens].reverse().findIndex(t => t.type === 'tag_start');
+		const tagStartIndex = [...state.tokens].reverse().findIndex((t) => t.type === 'tag_start');
 		const actualIndex = tagStartIndex >= 0 ? state.tokens.length - 1 - tagStartIndex : -1;
 		const tagStartToken = actualIndex >= 0 ? state.tokens[actualIndex] : null;
 		const startLine = tagStartToken?.line || state.line;
@@ -423,9 +423,7 @@ function tokenizeExpression(state: TokenizerState, mode: 'variable' | 'tag'): vo
 
 	if (state.pos >= state.input.length) {
 		state.errors.push({
-			message: mode === 'variable'
-				? `Unclosed variable - missing '}}'`
-				: `Unclosed tag - missing '%}'`,
+			message: mode === 'variable' ? `Unclosed variable - missing '}}'` : `Unclosed tag - missing '%}'`,
 			line: state.line,
 			column: state.column,
 		});
@@ -632,13 +630,26 @@ function tokenizeString(state: TokenizerState): void {
 			advanceChar(state);
 			const escaped = state.input[state.pos];
 			switch (escaped) {
-				case 'n': value += '\n'; break;
-				case 't': value += '\t'; break;
-				case 'r': value += '\r'; break;
-				case '\\': value += '\\'; break;
-				case '"': value += '"'; break;
-				case "'": value += "'"; break;
-				default: value += escaped;
+				case 'n':
+					value += '\n';
+					break;
+				case 't':
+					value += '\t';
+					break;
+				case 'r':
+					value += '\r';
+					break;
+				case '\\':
+					value += '\\';
+					break;
+				case '"':
+					value += '"';
+					break;
+				case "'":
+					value += "'";
+					break;
+				default:
+					value += escaped;
 			}
 			advanceChar(state);
 			continue;
@@ -688,15 +699,32 @@ function tokenizeEscapedArgument(state: TokenizerState): void {
 		if (char === '\\' && state.pos + 1 < state.input.length) {
 			const escaped = state.input[state.pos + 1];
 			switch (escaped) {
-				case '"': value += '"'; break;
-				case "'": value += "'"; break;
-				case '\\': value += '\\'; break;
-				case 'n': value += '\n'; break;
-				case 't': value += '\t'; break;
-				case 'r': value += '\r'; break;
-				case ',': value += ','; break;
-				case '|': value += '|'; break;
-				default: value += escaped; // Unknown escape, just use the character
+				case '"':
+					value += '"';
+					break;
+				case "'":
+					value += "'";
+					break;
+				case '\\':
+					value += '\\';
+					break;
+				case 'n':
+					value += '\n';
+					break;
+				case 't':
+					value += '\t';
+					break;
+				case 'r':
+					value += '\r';
+					break;
+				case ',':
+					value += ',';
+					break;
+				case '|':
+					value += '|';
+					break;
+				default:
+					value += escaped; // Unknown escape, just use the character
 			}
 			advanceChar(state);
 			advanceChar(state);
@@ -763,8 +791,11 @@ function tokenizeIdentifier(state: TokenizerState): void {
 	// Special handling for CSS selectors (selector: and selectorHtml: prefixes)
 	// These can contain brackets, quotes, and other special characters
 	// Check if we have "selector" or "selectorHtml" followed by ":"
-	if ((value === 'selector' || value === 'selectorHtml') &&
-		state.pos < state.input.length && state.input[state.pos] === ':') {
+	if (
+		(value === 'selector' || value === 'selectorHtml') &&
+		state.pos < state.input.length &&
+		state.input[state.pos] === ':'
+	) {
 		// Consume the colon
 		value += ':';
 		advanceChar(state);
@@ -979,17 +1010,16 @@ function isDigit(char: string): boolean {
 }
 
 function isIdentifierStart(char: string): boolean {
-	return (char >= 'a' && char <= 'z') ||
-		   (char >= 'A' && char <= 'Z') ||
-		   char === '_' ||
-		   char === '@';  // For schema:@Type
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_' || char === '@'; // For schema:@Type
 }
 
 function isIdentifierChar(char: string): boolean {
-	return isIdentifierStart(char) ||
-		   isDigit(char) ||
-		   char === '-' ||  // For kebab-case
-		   char === '.';    // For nested properties like author.name
+	return (
+		isIdentifierStart(char) ||
+		isDigit(char) ||
+		char === '-' || // For kebab-case
+		char === '.'
+	); // For nested properties like author.name
 }
 
 // ============================================================================

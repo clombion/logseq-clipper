@@ -32,18 +32,20 @@ export async function compileTemplate(
 	variables: { [key: string]: any },
 	currentUrl: string,
 	customAsyncResolver?: AsyncResolver,
-	customSelectorProcessor?: SelectorProcessor
+	customSelectorProcessor?: SelectorProcessor,
 ): Promise<string> {
 	// Strip text fragment from URL
 	currentUrl = currentUrl.replace(/#:~:text=[^&]+(&|$)/, '');
 
 	// Use provided resolver or default browser-based one
-	const asyncResolver = customAsyncResolver ?? (async (name: string, ctx: RenderContext): Promise<any> => {
-		if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
-			return resolveSelector(ctx.tabId!, name);
-		}
-		return undefined;
-	});
+	const asyncResolver =
+		customAsyncResolver ??
+		(async (name: string, ctx: RenderContext): Promise<any> => {
+			if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
+				return resolveSelector(ctx.tabId!, name);
+			}
+			return undefined;
+		});
 
 	// Create render context with custom variable resolver
 	const context: RenderContext = {
@@ -59,7 +61,10 @@ export async function compileTemplate(
 
 	// Log any errors (but don't fail - return partial output)
 	if (result.errors.length > 0) {
-		console.error('Template compilation errors:', result.errors.map(e => `Line ${e.line}: ${e.message}`).join('; '));
+		console.error(
+			'Template compilation errors:',
+			result.errors.map((e) => `Line ${e.line}: ${e.message}`).join('; '),
+		);
 	}
 
 	// Skip post-processing if no deferred variables were output
@@ -87,7 +92,7 @@ export async function processVariables(
 	text: string,
 	variables: { [key: string]: any },
 	currentUrl: string,
-	customSelectorProcessor?: SelectorProcessor
+	customSelectorProcessor?: SelectorProcessor,
 ): Promise<string> {
 	const regex = /{{([\s\S]*?)}}/g;
 	let result = text;
@@ -119,4 +124,3 @@ export async function processVariables(
 
 	return result;
 }
-

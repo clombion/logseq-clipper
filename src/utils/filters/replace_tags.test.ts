@@ -28,4 +28,3 @@ describe('replace_tags filter', () => {
 		expect(replace_tags('<p>text</p>', '"div":"span"')).toBe('<p>text</p>');
 	});
 });
-

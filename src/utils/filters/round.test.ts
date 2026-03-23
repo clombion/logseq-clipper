@@ -55,4 +55,3 @@ describe('round param validation', () => {
 		expect(result.error).toContain('non-negative');
 	});
 });
-

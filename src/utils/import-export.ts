@@ -40,7 +40,7 @@ export async function exportTemplate(): Promise<void> {
 		properties: template.properties.map(({ name, value, type }) => ({
 			name,
 			value,
-			type: type || generalSettings.propertyTypes.find(pt => pt.name === name)?.type || 'text'
+			type: type || generalSettings.propertyTypes.find((pt) => pt.name === name)?.type || 'text',
 		})),
 		triggers: template.triggers,
 	};
@@ -57,12 +57,12 @@ export async function exportTemplate(): Promise<void> {
 	}
 
 	const content = JSON.stringify(orderedTemplate, null, '\t');
-	
+
 	await saveFile({
 		content,
 		fileName,
 		mimeType: 'application/json',
-		onError: (error) => console.error('Failed to export template:', error)
+		onError: (error) => console.error('Failed to export template:', error),
 	});
 }
 
@@ -85,24 +85,27 @@ export function importTemplate(input?: HTMLInputElement): void {
 				}
 
 				importedTemplate.id = Date.now().toString() + Math.random().toString(36).slice(2, 9);
-				
+
 				// Handle property types and preserve existing IDs or generate new ones
 				if (importedTemplate.properties) {
-					importedTemplate.properties = await Promise.all(importedTemplate.properties.map(async (prop: any) => {
-						console.log('Processing property:', prop);
-						// Add or update the property type
-						await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
-						
-						// Use the type from generalSettings, which will be either the existing type or the newly added one
-						const type = generalSettings.propertyTypes.find(pt => pt.name === prop.name)?.type || 'text';
-						console.log(`Property ${prop.name} type after processing:`, type);
-						return {
-							id: prop.id || (Date.now().toString() + Math.random().toString(36).slice(2, 9)),
-							name: prop.name,
-							value: prop.value,
-							type: type
-						};
-					}));
+					importedTemplate.properties = await Promise.all(
+						importedTemplate.properties.map(async (prop: any) => {
+							console.log('Processing property:', prop);
+							// Add or update the property type
+							await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
+
+							// Use the type from generalSettings, which will be either the existing type or the newly added one
+							const type =
+								generalSettings.propertyTypes.find((pt) => pt.name === prop.name)?.type || 'text';
+							console.log(`Property ${prop.name} type after processing:`, type);
+							return {
+								id: prop.id || Date.now().toString() + Math.random().toString(36).slice(2, 9),
+								name: prop.name,
+								value: prop.value,
+								type: type,
+							};
+						}),
+					);
 				}
 
 				console.log('Processed template properties:', importedTemplate.properties);
@@ -114,7 +117,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 
 				let newName = importedTemplate.name as string;
 				let counter = 1;
-				while (templates.some(t => t.name === newName)) {
+				while (templates.some((t) => t.name === newName)) {
 					newName = `${importedTemplate.name} (${counter++})`;
 				}
 				importedTemplate.name = newName;
@@ -150,19 +153,22 @@ export function importTemplate(input?: HTMLInputElement): void {
 function validateImportedTemplate(template: Partial<Template>): boolean {
 	const requiredFields: (keyof Template)[] = ['name', 'behavior', 'properties', 'noteContentFormat'];
 	const validTypes = ['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'];
-	
+
 	const isDailyNote = template.behavior === 'append-daily' || template.behavior === 'prepend-daily';
 
-	const hasRequiredFields = requiredFields.every(field => template.hasOwnProperty(field));
-	const hasValidProperties = Array.isArray(template.properties) &&
-		template.properties!.every((prop: any) => 
-			prop.hasOwnProperty('name') && 
-			prop.hasOwnProperty('value') && 
-			(!prop.hasOwnProperty('type') || validTypes.includes(prop.type))
+	const hasRequiredFields = requiredFields.every((field) => template.hasOwnProperty(field));
+	const hasValidProperties =
+		Array.isArray(template.properties) &&
+		template.properties!.every(
+			(prop: any) =>
+				prop.hasOwnProperty('name') &&
+				prop.hasOwnProperty('value') &&
+				(!prop.hasOwnProperty('type') || validTypes.includes(prop.type)),
 		);
 
 	// Check for noteNameFormat and path only if it's not a daily note template
-	const hasValidNoteNameAndPath = isDailyNote || (template.hasOwnProperty('noteNameFormat') && template.hasOwnProperty('path'));
+	const hasValidNoteNameAndPath =
+		isDailyNote || (template.hasOwnProperty('noteNameFormat') && template.hasOwnProperty('path'));
 
 	// Add optional check for context
 	const hasValidContext = !template.context || typeof template.context === 'string';
@@ -196,29 +202,31 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 	}
 
 	importedTemplate.id = Date.now().toString() + Math.random().toString(36).slice(2, 9);
-	
+
 	// Process property types
 	if (importedTemplate.properties) {
 		console.log('Processing properties:', importedTemplate.properties);
 		for (const prop of importedTemplate.properties) {
 			console.log(`Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`);
-			const existingPropertyType = generalSettings.propertyTypes.find(pt => pt.name === prop.name);
+			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			if (!existingPropertyType) {
 				// Only add the property type if it doesn't exist
 				await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
 			} else {
-				console.log(`Property type ${prop.name} already exists, keeping existing type: ${existingPropertyType.type}`);
+				console.log(
+					`Property type ${prop.name} already exists, keeping existing type: ${existingPropertyType.type}`,
+				);
 			}
 		}
-		
+
 		// Reassign properties with existing or new types
-		importedTemplate.properties = importedTemplate.properties.map(prop => {
-			const existingPropertyType = generalSettings.propertyTypes.find(pt => pt.name === prop.name);
+		importedTemplate.properties = importedTemplate.properties.map((prop) => {
+			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			return {
-				id: prop.id || (Date.now().toString() + Math.random().toString(36).slice(2, 9)),
+				id: prop.id || Date.now().toString() + Math.random().toString(36).slice(2, 9),
 				name: prop.name,
 				value: prop.value,
-				type: existingPropertyType ? existingPropertyType.type : (prop.type || 'text')
+				type: existingPropertyType ? existingPropertyType.type : prop.type || 'text',
 			};
 		});
 	}
@@ -228,7 +236,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 	// Ensure unique name
 	let newName = importedTemplate.name as string;
 	let counter = 1;
-	while (templates.some(t => t.name === newName)) {
+	while (templates.some((t) => t.name === newName)) {
 		newName = `${importedTemplate.name} (${counter++})`;
 	}
 	importedTemplate.name = newName;
@@ -244,7 +252,7 @@ export function importTemplateFile(file: File): void {
 			console.log('Starting template import');
 			const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
 			const processedTemplate = await processImportedTemplate(importedTemplate);
-			
+
 			templates.unshift(processedTemplate);
 			await saveTemplateSettings();
 			updateTemplateList();
@@ -259,20 +267,14 @@ export function importTemplateFile(file: File): void {
 }
 
 export function showTemplateImportModal(): void {
-	showImportModal(
-		'import-modal',
-		importTemplateFromJson,
-		'.json',
-		true,
-		'importTemplate'
-	);
+	showImportModal('import-modal', importTemplateFromJson, '.json', true, 'importTemplate');
 }
 
 async function importTemplateFromJson(jsonContent: string): Promise<void> {
 	try {
 		const importedTemplate = JSON.parse(jsonContent) as Partial<Template>;
 		const processedTemplate = await processImportedTemplate(importedTemplate);
-		
+
 		templates.unshift(processedTemplate);
 		await saveTemplateSettings();
 		updateTemplateList();
@@ -294,7 +296,7 @@ export function copyTemplateToClipboard(template: Template): void {
 		properties: template.properties.map(({ name, value, type }) => ({
 			name,
 			value,
-			type: type || generalSettings.propertyTypes.find(pt => pt.name === name)?.type || 'text'
+			type: type || generalSettings.propertyTypes.find((pt) => pt.name === name)?.type || 'text',
 		})),
 		triggers: template.triggers,
 	};
@@ -311,25 +313,23 @@ export function copyTemplateToClipboard(template: Template): void {
 	}
 
 	const jsonContent = JSON.stringify(orderedTemplate, null, 2);
-	
-	copyToClipboardWithFeedback(
-		jsonContent,
-		getMessage('templateCopied'),
-		getMessage('templateCopyError')
-	).then(success => {
-		if (success) {
-			alert(getMessage('templateCopied'));
-		} else {
-			alert(getMessage('templateCopyError'));
-		}
-	});
+
+	copyToClipboardWithFeedback(jsonContent, getMessage('templateCopied'), getMessage('templateCopyError')).then(
+		(success) => {
+			if (success) {
+				alert(getMessage('templateCopied'));
+			} else {
+				alert(getMessage('templateCopyError'));
+			}
+		},
+	);
 }
 
 export async function exportAllSettings(): Promise<void> {
 	console.log('Starting exportAllSettings function');
 	try {
 		console.log('Fetching all data from browser storage');
-		const allData = await browser.storage.sync.get(null) as StorageData;
+		const allData = (await browser.storage.sync.get(null)) as StorageData;
 		console.log('All data fetched:', allData);
 
 		// Create a copy of the data to modify
@@ -361,7 +361,7 @@ export async function exportAllSettings(): Promise<void> {
 			content,
 			fileName,
 			mimeType: 'application/json',
-			onError: (error) => console.error('Failed to export settings:', error)
+			onError: (error) => console.error('Failed to export settings:', error),
 		});
 
 		console.log('Export completed successfully');
@@ -372,23 +372,17 @@ export async function exportAllSettings(): Promise<void> {
 }
 
 export function importAllSettings(): void {
-	showImportModal(
-		'import-modal',
-		importAllSettingsFromJson,
-		'.json',
-		false,
-		'importAllSettings'
-	);
+	showImportModal('import-modal', importAllSettingsFromJson, '.json', false, 'importAllSettings');
 }
 
 async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 	try {
 		const settings = JSON.parse(jsonContent) as StorageData;
-		
+
 		if (confirm(getMessage('confirmReplaceSettings'))) {
 			// Create a copy of the settings to modify
 			const importData: StorageData = { ...settings };
-			
+
 			// Compress all templates
 			const templateIds = importData.template_list || [];
 			for (const id of templateIds) {
@@ -396,14 +390,15 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 				if (importData[key]) {
 					try {
 						// Check if the data is already compressed (will be an array of strings)
-						const isAlreadyCompressed = Array.isArray(importData[key]) && 
+						const isAlreadyCompressed =
+							Array.isArray(importData[key]) &&
 							importData[key].every((chunk: any) => typeof chunk === 'string');
 
 						if (!isAlreadyCompressed) {
 							// Compress the template data
 							const templateStr = JSON.stringify(importData[key]);
 							const compressedData = compressToUTF16(templateStr);
-							
+
 							// Split into chunks
 							const chunks: string[] = [];
 							const CHUNK_SIZE = 8000;

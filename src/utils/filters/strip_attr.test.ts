@@ -26,4 +26,3 @@ describe('strip_attr filter', () => {
 		expect(strip_attr('<p>text</p>')).toBe('<p>text</p>');
 	});
 });
-

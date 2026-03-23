@@ -27,7 +27,12 @@ import {
 import { applyFilterDirect as builtInApplyFilterDirect } from './filters';
 
 // Filter application function type for direct invocation (already-parsed filter name and params)
-type ApplyFilterDirectFn = (value: string, filterName: string, paramString: string | undefined, currentUrl: string) => string;
+type ApplyFilterDirectFn = (
+	value: string,
+	filterName: string,
+	paramString: string | undefined,
+	currentUrl: string,
+) => string;
 
 // Default filter implementation using the built-in filters
 const defaultApplyFilterDirect: ApplyFilterDirectFn = builtInApplyFilterDirect;
@@ -103,14 +108,14 @@ export interface RenderError {
 export async function render(
 	template: string,
 	context: RenderContext,
-	options: RenderOptions = {}
+	options: RenderOptions = {},
 ): Promise<RenderResult> {
 	const parseResult = parse(template);
 
 	if (parseResult.errors.length > 0) {
 		return {
 			output: '',
-			errors: parseResult.errors.map(e => ({
+			errors: parseResult.errors.map((e) => ({
 				message: e.message,
 				line: e.line,
 				column: e.column,
@@ -128,7 +133,7 @@ export async function render(
 export async function renderAST(
 	ast: ASTNode[],
 	context: RenderContext,
-	options: RenderOptions = {}
+	options: RenderOptions = {},
 ): Promise<RenderResult> {
 	const errors: RenderError[] = [];
 	const state: RenderState = {
@@ -256,7 +261,7 @@ function getPromptBase(expr: Expression): string | null {
  * Format filter arguments as a colon-separated string.
  */
 function formatFilterArgs(args: Expression[]): string {
-	const formatted = args.map(arg => {
+	const formatted = args.map((arg) => {
 		if (arg.type === 'literal') {
 			const val = (arg as LiteralExpression).value;
 			if (typeof val === 'string') {
@@ -387,8 +392,8 @@ async function renderFor(node: ForNode, state: RenderState): Promise<string> {
 
 			// Create loop object with Twig-compatible properties
 			const loop = {
-				index: i + 1,       // 1-indexed
-				index0: i,          // 0-indexed
+				index: i + 1, // 1-indexed
+				index0: i, // 0-indexed
 				first: i === 0,
 				last: i === length - 1,
 				length: length,
@@ -400,7 +405,7 @@ async function renderFor(node: ForNode, state: RenderState): Promise<string> {
 				variables: {
 					...state.context.variables,
 					[node.iterator]: item,
-					[`${node.iterator}_index`]: i,  // Keep for backwards compatibility
+					[`${node.iterator}_index`]: i, // Keep for backwards compatibility
 					loop,
 				},
 			};
@@ -651,7 +656,7 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	// This avoids the round-trip of building "filterName:args" then re-parsing it
 	let paramString: string | undefined;
 	if (args.length > 0) {
-		const formattedArgs = args.map(a => {
+		const formattedArgs = args.map((a) => {
 			if (typeof a === 'string') {
 				// Don't double-quote strings that are already quoted
 				if (isQuotedString(a)) {
@@ -684,7 +689,7 @@ function evaluateContains(left: any, right: any): boolean {
 
 	// Array contains
 	if (Array.isArray(left)) {
-		return left.some(item => {
+		return left.some((item) => {
 			if (typeof item === 'string' && typeof right === 'string') {
 				return item.toLowerCase() === right.toLowerCase();
 			}
@@ -726,7 +731,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
 
 		if (indexOrStar === '*') {
 			if (propertyPath) {
-				return parsed.map(item => getNestedValue(item, propertyPath)).filter(v => v != null);
+				return parsed.map((item) => getNestedValue(item, propertyPath)).filter((v) => v != null);
 			}
 			return parsed;
 		} else {
@@ -763,9 +768,7 @@ function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): an
 	// If no @ in key, try shorthand resolution
 	// Look for keys like {{schema:@Type.genre}} that end with the shorthand
 	if (!schemaKey.includes('@')) {
-		const matchingKey = Object.keys(variables).find(key =>
-			key.includes('@') && key.endsWith(`:${schemaKey}}}`)
-		);
+		const matchingKey = Object.keys(variables).find((key) => key.includes('@') && key.endsWith(`:${schemaKey}}}`));
 		if (matchingKey) {
 			return variables[matchingKey];
 		}
@@ -918,7 +921,7 @@ function valueToString(value: any): string {
 export async function renderTemplate(
 	template: string,
 	variables: Record<string, any>,
-	currentUrl: string = ''
+	currentUrl: string = '',
 ): Promise<string> {
 	const result = await render(template, { variables, currentUrl });
 	if (result.errors.length > 0) {
@@ -932,7 +935,7 @@ export async function renderTemplate(
  */
 export function createSelectorResolver(
 	tabId: number,
-	sendMessage: (tabId: number, message: any) => Promise<any>
+	sendMessage: (tabId: number, message: any) => Promise<any>,
 ): AsyncResolver {
 	return async (name: string, context: RenderContext): Promise<any> => {
 		const extractHtml = name.startsWith('selectorHtml:');
@@ -946,10 +949,10 @@ export function createSelectorResolver(
 
 		try {
 			const response = await sendMessage(tabId, {
-				action: "extractContent",
+				action: 'extractContent',
 				selector: selector.replace(/\\"/g, '"'),
 				attribute: attribute,
-				extractHtml: extractHtml
+				extractHtml: extractHtml,
 			});
 
 			return response ? response.content : undefined;

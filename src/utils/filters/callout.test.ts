@@ -65,4 +65,3 @@ describe('callout filter via renderer', () => {
 		expect(result.output).toContain('|callout:("info","Summary",false)');
 	});
 });
-

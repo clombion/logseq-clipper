@@ -14,11 +14,16 @@ let lastRequestTime = 0;
 // Store event listeners for cleanup
 const eventListeners = new WeakMap<HTMLElement, { [key: string]: EventListener }>();
 
-export async function sendToLLM(promptContext: string, content: string, promptVariables: PromptVariable[], model: ModelConfig): Promise<{ promptResponses: any[] }> {
+export async function sendToLLM(
+	promptContext: string,
+	content: string,
+	promptVariables: PromptVariable[],
+	model: ModelConfig,
+): Promise<{ promptResponses: any[] }> {
 	debugLog('Interpreter', 'Sending request to LLM...');
-	
+
 	// Find the provider for this model
-	const provider = generalSettings.providers.find(p => p.id === model.providerId);
+	const provider = generalSettings.providers.find((p) => p.id === model.providerId);
 	if (!provider) {
 		throw new Error(`Provider not found for model ${model.name}`);
 	}
@@ -30,18 +35,22 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 
 	const now = Date.now();
 	if (now - lastRequestTime < RATE_LIMIT_RESET_TIME) {
-		throw new Error(`Rate limit cooldown. Please wait ${Math.ceil((RATE_LIMIT_RESET_TIME - (now - lastRequestTime)) / 1000)} seconds before trying again.`);
+		throw new Error(
+			`Rate limit cooldown. Please wait ${Math.ceil((RATE_LIMIT_RESET_TIME - (now - lastRequestTime)) / 1000)} seconds before trying again.`,
+		);
 	}
 
 	try {
-		const systemContent = 
-			`You are a helpful assistant. Please respond with one JSON object named \`prompts_responses\` — no explanatory text before or after. Use the keys provided, e.g. \`prompt_1\`, \`prompt_2\`, and fill in the values. Values should be Markdown strings unless otherwise specified. Make your responses concise. For example, your response should look like: {"prompts_responses":{"prompt_1":"tag1, tag2, tag3","prompt_2":"- bullet1\n- bullet 2\n- bullet3"}}`;
-		
-		const promptContent = {	
-			prompts: promptVariables.reduce((acc, { key, prompt }) => {
-				acc[key] = prompt;
-				return acc;
-			}, {} as { [key: string]: string })
+		const systemContent = `You are a helpful assistant. Please respond with one JSON object named \`prompts_responses\` — no explanatory text before or after. Use the keys provided, e.g. \`prompt_1\`, \`prompt_2\`, and fill in the values. Values should be Markdown strings unless otherwise specified. Make your responses concise. For example, your response should look like: {"prompts_responses":{"prompt_1":"tag1, tag2, tag3","prompt_2":"- bullet1\n- bullet 2\n- bullet3"}}`;
+
+		const promptContent = {
+			prompts: promptVariables.reduce(
+				(acc, { key, prompt }) => {
+					acc[key] = prompt;
+					return acc;
+				},
+				{} as { [key: string]: string },
+			),
 		};
 
 		let requestUrl: string;
@@ -58,14 +67,14 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				messages: [
 					{ role: 'system', content: systemContent },
 					{ role: 'user', content: `${promptContext}` },
-					{ role: 'user', content: `${JSON.stringify(promptContent)}` }
+					{ role: 'user', content: `${JSON.stringify(promptContent)}` },
 				],
 				max_tokens: 1600,
-				stream: false
-			};					
+				stream: false,
+			};
 			headers = {
 				...headers,
-				'Authorization': `Bearer ${provider.apiKey}`
+				Authorization: `Bearer ${provider.apiKey}`,
 			};
 		} else if (provider.baseUrl.includes('openai.azure.com')) {
 			requestUrl = provider.baseUrl;
@@ -73,14 +82,14 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				messages: [
 					{ role: 'system', content: systemContent },
 					{ role: 'user', content: `${promptContext}` },
-					{ role: 'user', content: `${JSON.stringify(promptContent)}` }
+					{ role: 'user', content: `${JSON.stringify(promptContent)}` },
 				],
 				max_tokens: 1600,
-				stream: false
+				stream: false,
 			};
 			headers = {
 				...headers,
-				'api-key': provider.apiKey
+				'api-key': provider.apiKey,
 			};
 		} else if (provider.name.toLowerCase().includes('anthropic')) {
 			requestUrl = provider.baseUrl;
@@ -89,16 +98,16 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				max_tokens: 1600,
 				messages: [
 					{ role: 'user', content: `${promptContext}` },
-					{ role: 'user', content: `${JSON.stringify(promptContent)}` }
+					{ role: 'user', content: `${JSON.stringify(promptContent)}` },
 				],
 				temperature: 0.5,
-				system: systemContent
+				system: systemContent,
 			};
 			headers = {
 				...headers,
 				'x-api-key': provider.apiKey,
 				'anthropic-version': '2023-06-01',
-				'anthropic-dangerous-direct-browser-access': 'true'
+				'anthropic-dangerous-direct-browser-access': 'true',
 			};
 		} else if (provider.name.toLowerCase().includes('perplexity')) {
 			requestUrl = provider.baseUrl;
@@ -107,18 +116,20 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				max_tokens: 1600,
 				messages: [
 					{ role: 'system', content: systemContent },
-					{ role: 'user', content: `
+					{
+						role: 'user',
+						content: `
 						"${promptContext}"
-						"${JSON.stringify(promptContent)}"`
-					}
+						"${JSON.stringify(promptContent)}"`,
+					},
 				],
-				temperature: 0.3
+				temperature: 0.3,
 			};
 			headers = {
 				...headers,
 				'HTTP-Referer': 'https://obsidian.md/',
 				'X-Title': 'Obsidian Web Clipper',
-				'Authorization': `Bearer ${provider.apiKey}`
+				Authorization: `Bearer ${provider.apiKey}`,
 			};
 		} else if (provider.name.toLowerCase().includes('ollama')) {
 			requestUrl = provider.baseUrl;
@@ -127,12 +138,12 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				messages: [
 					{ role: 'system', content: systemContent },
 					{ role: 'user', content: `${promptContext}` },
-					{ role: 'user', content: `${JSON.stringify(promptContent)}` }
+					{ role: 'user', content: `${JSON.stringify(promptContent)}` },
 				],
 				format: 'json',
 				num_ctx: 120000,
 				temperature: 0.5,
-				stream: false
+				stream: false,
 			};
 		} else {
 			// Default request format
@@ -142,14 +153,14 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 				messages: [
 					{ role: 'system', content: systemContent },
 					{ role: 'user', content: `${promptContext}` },
-					{ role: 'user', content: `${JSON.stringify(promptContent)}` }
-				]
+					{ role: 'user', content: `${JSON.stringify(promptContent)}` },
+				],
 			};
 			headers = {
 				...headers,
 				'HTTP-Referer': 'https://obsidian.md/',
 				'X-Title': 'Obsidian Web Clipper',
-				'Authorization': `Bearer ${provider.apiKey}`
+				Authorization: `Bearer ${provider.apiKey}`,
 			};
 		}
 
@@ -158,21 +169,21 @@ export async function sendToLLM(promptContext: string, content: string, promptVa
 		const response = await fetch(requestUrl, {
 			method: 'POST',
 			headers: headers,
-			body: JSON.stringify(requestBody)
+			body: JSON.stringify(requestBody),
 		});
 
 		if (!response.ok) {
 			const errorText = await response.text();
 			console.error(`${provider.name} error response:`, errorText);
-			
+
 			// Add specific message for Ollama 403 errors
 			if (provider.name.toLowerCase().includes('ollama') && response.status === 403) {
 				throw new Error(
 					`Ollama cannot process requests originating from a browser extension without setting OLLAMA_ORIGINS. ` +
-					`See instructions at https://help.obsidian.md/web-clipper/interpreter`
+						`See instructions at https://help.obsidian.md/web-clipper/interpreter`,
 				);
 			}
-			
+
 			throw new Error(`${provider.name} error: ${response.statusText} ${errorText}`);
 		}
 
@@ -238,7 +249,7 @@ interface LLMResponse {
 function parseLLMResponse(responseContent: string, promptVariables: PromptVariable[]): { promptResponses: any[] } {
 	try {
 		let parsedResponse: LLMResponse;
-		
+
 		// If responseContent is already an object, convert to string
 		if (typeof responseContent === 'object') {
 			responseContent = JSON.stringify(responseContent);
@@ -248,27 +259,28 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 		const sanitizeJsonString = (str: string) => {
 			// First, normalize all newlines to \n
 			let result = str.replace(/\r\n/g, '\n');
-			
+
 			// Escape newlines properly
 			result = result.replace(/\n/g, '\\n');
-			
+
 			// Escape quotes that are part of the content
 			result = result.replace(/(?<!\\)"/g, '\\"');
-			
+
 			// Then unescape the quotes that are JSON structural elements
-			result = result.replace(/(?<=[{[,:]\s*)\\"/g, '"')
-				.replace(/\\"(?=\s*[}\],:}])/g, '"');
-			
-			return result
-				// Replace curly quotes
-				.replace(/[""]/g, '\\"')
-				// Remove any bad control characters
-				.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '')
-				// Remove any whitespace between quotes and colons
-				.replace(/"\s*:/g, '":')
-				.replace(/:\s*"/g, ':"')
-				// Fix any triple or more backslashes
-				.replace(/\\{3,}/g, '\\\\');
+			result = result.replace(/(?<=[{[,:]\s*)\\"/g, '"').replace(/\\"(?=\s*[}\],:}])/g, '"');
+
+			return (
+				result
+					// Replace curly quotes
+					.replace(/[""]/g, '\\"')
+					// Remove any bad control characters
+					.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '')
+					// Remove any whitespace between quotes and colons
+					.replace(/"\s*:/g, '":')
+					.replace(/:\s*"/g, ':"')
+					// Fix any triple or more backslashes
+					.replace(/\\{3,}/g, '\\\\')
+			);
 		};
 
 		// First try to parse the content directly
@@ -294,23 +306,20 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 				// If minimal sanitization fails, try full sanitization
 				const sanitizedMatch = sanitizeJsonString(jsonMatch[0]);
 				debugLog('Interpreter', 'Fully sanitized match:', sanitizedMatch);
-				
+
 				try {
 					parsedResponse = JSON.parse(sanitizedMatch);
 				} catch (fullError) {
 					// Last resort: try to manually rebuild the JSON structure
 					const prompts_responses: { [key: string]: string } = {};
-					
+
 					// Extract each prompt response separately
 					promptVariables.forEach((variable, index) => {
 						const promptKey = `prompt_${index + 1}`;
 						const promptRegex = new RegExp(`"${promptKey}"\\s*:\\s*"([^]*?)(?:"\\s*,|"\\s*})`, 'g');
 						const match = promptRegex.exec(jsonMatch[0]);
 						if (match) {
-							let content = match[1]
-								.replace(/"/g, '\\"')
-								.replace(/\r\n/g, '\\n')
-								.replace(/\n/g, '\\n');
+							let content = match[1].replace(/"/g, '\\"').replace(/\r\n/g, '\\n').replace(/\n/g, '\\n');
 							prompts_responses[promptKey] = content;
 						}
 					});
@@ -329,7 +338,7 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 		}
 
 		// Convert escaped newlines to actual newlines in the responses
-		Object.keys(parsedResponse.prompts_responses).forEach(key => {
+		Object.keys(parsedResponse.prompts_responses).forEach((key) => {
 			if (typeof parsedResponse.prompts_responses[key] === 'string') {
 				parsedResponse.prompts_responses[key] = parsedResponse.prompts_responses[key]
 					.replace(/\\n/g, '\n')
@@ -338,10 +347,10 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 		});
 
 		// Map the responses to their prompts
-		const promptResponses = promptVariables.map(variable => ({
+		const promptResponses = promptVariables.map((variable) => ({
 			key: variable.key,
 			prompt: variable.prompt,
-			user_response: parsedResponse.prompts_responses[variable.key] || ''
+			user_response: parsedResponse.prompts_responses[variable.key] || '',
 		}));
 
 		debugLog('Interpreter', 'Successfully mapped prompt responses:', promptResponses);
@@ -350,7 +359,7 @@ function parseLLMResponse(responseContent: string, promptVariables: PromptVariab
 		console.error('Failed to parse LLM response:', parseError);
 		debugLog('Interpreter', 'Parse error details:', {
 			error: parseError,
-			responseContent: responseContent
+			responseContent: responseContent,
 		});
 		return { promptResponses: [] };
 	}
@@ -396,7 +405,12 @@ export function collectPromptVariables(template: Template | null): PromptVariabl
 	return Array.from(promptMap.values());
 }
 
-export async function initializeInterpreter(template: Template, variables: { [key: string]: string }, tabId: number, currentUrl: string) {
+export async function initializeInterpreter(
+	template: Template,
+	variables: { [key: string]: string },
+	tabId: number,
+	currentUrl: string,
+) {
 	const interpreterContainer = document.getElementById('interpreter');
 	const interpretBtn = document.getElementById('interpret-btn');
 	const promptContextTextarea = document.getElementById('prompt-context') as HTMLTextAreaElement;
@@ -431,26 +445,26 @@ export async function initializeInterpreter(template: Template, variables: { [ke
 
 	if (interpreterContainer) interpreterContainer.style.display = 'flex';
 	if (interpretBtn) interpretBtn.style.display = 'inline-block';
-	
+
 	if (promptContextTextarea) {
 		const tokenCounter = document.getElementById('token-counter');
-		
+
 		const inputListener = () => {
 			template.context = promptContextTextarea.value;
 			if (tokenCounter) {
 				updateTokenCount(promptContextTextarea.value, tokenCounter);
 			}
 		};
-		
+
 		storeListener(promptContextTextarea, 'input', inputListener);
 
 		let promptToDisplay =
-			template.context
-			|| generalSettings.defaultPromptContext
-			|| '{{fullHtml|remove_html:("#navbar,.footer,#footer,header,footer,style,script")|strip_tags:("script,h1,h2,h3,h4,h5,h6,meta,a,ol,ul,li,p,em,strong,i,b,s,strike,u,sup,sub,img,video,audio,math,table,cite,td,th,tr,caption")|strip_attr:("alt,src,href,id,content,property,name,datetime,title")}}';
+			template.context ||
+			generalSettings.defaultPromptContext ||
+			'{{fullHtml|remove_html:("#navbar,.footer,#footer,header,footer,style,script")|strip_tags:("script,h1,h2,h3,h4,h5,h6,meta,a,ol,ul,li,p,em,strong,i,b,s,strike,u,sup,sub,img,video,audio,math,table,cite,td,th,tr,caption")|strip_attr:("alt,src,href,id,content,property,name,datetime,title")}}';
 		promptToDisplay = await compileTemplate(tabId, promptToDisplay, variables, currentUrl);
 		promptContextTextarea.value = promptToDisplay;
-		
+
 		// Initial token count
 		if (tokenCounter) {
 			updateTokenCount(promptContextTextarea.value, tokenCounter);
@@ -462,7 +476,7 @@ export async function initializeInterpreter(template: Template, variables: { [ke
 		if (interpretBtn && !generalSettings.interpreterAutoRun) {
 			const clickListener = async () => {
 				const selectedModelId = modelSelect.value;
-				const modelConfig = generalSettings.models.find(m => m.id === selectedModelId);
+				const modelConfig = generalSettings.models.find((m) => m.id === selectedModelId);
 				if (!modelConfig) {
 					throw new Error(`Model configuration not found for ${selectedModelId}`);
 				}
@@ -482,9 +496,9 @@ export async function initializeInterpreter(template: Template, variables: { [ke
 
 			// Only repopulate if the skeleton hasn't already done it
 			if (modelSelect.options.length === 0) {
-				const enabledModels = generalSettings.models.filter(model => model.enabled);
+				const enabledModels = generalSettings.models.filter((model) => model.enabled);
 				modelSelect.textContent = '';
-				enabledModels.forEach(model => {
+				enabledModels.forEach((model) => {
 					const option = document.createElement('option');
 					option.value = model.id;
 					option.textContent = model.name;
@@ -494,8 +508,8 @@ export async function initializeInterpreter(template: Template, variables: { [ke
 			}
 
 			// Validate that the selected model is still enabled
-			const enabledModels = generalSettings.models.filter(model => model.enabled);
-			const lastSelectedModel = enabledModels.find(model => model.id === generalSettings.interpreterModel);
+			const enabledModels = generalSettings.models.filter((model) => model.enabled);
+			const lastSelectedModel = enabledModels.find((model) => model.id === generalSettings.interpreterModel);
 
 			if (!lastSelectedModel && enabledModels.length > 0) {
 				generalSettings.interpreterModel = enabledModels[0].id;
@@ -511,7 +525,7 @@ export async function handleInterpreterUI(
 	variables: { [key: string]: string },
 	tabId: number,
 	currentUrl: string,
-	modelConfig: ModelConfig
+	modelConfig: ModelConfig,
 ): Promise<void> {
 	const interpreterContainer = document.getElementById('interpreter');
 	const interpretBtn = document.getElementById('interpret-btn') as HTMLButtonElement;
@@ -530,7 +544,7 @@ export async function handleInterpreterUI(
 		interpreterContainer?.classList.remove('done', 'error');
 
 		// Find the provider for this model
-		const provider = generalSettings.providers.find(p => p.id === modelConfig.providerId);
+		const provider = generalSettings.providers.find((p) => p.id === modelConfig.providerId);
 		if (!provider) {
 			throw new Error(`Provider not found for model ${modelConfig.name}`);
 		}
@@ -588,7 +602,7 @@ export async function handleInterpreterUI(
 
 		// Add done class to container
 		interpreterContainer?.classList.add('done');
-		
+
 		// Update fields with responses
 		replacePromptVariables(promptVariables, promptResponses);
 
@@ -601,10 +615,9 @@ export async function handleInterpreterUI(
 		if (noteNameField instanceof HTMLTextAreaElement) {
 			adjustNoteNameHeight(noteNameField);
 		}
-
 	} catch (error) {
 		console.error('Error processing LLM:', error);
-		
+
 		// Revert button text and remove class in case of error
 		interpretBtn.textContent = getMessage('error');
 		interpretBtn.classList.remove('processing');
@@ -618,7 +631,10 @@ export async function handleInterpreterUI(
 		responseTimer.style.display = 'none';
 
 		// Display the error message
-		interpreterErrorMessage.textContent = error instanceof Error ? error.message : 'An unknown error occurred while processing the interpreter request.';
+		interpreterErrorMessage.textContent =
+			error instanceof Error
+				? error.message
+				: 'An unknown error occurred while processing the interpreter request.';
 		interpreterErrorMessage.style.display = 'block';
 
 		// Re-enable the clip button
@@ -638,32 +654,35 @@ export function replacePromptVariables(promptVariables: PromptVariable[], prompt
 	const allInputs = document.querySelectorAll('input, textarea');
 	allInputs.forEach((input) => {
 		if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-			input.value = input.value.replace(/{{(?:prompt:)?"([\s\S]*?)"(\|[\s\S]*?)?}}/g, (match, promptText, filters) => {
-				const variable = promptVariables.find(v => v.prompt === promptText);
-				if (!variable) return match;
+			input.value = input.value.replace(
+				/{{(?:prompt:)?"([\s\S]*?)"(\|[\s\S]*?)?}}/g,
+				(match, promptText, filters) => {
+					const variable = promptVariables.find((v) => v.prompt === promptText);
+					if (!variable) return match;
 
-				const response = promptResponses.find(r => r.key === variable.key);
-				if (response && response.user_response !== undefined) {
-					let value = response.user_response;
-					
-					// Handle array or object responses
-					if (typeof value === 'object') {
-						try {
-							value = JSON.stringify(value, null, 2);
-						} catch (error) {
-							console.error('Error stringifying object:', error);
-							value = String(value);
+					const response = promptResponses.find((r) => r.key === variable.key);
+					if (response && response.user_response !== undefined) {
+						let value = response.user_response;
+
+						// Handle array or object responses
+						if (typeof value === 'object') {
+							try {
+								value = JSON.stringify(value, null, 2);
+							} catch (error) {
+								console.error('Error stringifying object:', error);
+								value = String(value);
+							}
 						}
-					}
 
-					if (filters) {
-						value = applyFilters(value, filters.slice(1));
+						if (filters) {
+							value = applyFilters(value, filters.slice(1));
+						}
+
+						return value;
 					}
-					
-					return value;
-				}
-				return match; // Return original if no match found
-			});
+					return match; // Return original if no match found
+				},
+			);
 
 			// Adjust height for noteNameField after updating its value
 			if (input.id === 'note-name-field' && input instanceof HTMLTextAreaElement) {

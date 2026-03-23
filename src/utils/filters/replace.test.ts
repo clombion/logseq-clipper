@@ -120,4 +120,3 @@ describe('replace param validation', () => {
 		expect(filterWarnings).toHaveLength(0);
 	});
 });
-

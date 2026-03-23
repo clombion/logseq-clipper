@@ -22,4 +22,4 @@ export const reverse = (str: string): string => {
 	}
 
 	return str;
-}; 
+};

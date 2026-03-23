@@ -4,10 +4,7 @@ interface MemoizeOptions<T extends (...args: any[]) => any> {
 	keyFn?: (...args: Parameters<T>) => string | Promise<string>;
 }
 
-export function memoize<T extends (...args: any[]) => any>(
-	fn: T,
-	options: MemoizeOptions<T> = {}
-): T {
+export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions<T> = {}): T {
 	const cache = new Map<string, ReturnType<T>>();
 	return ((...args: Parameters<T>): ReturnType<T> => {
 		const key = options.resolver ? options.resolver(...args) : JSON.stringify(args);
@@ -20,10 +17,7 @@ export function memoize<T extends (...args: any[]) => any>(
 	}) as T;
 }
 
-export function memoizeWithExpiration<T extends (...args: any[]) => any>(
-	fn: T,
-	options: MemoizeOptions<T>
-): T {
+export function memoizeWithExpiration<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions<T>): T {
 	const cache = new Map<string, { value: ReturnType<T>; timestamp: number }>();
 	return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
 		const key = options.keyFn ? await options.keyFn(...args) : JSON.stringify(args);

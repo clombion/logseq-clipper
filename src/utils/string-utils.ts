@@ -32,14 +32,10 @@ export function sanitizeFileName(fileName: string): string {
 			.replace(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i, '_$1$2')
 			.replace(/[\s.]+$/, '');
 	} else if (isMac) {
-		sanitized = sanitized
-			.replace(/[\/:\x00-\x1F]/g, '')
-			.replace(/^\./, '_');
+		sanitized = sanitized.replace(/[\/:\x00-\x1F]/g, '').replace(/^\./, '_');
 	} else {
 		// Linux and other systems
-		sanitized = sanitized
-			.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '')
-			.replace(/^\./, '_');
+		sanitized = sanitized.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '').replace(/^\./, '_');
 	}
 
 	// Common operations for all platforms
@@ -77,11 +73,11 @@ export function formatVariables(variables: { [key: string]: string }): string {
 
 export function escapeHtml(unsafe: string): string {
 	return unsafe
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
 }
 
 // Cases to handle:
@@ -99,14 +95,17 @@ export function makeUrlAbsolute(element: Element, attributeName: string, baseUrl
 		try {
 			// Create a new URL object from the base URL
 			const resolvedBaseUrl = new URL(baseUrl.href);
-			
+
 			// If the base URL points to a file, remove the filename to get the directory
 			if (!resolvedBaseUrl.pathname.endsWith('/')) {
-				resolvedBaseUrl.pathname = resolvedBaseUrl.pathname.substring(0, resolvedBaseUrl.pathname.lastIndexOf('/') + 1);
+				resolvedBaseUrl.pathname = resolvedBaseUrl.pathname.substring(
+					0,
+					resolvedBaseUrl.pathname.lastIndexOf('/') + 1,
+				);
 			}
-			
+
 			const url = new URL(attributeValue, resolvedBaseUrl);
-			
+
 			if (!['http:', 'https:'].includes(url.protocol)) {
 				// Handle non-standard protocols (chrome-extension://, moz-extension://, brave://, etc.)
 				const parts = attributeValue.split('/');
@@ -137,26 +136,28 @@ export function makeUrlAbsolute(element: Element, attributeName: string, baseUrl
 export function processUrls(htmlContent: string, baseUrl: URL): string {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(htmlContent, 'text/html');
-	
+
 	// Handle relative URLs for images, links, videos, and audio embeds.
-	doc.querySelectorAll('img').forEach(img => makeUrlAbsolute(img, 'srcset', baseUrl));
-	doc.querySelectorAll('img').forEach(img => makeUrlAbsolute(img, 'src', baseUrl));
-	doc.querySelectorAll('a').forEach(link => makeUrlAbsolute(link, 'href', baseUrl));
-	doc.querySelectorAll('video').forEach(video => makeUrlAbsolute(video, 'src', baseUrl));
-	doc.querySelectorAll('audio').forEach(audio => makeUrlAbsolute(audio, 'src', baseUrl));
-	doc.querySelectorAll(':is(video, audio) :is(source, track)').forEach(sourceOrTrack => makeUrlAbsolute(sourceOrTrack, 'src', baseUrl));
-	
+	doc.querySelectorAll('img').forEach((img) => makeUrlAbsolute(img, 'srcset', baseUrl));
+	doc.querySelectorAll('img').forEach((img) => makeUrlAbsolute(img, 'src', baseUrl));
+	doc.querySelectorAll('a').forEach((link) => makeUrlAbsolute(link, 'href', baseUrl));
+	doc.querySelectorAll('video').forEach((video) => makeUrlAbsolute(video, 'src', baseUrl));
+	doc.querySelectorAll('audio').forEach((audio) => makeUrlAbsolute(audio, 'src', baseUrl));
+	doc.querySelectorAll(':is(video, audio) :is(source, track)').forEach((sourceOrTrack) =>
+		makeUrlAbsolute(sourceOrTrack, 'src', baseUrl),
+	);
+
 	// Serialize back to HTML
 	const serializer = new XMLSerializer();
 	let result = '';
-	Array.from(doc.body.childNodes).forEach(node => {
+	Array.from(doc.body.childNodes).forEach((node) => {
 		if (node.nodeType === Node.ELEMENT_NODE) {
 			result += serializer.serializeToString(node);
 		} else if (node.nodeType === Node.TEXT_NODE) {
 			result += node.textContent;
 		}
 	});
-	
+
 	return result;
 }
 
@@ -179,7 +180,7 @@ export function getDomain(url: string): string {
 		}
 
 		const hostParts = hostname.split('.');
-		
+
 		// Handle special cases like co.uk, com.au, etc.
 		if (hostParts.length > 2) {
 			const lastTwo = hostParts.slice(-2).join('.');
@@ -187,7 +188,7 @@ export function getDomain(url: string): string {
 				return hostParts.slice(-3).join('.');
 			}
 		}
-		
+
 		return hostParts.slice(-2).join('.');
 	} catch (error) {
 		console.warn('Invalid URL:', url);

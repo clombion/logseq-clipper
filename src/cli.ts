@@ -64,16 +64,25 @@ function parseArgs(argv: string[]): CliArgs {
 				break;
 			case '-t':
 			case '--template':
-				if (i + 1 >= args.length) { console.error('Error: --template requires a value'); process.exit(1); }
+				if (i + 1 >= args.length) {
+					console.error('Error: --template requires a value');
+					process.exit(1);
+				}
 				templatePath = args[++i];
 				break;
 			case '-o':
 			case '--output':
-				if (i + 1 >= args.length) { console.error('Error: --output requires a value'); process.exit(1); }
+				if (i + 1 >= args.length) {
+					console.error('Error: --output requires a value');
+					process.exit(1);
+				}
 				outputPath = args[++i];
 				break;
 			case '--vault':
-				if (i + 1 >= args.length) { console.error('Error: --vault requires a value'); process.exit(1); }
+				if (i + 1 >= args.length) {
+					console.error('Error: --vault requires a value');
+					process.exit(1);
+				}
 				vault = args[++i];
 				break;
 			case '--open':
@@ -86,11 +95,17 @@ function parseArgs(argv: string[]): CliArgs {
 				uri = true;
 				break;
 			case '--html':
-				if (i + 1 >= args.length) { console.error('Error: --html requires a value'); process.exit(1); }
+				if (i + 1 >= args.length) {
+					console.error('Error: --html requires a value');
+					process.exit(1);
+				}
 				htmlPath = args[++i];
 				break;
 			case '--property-types':
-				if (i + 1 >= args.length) { console.error('Error: --property-types requires a value'); process.exit(1); }
+				if (i + 1 >= args.length) {
+					console.error('Error: --property-types requires a value');
+					process.exit(1);
+				}
 				propertyTypesPath = args[++i];
 				break;
 			default:
@@ -127,8 +142,8 @@ const templateFilePaths = new Map<Template, string>();
 
 function loadTemplatesFromDir(dirPath: string): Template[] {
 	const resolved = path.resolve(dirPath);
-	const files = fs.readdirSync(resolved).filter(f => f.endsWith('.json'));
-	return files.map(f => {
+	const files = fs.readdirSync(resolved).filter((f) => f.endsWith('.json'));
+	return files.map((f) => {
 		const raw = fs.readFileSync(path.join(resolved, f), 'utf-8');
 		const template: Template = JSON.parse(raw);
 		templateFilePaths.set(template, path.join(resolved, f));
@@ -143,7 +158,7 @@ function loadTemplatesFromDir(dirPath: string): Template[] {
 const linkedomParser: DocumentParser = {
 	parseFromString(html: string, _mimeType: string) {
 		return parseHTML(html).document;
-	}
+	},
 };
 
 // ---------------------------------------------------------------------------
@@ -203,11 +218,14 @@ async function main(): Promise<void> {
 
 		// If no URL match, check if any templates have schema triggers
 		if (!matched) {
-			const hasSchemaTrigs = templates.some(t => t.triggers?.some(tr => tr.startsWith('schema:')));
+			const hasSchemaTrigs = templates.some((t) => t.triggers?.some((tr) => tr.startsWith('schema:')));
 			if (hasSchemaTrigs) {
 				const DefuddleClass = (await import('defuddle')).default;
 				parsedDocument = linkedomParser.parseFromString(html, 'text/html');
-				const defuddle = new DefuddleClass((parsedDocument.documentElement || parsedDocument) as unknown as Document, { url: args.url });
+				const defuddle = new DefuddleClass(
+					(parsedDocument.documentElement || parsedDocument) as unknown as Document,
+					{ url: args.url },
+				);
 				const defuddleResult = defuddle.parse();
 				matched = matchTemplate(templates, args.url, defuddleResult.schemaOrgData);
 			}
@@ -247,7 +265,7 @@ async function main(): Promise<void> {
 			vault,
 			template.behavior || 'create',
 			args.silent,
-			args.uri
+			args.uri,
 		);
 		console.error(obsResult);
 	} else if (args.outputPath) {
@@ -258,7 +276,7 @@ async function main(): Promise<void> {
 	}
 }
 
-main().catch(err => {
+main().catch((err) => {
 	console.error(err.message || err);
 	process.exit(1);
 });

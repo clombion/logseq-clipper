@@ -32,4 +32,3 @@ describe('reverse filter', () => {
 		expect(parsed).toEqual([3, 2, 1]);
 	});
 });
-

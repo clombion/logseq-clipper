@@ -16,7 +16,7 @@ export function createParserState(initialCurrent: string = ''): ParserState {
 		inRegex: false,
 		curlyDepth: 0,
 		parenDepth: 0,
-		escapeNext: false
+		escapeNext: false,
 	};
 }
 
@@ -42,8 +42,12 @@ export function processCharacter(char: string, state: ParserState): void {
 		return;
 	}
 
-	if (char === '/' && !state.inQuote && !state.inRegex && 
-		(state.current.endsWith(':') || state.current.endsWith(','))) {
+	if (
+		char === '/' &&
+		!state.inQuote &&
+		!state.inRegex &&
+		(state.current.endsWith(':') || state.current.endsWith(','))
+	) {
 		state.inRegex = true;
 		state.current += char;
 		return;
@@ -91,6 +95,6 @@ export function parseRegexPattern(pattern: string): { pattern: string; flags: st
 	if (!match) return null;
 	return {
 		pattern: match[1],
-		flags: match[2]
+		flags: match[2],
 	};
 }

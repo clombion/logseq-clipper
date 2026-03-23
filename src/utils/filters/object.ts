@@ -10,7 +10,7 @@ export const validateObjectParams = (param: string | undefined): ParamValidation
 	if (!validObjectParams.includes(param)) {
 		return {
 			valid: false,
-			error: `invalid parameter "${param}". Use "array", "keys", or "values"`
+			error: `invalid parameter "${param}". Use "array", "keys", or "values"`,
 		};
 	}
 

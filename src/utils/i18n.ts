@@ -42,14 +42,14 @@ function convertToLocaleCode(locale: string): string {
 	const lowercaseLocale = locale.toLowerCase();
 
 	const specialCases: { [key: string]: string } = {
-		'tl': 'tl-ph',
-		'no': 'nb'
+		tl: 'tl-ph',
+		no: 'nb',
 	};
-	
+
 	if (specialCases[lowercaseLocale]) {
 		return specialCases[lowercaseLocale];
 	}
-	
+
 	return lowercaseLocale.replace('_', '-');
 }
 
@@ -70,7 +70,7 @@ export function getAvailableLanguages(): { code: string; name: string }[] {
 	return [
 		{ code: '', name: 'systemDefault' },
 		{ code: 'ar', name: 'العربية' },
-		{ code: 'bn', name: 'বাংলা'},
+		{ code: 'bn', name: 'বাংলা' },
 		{ code: 'ca', name: 'Català' },
 		{ code: 'cs', name: 'Čeština' },
 		{ code: 'da', name: 'Dansk' },
@@ -101,7 +101,7 @@ export function getAvailableLanguages(): { code: string; name: string }[] {
 		{ code: 'uk', name: 'Українська' },
 		{ code: 'vi', name: 'Tiếng Việt' },
 		{ code: 'zh_CN', name: '简体中文' },
-		{ code: 'zh_TW', name: '繁體中文' }
+		{ code: 'zh_TW', name: '繁體中文' },
 	];
 }
 
@@ -117,7 +117,7 @@ export async function setLanguage(language: string): Promise<void> {
 	await setLocalStorage('language', language);
 	// Reload all extension pages to apply the new language
 	const extensionPages = await browser.extension.getViews();
-	extensionPages.forEach(page => {
+	extensionPages.forEach((page) => {
 		page.location.reload();
 	});
 }
@@ -126,8 +126,8 @@ export async function setLanguage(language: string): Promise<void> {
 export function matchBrowserLanguage(): string {
 	const browserLang = browser.i18n.getUILanguage().toLowerCase().split('-')[0]; // Get base language code
 	const availableLangs = getAvailableLanguages()
-		.map(lang => lang.code)
-		.filter(code => code !== ''); // Exclude system default option
+		.map((lang) => lang.code)
+		.filter((code) => code !== ''); // Exclude system default option
 
 	// If browser language matches an available language, use it
 	if (availableLangs.includes(browserLang)) {
@@ -207,7 +207,7 @@ export async function translatePage() {
 	await initializeI18n();
 
 	// Translate elements with data-i18n attribute
-	document.querySelectorAll('[data-i18n]').forEach(element => {
+	document.querySelectorAll('[data-i18n]').forEach((element) => {
 		const key = element.getAttribute('data-i18n');
 		if (key) {
 			const translation = getMessage(key);
@@ -221,7 +221,7 @@ export async function translatePage() {
 	});
 
 	// Translate elements with data-i18n-title attribute
-	document.querySelectorAll('[data-i18n-title]').forEach(element => {
+	document.querySelectorAll('[data-i18n-title]').forEach((element) => {
 		const key = element.getAttribute('data-i18n-title');
 		if (key) {
 			element.setAttribute('title', getMessage(key));
@@ -235,29 +235,29 @@ export async function getEffectiveLanguage(): Promise<{ code: string; isRTL: boo
 	const languageCode = currentLang && currentLang !== '' ? currentLang : matchBrowserLanguage();
 	return {
 		code: languageCode,
-		isRTL: isRTLLanguage(languageCode)
+		isRTL: isRTLLanguage(languageCode),
 	};
 }
 
 export function isRTLLanguage(languageCode: string): boolean {
 	// List of RTL language codes
 	const rtlLanguages = [
-		'ar',  // Arabic
+		'ar', // Arabic
 		'arc', // Aramaic
 		'ckb', // Central Kurdish (Sorani)
-		'dv',  // Divehi/Maldivian
-		'fa',  // Persian/Farsi
-		'ha',  // Hausa (when written in Arabic script)
-		'he',  // Hebrew
+		'dv', // Divehi/Maldivian
+		'fa', // Persian/Farsi
+		'ha', // Hausa (when written in Arabic script)
+		'he', // Hebrew
 		'khw', // Khowar
-		'ks',  // Kashmiri
-		'ku',  // Kurdish (in Arabic script)
-		'ps',  // Pashto
-		'sd',  // Sindhi
+		'ks', // Kashmiri
+		'ku', // Kurdish (in Arabic script)
+		'ps', // Pashto
+		'sd', // Sindhi
 		'syr', // Syriac
-		'ur',  // Urdu
+		'ur', // Urdu
 		'uz-AF', // Uzbek (in Afghanistan)
-		'yi'   // Yiddish
+		'yi', // Yiddish
 	];
 	return rtlLanguages.includes(languageCode.toLowerCase().split('-')[0]);
 }

@@ -48,8 +48,8 @@ const memoizedCompileTemplate = memoizeWithExpiration(
 	{
 		expirationMs: 5000,
 		keyFn: (tabId: number, template: string, variables: { [key: string]: string }, currentUrl: string) =>
-			`${tabId}-${template}-${currentUrl}`
-	}
+			`${tabId}-${template}-${currentUrl}`,
+	},
 );
 
 // Memoize generateFrontmatter with a longer expiration
@@ -57,23 +57,27 @@ const memoizedGenerateFrontmatter = memoizeWithExpiration(
 	async (properties: Property[]) => {
 		return generateFrontmatter(properties);
 	},
-	{ expirationMs: 5000 }
+	{ expirationMs: 5000 },
 );
 
 function getPropertiesFromDOM(): Property[] {
-	return Array.from(document.querySelectorAll('.metadata-property input')).map(input => {
+	return Array.from(document.querySelectorAll('.metadata-property input')).map((input) => {
 		const inputElement = input as HTMLInputElement;
 		return {
 			id: inputElement.dataset.id || Date.now().toString() + Math.random().toString(36).slice(2, 11),
 			name: inputElement.id,
-			value: inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value
+			value: inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value,
 		};
 	}) as Property[];
 }
 
 // Helper function to get tab info from background script
 async function getTabInfo(tabId: number): Promise<{ id: number; url: string }> {
-	const response = await browser.runtime.sendMessage({ action: "getTabInfo", tabId }) as { success?: boolean; tab?: { id: number; url: string }; error?: string };
+	const response = (await browser.runtime.sendMessage({ action: 'getTabInfo', tabId })) as {
+		success?: boolean;
+		tab?: { id: number; url: string };
+		error?: string;
+	};
 	if (!response || !response.success || !response.tab) {
 		throw new Error((response && response.error) || 'Failed to get tab info');
 	}
@@ -85,14 +89,14 @@ async function getCurrentTabInfo(): Promise<{ url: string; title?: string }> {
 	if (!currentTabId) {
 		return { url: '' };
 	}
-	
+
 	try {
 		const tab = await getTabInfo(currentTabId);
 		// Try to get the title from the extracted content if available
 		const extractedData = await memoizedExtractPageContent(currentTabId);
-		return { 
-			url: tab.url, 
-			title: extractedData?.title || document.title 
+		return {
+			url: tab.url,
+			title: extractedData?.title || document.title,
 		};
 	} catch (error) {
 		console.warn('Failed to get current tab info for stats:', error);
@@ -111,8 +115,8 @@ const memoizedExtractPageContent = memoizeWithExpiration(
 		keyFn: async (tabId: number) => {
 			const tab = await getTabInfo(tabId);
 			return `${tabId}-${tab.url}`;
-		}
-	}
+		},
+	},
 );
 
 // Width is used to update the note name field height
@@ -121,21 +125,21 @@ let previousWidth = window.innerWidth;
 function setPopupDimensions() {
 	// Get the actual height of the popup after the browser has determined its maximum
 	const actualHeight = document.documentElement.offsetHeight;
-	
+
 	// Calculate the viewport height and width
 	const viewportHeight = window.innerHeight;
 	const viewportWidth = window.innerWidth;
-	
+
 	// Use the smaller of the two heights
 	const finalHeight = Math.min(actualHeight, viewportHeight);
-	
+
 	// Set the --popup-height CSS variable to the final height
 	document.documentElement.style.setProperty('--chromium-popup-height', `${finalHeight}px`);
 
 	// Check if the width has changed
 	if (viewportWidth !== previousWidth) {
 		previousWidth = viewportWidth;
-		
+
 		// Adjust the note name field height
 		const noteNameField = document.getElementById('note-name-field') as HTMLTextAreaElement;
 		if (noteNameField) {
@@ -150,17 +154,17 @@ async function initializeExtension(tabId: number) {
 	try {
 		// Initialize translations
 		await translatePage();
-		
+
 		// Setup language and RTL support
 		await setupLanguageAndDirection();
-		
+
 		// First, add the browser class to allow browser-specific styles to apply
 		await addBrowserClassToHtml();
-		
+
 		// Set an initial large height to allow the browser to determine the maximum height
 		// This is necessary for browsers that allow scaling the popup via page zoom
 		document.documentElement.style.setProperty('--chromium-popup-height', '2000px');
-		
+
 		// Use setTimeout to ensure the DOM has updated before we measure
 		setTimeout(() => {
 			setPopupDimensions();
@@ -215,51 +219,55 @@ async function initializeExtension(tabId: number) {
 }
 
 function setupMessageListeners() {
-	browser.runtime.onMessage.addListener((request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
-		if (request.action === "triggerQuickClip") {
-			handleClipObsidian().then(() => {
-				sendResponse({success: true});
-			}).catch((error) => {
-				console.error('Error in handleClipObsidian:', error);
-				sendResponse({success: false, error: error.message});
-			});
-			return true;
-		} else if (request.action === "tabUrlChanged") {
-			if (request.tabId === currentTabId) {
-				if (currentTabId !== undefined) {
-					refreshFields(currentTabId);
-				}
-			}
-		} else if (request.action === "activeTabChanged") {
-			// Only handle active tab changes if we're in side panel mode, not iframe mode
-			if (!isIframe) {
-				currentTabId = request.tabId;
-				if (request.isValidUrl) {
+	browser.runtime.onMessage.addListener(
+		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
+			if (request.action === 'triggerQuickClip') {
+				handleClipObsidian()
+					.then(() => {
+						sendResponse({ success: true });
+					})
+					.catch((error) => {
+						console.error('Error in handleClipObsidian:', error);
+						sendResponse({ success: false, error: error.message });
+					});
+				return true;
+			} else if (request.action === 'tabUrlChanged') {
+				if (request.tabId === currentTabId) {
 					if (currentTabId !== undefined) {
-						refreshFields(currentTabId); // Force template check when URL changes
+						refreshFields(currentTabId);
 					}
-				} else if (request.isBlankPage) {
-					showError(getMessage('pageCannotBeClipped'));
-				} else {
-					showError(getMessage('onlyHttpSupported'));
 				}
-			}
-		} else if (request.action === "highlightsUpdated") {
-			if (request.tabId === currentTabId) {
-				// Refresh fields when highlights are updated
-				if (currentTabId !== undefined) {
-					refreshFields(currentTabId);
+			} else if (request.action === 'activeTabChanged') {
+				// Only handle active tab changes if we're in side panel mode, not iframe mode
+				if (!isIframe) {
+					currentTabId = request.tabId;
+					if (request.isValidUrl) {
+						if (currentTabId !== undefined) {
+							refreshFields(currentTabId); // Force template check when URL changes
+						}
+					} else if (request.isBlankPage) {
+						showError(getMessage('pageCannotBeClipped'));
+					} else {
+						showError(getMessage('onlyHttpSupported'));
+					}
 				}
+			} else if (request.action === 'highlightsUpdated') {
+				if (request.tabId === currentTabId) {
+					// Refresh fields when highlights are updated
+					if (currentTabId !== undefined) {
+						refreshFields(currentTabId);
+					}
+				}
+			} else if (request.action === 'updatePopupHighlighterUI') {
+				// This message is now handled by checkHighlighterModeState
+			} else if (request.action === 'highlighterModeChanged') {
+				// This message is now handled by checkHighlighterModeState
 			}
-		} else if (request.action === "updatePopupHighlighterUI") {
-			// This message is now handled by checkHighlighterModeState
-		} else if (request.action === "highlighterModeChanged") {
-			// This message is now handled by checkHighlighterModeState
-		}
-	});
+		},
+	);
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
 	loadedSettings = await loadSettings();
 	if (isIframe) {
 		document.documentElement.classList.add('is-embedded');
@@ -269,12 +277,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	try {
 		// Get the active tab via background script to handle Firefox compatibility
-		const response = await browser.runtime.sendMessage({ action: "getActiveTab" }) as { tabId?: number; error?: string };
+		const response = (await browser.runtime.sendMessage({ action: 'getActiveTab' })) as {
+			tabId?: number;
+			error?: string;
+		};
 		if (!response || response.error || !response.tabId) {
 			showError(getMessage('pleaseReload'));
 			return;
 		}
-		
+
 		currentTabId = response.tabId;
 		const tab = await getTabInfo(currentTabId);
 		const currentBrowser = await detectBrowser();
@@ -285,7 +296,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 		// Check if we should open in an iframe, but only if the URL is valid
 		if (isValidUrl(tab.url) && !isBlankPage(tab.url) && openBehavior === 'embedded' && !isIframe && !isSidePanel) {
 			try {
-				const response = await browser.runtime.sendMessage({ action: "getActiveTabAndToggleIframe" }) as { success?: boolean; error?: string };
+				const response = (await browser.runtime.sendMessage({ action: 'getActiveTabAndToggleIframe' })) as {
+					success?: boolean;
+					error?: string;
+				};
 				if (response && response.success) {
 					window.close();
 					return; // Exit script after closing the window
@@ -313,9 +327,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 		}
 		const settingsButton = document.getElementById('open-settings');
 		if (settingsButton) {
-			settingsButton.addEventListener('click', async function() {
+			settingsButton.addEventListener('click', async function () {
 				try {
-					await browser.runtime.sendMessage({ action: "openOptionsPage" });
+					await browser.runtime.sendMessage({ action: 'openOptionsPage' });
 					setTimeout(() => window.close(), 50);
 				} catch (error) {
 					console.error('Error opening options page:', error);
@@ -366,7 +380,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 function setupEventListeners(tabId: number) {
 	const templateDropdown = document.getElementById('template-select') as HTMLSelectElement;
 	if (templateDropdown) {
-		templateDropdown.addEventListener('change', function(this: HTMLSelectElement) {
+		templateDropdown.addEventListener('change', function (this: HTMLSelectElement) {
 			handleTemplateChange(this.value);
 		});
 	}
@@ -374,7 +388,7 @@ function setupEventListeners(tabId: number) {
 	const noteNameField = document.getElementById('note-name-field') as HTMLTextAreaElement;
 	if (noteNameField) {
 		noteNameField.addEventListener('input', () => adjustNoteNameHeight(noteNameField));
-		noteNameField.addEventListener('keydown', function(e) {
+		noteNameField.addEventListener('keydown', function (e) {
 			if (e.key === 'Enter' && !e.shiftKey) {
 				e.preventDefault();
 			}
@@ -387,16 +401,16 @@ function setupEventListeners(tabId: number) {
 	}
 
 	const embeddedModeButton = document.getElementById('embedded-mode');
-		if (embeddedModeButton) {
-			embeddedModeButton.addEventListener('click', async function() {
-				try {
-					await browser.runtime.sendMessage({ action: "getActiveTabAndToggleIframe" });
-					setTimeout(() => window.close(), 50);
-				} catch (error) {
-					console.error('Error toggling emedded iframe:', error);
-				}
-			});
-		}
+	if (embeddedModeButton) {
+		embeddedModeButton.addEventListener('click', async function () {
+			try {
+				await browser.runtime.sendMessage({ action: 'getActiveTabAndToggleIframe' });
+				setTimeout(() => window.close(), 50);
+			} catch (error) {
+				console.error('Error toggling emedded iframe:', error);
+			}
+		});
+	}
 
 	const moreButton = document.getElementById('more-btn');
 	const moreDropdown = document.getElementById('more-dropdown');
@@ -425,7 +439,7 @@ function setupEventListeners(tabId: number) {
 			const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 			const frontmatter = await generateFrontmatter(properties);
 			const fileContent = frontmatter + noteContentField.value;
-			
+
 			await copyToClipboard(fileContent);
 		});
 	}
@@ -436,68 +450,68 @@ function setupEventListeners(tabId: number) {
 
 	const shareButtons = document.querySelectorAll('.share-content');
 	if (shareButtons) {
-		shareButtons.forEach(button => {
+		shareButtons.forEach((button) => {
 			button.addEventListener('click', async (e) => {
 				// Get content synchronously
 				const properties = getPropertiesFromDOM();
 
 				const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
-				
+
 				// Use Promise.all to prepare the data
-				Promise.all([
-					generateFrontmatter(properties),
-					Promise.resolve(noteContentField.value)
-				]).then(([frontmatter, noteContent]) => {
-					const fileContent = frontmatter + noteContent;
-					
-					// Call share directly from the click handler
-					const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
-					let fileName = noteNameField?.value || 'untitled';
-					fileName = sanitizeFileName(fileName);
-					if (!fileName.toLowerCase().endsWith('.md')) {
-						fileName += '.md';
-					}
+				Promise.all([generateFrontmatter(properties), Promise.resolve(noteContentField.value)]).then(
+					([frontmatter, noteContent]) => {
+						const fileContent = frontmatter + noteContent;
 
-					if (navigator.share && navigator.canShare) {
-						const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
-						const file = new File([blob], fileName, { type: 'text/markdown;charset=utf-8' });
-						
-						const shareData = {
-							files: [file],
-							text: 'Shared from Obsidian Web Clipper'
-						};
-
-						if (navigator.canShare(shareData)) {
-							const pathField = document.getElementById('path-name-field') as HTMLInputElement;
-							const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
-							const path = pathField?.value || '';
-							const vault = vaultDropdown?.value || '';
-
-							navigator.share(shareData)
-								.then(async () => {
-									const tabInfo = await getCurrentTabInfo();
-									await incrementStat('share', vault, path, tabInfo.url, tabInfo.title);
-									const moreDropdown = document.getElementById('more-dropdown');
-									if (moreDropdown) {
-											moreDropdown.classList.remove('show');
-									}
-								})
-								.catch((error) => {
-									console.error('Error sharing:', error);
-								});
+						// Call share directly from the click handler
+						const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
+						let fileName = noteNameField?.value || 'untitled';
+						fileName = sanitizeFileName(fileName);
+						if (!fileName.toLowerCase().endsWith('.md')) {
+							fileName += '.md';
 						}
-					}
-				});
+
+						if (navigator.share && navigator.canShare) {
+							const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
+							const file = new File([blob], fileName, { type: 'text/markdown;charset=utf-8' });
+
+							const shareData = {
+								files: [file],
+								text: 'Shared from Obsidian Web Clipper',
+							};
+
+							if (navigator.canShare(shareData)) {
+								const pathField = document.getElementById('path-name-field') as HTMLInputElement;
+								const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
+								const path = pathField?.value || '';
+								const vault = vaultDropdown?.value || '';
+
+								navigator
+									.share(shareData)
+									.then(async () => {
+										const tabInfo = await getCurrentTabInfo();
+										await incrementStat('share', vault, path, tabInfo.url, tabInfo.title);
+										const moreDropdown = document.getElementById('more-dropdown');
+										if (moreDropdown) {
+											moreDropdown.classList.remove('show');
+										}
+									})
+									.catch((error) => {
+										console.error('Error sharing:', error);
+									});
+							}
+						}
+					},
+				);
 			});
 		});
 	}
 
 	const shareButtonElements = document.querySelectorAll('.share-content');
 	if (shareButtonElements.length > 0) {
-		detectBrowser().then(browser => {
+		detectBrowser().then((browser) => {
 			const isSafariBrowser = ['safari', 'mobile-safari', 'ipad-os'].includes(browser);
 			if (!isSafariBrowser || !navigator.share || !navigator.canShare) {
-				shareButtonElements.forEach(button => {
+				shareButtonElements.forEach((button) => {
 					const parentElement = button.closest('.share-btn, .menu-item') as HTMLElement;
 					if (parentElement) {
 						parentElement.style.display = 'none';
@@ -505,10 +519,10 @@ function setupEventListeners(tabId: number) {
 				});
 			} else {
 				// Test if we can share files (only on Safari)
-				const testFile = new File(["test"], "test.txt", { type: "text/plain" });
+				const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
 				const testShare = { files: [testFile] };
 				if (!navigator.canShare(testShare)) {
-					shareButtonElements.forEach(button => {
+					shareButtonElements.forEach((button) => {
 						const parentElement = button.closest('.share-btn, .menu-item') as HTMLElement;
 						if (parentElement) {
 							parentElement.style.display = 'none';
@@ -548,10 +562,10 @@ async function initializeUI() {
 	}
 
 	if (isSidePanel) {
-		browser.runtime.sendMessage({ action: "sidePanelOpened" });
-		
+		browser.runtime.sendMessage({ action: 'sidePanelOpened' });
+
 		window.addEventListener('unload', () => {
-			browser.runtime.sendMessage({ action: "sidePanelClosed" });
+			browser.runtime.sendMessage({ action: 'sidePanelClosed' });
 		});
 	}
 }
@@ -665,7 +679,7 @@ async function refreshFields(tabId: number, checkTemplateTriggers: boolean = tru
 				extractedData.site,
 				extractedData.wordCount,
 				extractedData.language || '',
-				extractedData.metaTags
+				extractedData.metaTags,
 			);
 			if (initializedContent) {
 				currentVariables = initializedContent.currentVariables;
@@ -674,7 +688,7 @@ async function refreshFields(tabId: number, checkTemplateTriggers: boolean = tru
 					tabId,
 					currentTemplate,
 					initializedContent.currentVariables,
-					extractedData.schemaOrgData
+					extractedData.schemaOrgData,
 				);
 
 				// Update variables panel if it's open
@@ -734,7 +748,7 @@ function buildTemplateFieldsSkeleton(template: Template | null) {
 	if (Array.isArray(template.properties)) {
 		for (const property of template.properties) {
 			const propertyDiv = createElementWithClass('div', 'metadata-property');
-			const propertyType = generalSettings.propertyTypes.find(p => p.name === property.name)?.type || 'text';
+			const propertyType = generalSettings.propertyTypes.find((p) => p.name === property.name)?.type || 'text';
 
 			// Create metadata property key container
 			const metadataPropertyKey = document.createElement('div');
@@ -813,9 +827,9 @@ function buildTemplateFieldsSkeleton(template: Template | null) {
 	if (hasPromptVars) {
 		const modelSelect = document.getElementById('model-select') as HTMLSelectElement;
 		if (modelSelect) {
-			const enabledModels = generalSettings.models.filter(model => model.enabled);
+			const enabledModels = generalSettings.models.filter((model) => model.enabled);
 			modelSelect.textContent = '';
-			enabledModels.forEach(model => {
+			enabledModels.forEach((model) => {
 				const option = document.createElement('option');
 				option.value = model.id;
 				option.textContent = model.name;
@@ -827,7 +841,12 @@ function buildTemplateFieldsSkeleton(template: Template | null) {
 	}
 }
 
-async function fillTemplateFieldValues(currentTabId: number, template: Template | null, variables: { [key: string]: string }, schemaOrgData?: any) {
+async function fillTemplateFieldValues(
+	currentTabId: number,
+	template: Template | null,
+	variables: { [key: string]: string },
+	schemaOrgData?: any,
+) {
 	if (!template) return;
 
 	const currentUrl = currentTabId ? (await getTabInfo(currentTabId)).url || '' : '';
@@ -838,14 +857,16 @@ async function fillTemplateFieldValues(currentTabId: number, template: Template 
 
 	// Compile all templates in parallel
 	const [compiledPropertyValues, formattedNoteName, formattedPath, formattedContent] = await Promise.all([
-		Promise.all(template.properties.map(property =>
-			memoizedCompileTemplate(currentTabId!, unescapeValue(property.value), variables, currentUrl)
-		)),
+		Promise.all(
+			template.properties.map((property) =>
+				memoizedCompileTemplate(currentTabId!, unescapeValue(property.value), variables, currentUrl),
+			),
+		),
 		memoizedCompileTemplate(currentTabId!, template.noteNameFormat, variables, currentUrl),
 		memoizedCompileTemplate(currentTabId!, template.path, variables, currentUrl),
 		template.noteContentFormat
 			? memoizedCompileTemplate(currentTabId!, template.noteContentFormat, variables, currentUrl)
-			: Promise.resolve('')
+			: Promise.resolve(''),
 	]);
 
 	// Fill property values into existing DOM elements
@@ -893,7 +914,7 @@ async function fillTemplateFieldValues(currentTabId: number, template: Template 
 				const interpretBtn = document.getElementById('interpret-btn') as HTMLButtonElement;
 				const modelSelect = document.getElementById('model-select') as HTMLSelectElement;
 				const selectedModelId = modelSelect?.value || generalSettings.interpreterModel;
-				const modelConfig = generalSettings.models.find(m => m.id === selectedModelId);
+				const modelConfig = generalSettings.models.find((m) => m.id === selectedModelId);
 				if (!modelConfig) {
 					throw new Error(`Model configuration not found for ${selectedModelId}`);
 				}
@@ -920,7 +941,7 @@ async function fillTemplateFieldValues(currentTabId: number, template: Template 
 function setupMetadataToggle() {
 	const metadataHeader = document.querySelector('.metadata-properties-header') as HTMLElement;
 	const metadataProperties = document.querySelector('.metadata-properties') as HTMLElement;
-	
+
 	if (metadataHeader && metadataProperties) {
 		metadataHeader.removeEventListener('click', toggleMetadataProperties);
 		metadataHeader.addEventListener('click', toggleMetadataProperties);
@@ -929,7 +950,7 @@ function setupMetadataToggle() {
 		getLocalStorage('propertiesCollapsed').then((isCollapsed) => {
 			if (isCollapsed === undefined) {
 				// If the value is not set, default to not collapsed
-				updateMetadataToggleState(false); 
+				updateMetadataToggleState(false);
 			} else {
 				updateMetadataToggleState(isCollapsed);
 			}
@@ -940,7 +961,7 @@ function setupMetadataToggle() {
 function toggleMetadataProperties() {
 	const metadataProperties = document.querySelector('.metadata-properties') as HTMLElement;
 	const metadataHeader = document.querySelector('.metadata-properties-header') as HTMLElement;
-	
+
 	if (metadataProperties && metadataHeader) {
 		const isCollapsed = metadataProperties.classList.toggle('collapsed');
 		metadataHeader.classList.toggle('collapsed');
@@ -951,7 +972,7 @@ function toggleMetadataProperties() {
 function updateMetadataToggleState(isCollapsed: boolean) {
 	const metadataProperties = document.querySelector('.metadata-properties') as HTMLElement;
 	const metadataHeader = document.querySelector('.metadata-properties-header') as HTMLElement;
-	
+
 	if (metadataProperties && metadataHeader) {
 		if (isCollapsed) {
 			metadataProperties.classList.add('collapsed');
@@ -963,16 +984,21 @@ function updateMetadataToggleState(isCollapsed: boolean) {
 	}
 }
 
-async function getReplacedTemplate(template: Template, variables: { [key: string]: string }, tabId: number, currentUrl: string): Promise<any> {
+async function getReplacedTemplate(
+	template: Template,
+	variables: { [key: string]: string },
+	tabId: number,
+	currentUrl: string,
+): Promise<any> {
 	const replacedTemplate: any = {
-		schemaVersion: "0.1.0",
+		schemaVersion: '0.1.0',
 		name: template.name,
 		behavior: template.behavior,
 		noteNameFormat: await compileTemplate(tabId, template.noteNameFormat, variables, currentUrl),
 		path: template.path,
 		noteContentFormat: await compileTemplate(tabId, template.noteContentFormat, variables, currentUrl),
 		properties: [],
-		triggers: template.triggers
+		triggers: template.triggers,
 	};
 
 	if (template.context) {
@@ -983,7 +1009,7 @@ async function getReplacedTemplate(template: Template, variables: { [key: string
 		const replacedProp: Property = {
 			id: prop.id,
 			name: prop.name,
-			value: await compileTemplate(tabId, prop.value, variables, currentUrl)
+			value: await compileTemplate(tabId, prop.value, variables, currentUrl),
 		};
 		replacedTemplate.properties.push(replacedProp);
 	}
@@ -999,8 +1025,8 @@ function updateVaultDropdown(vaults: string[]) {
 
 	// Clear existing options
 	vaultDropdown.textContent = '';
-	
-	vaults.forEach(vault => {
+
+	vaults.forEach((vault) => {
 		const option = document.createElement('option');
 		option.value = vault;
 		option.textContent = vault;
@@ -1031,21 +1057,21 @@ function refreshPopup() {
 }
 
 function handleTemplateChange(templateId: string) {
-	currentTemplate = templates.find(t => t.id === templateId) || templates[0];
+	currentTemplate = templates.find((t) => t.id === templateId) || templates[0];
 	refreshFields(currentTabId!, false);
 }
 
 async function checkHighlighterModeState(tabId: number) {
 	try {
-		const response = await browser.runtime.sendMessage({
-			action: "getHighlighterMode",
-			tabId: tabId
-		}) as { isActive: boolean };
+		const response = (await browser.runtime.sendMessage({
+			action: 'getHighlighterMode',
+			tabId: tabId,
+		})) as { isActive: boolean };
 
 		const isHighlighterMode = response.isActive;
-		
+
 		loadedSettings = await loadSettings();
-		
+
 		updateHighlighterModeUI(isHighlighterMode);
 	} catch (error) {
 		console.error('Error checking highlighter mode state:', error);
@@ -1056,10 +1082,10 @@ async function checkHighlighterModeState(tabId: number) {
 
 async function toggleHighlighterMode(tabId: number) {
 	try {
-		const response = await browser.runtime.sendMessage({
-			action: "toggleHighlighterMode",
-			tabId: tabId
-		}) as { success: boolean, isActive: boolean, error?: string };
+		const response = (await browser.runtime.sendMessage({
+			action: 'toggleHighlighterMode',
+			tabId: tabId,
+		})) as { success: boolean; isActive: boolean; error?: string };
 
 		if (response && response.success) {
 			const isNowActive = response.isActive;
@@ -1070,7 +1096,7 @@ async function toggleHighlighterMode(tabId: number) {
 				setTimeout(() => window.close(), 50);
 			}
 		} else {
-			throw new Error(response.error || "Failed to toggle highlighter mode.");
+			throw new Error(response.error || 'Failed to toggle highlighter mode.');
 		}
 	} catch (error) {
 		console.error('Error toggling highlighter mode:', error);
@@ -1094,10 +1120,10 @@ function updateHighlighterModeUI(isActive: boolean) {
 
 async function toggleReaderMode(tabId: number) {
 	try {
-		const response = await browser.runtime.sendMessage({ 
-			action: "toggleReaderMode",
-			tabId: tabId
-		}) as ReaderModeResponse;
+		const response = (await browser.runtime.sendMessage({
+			action: 'toggleReaderMode',
+			tabId: tabId,
+		})) as ReaderModeResponse;
 
 		if (response && response.success) {
 			const readerButton = document.getElementById('reader-mode');
@@ -1123,14 +1149,14 @@ export async function copyToClipboard(content: string) {
 	try {
 		await browser.runtime.sendMessage({
 			action: 'copy-to-clipboard',
-			text: content
+			text: content,
 		});
-		
+
 		const pathField = document.getElementById('path-name-field') as HTMLInputElement;
 		const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
 		const path = pathField?.value || '';
 		const vault = vaultDropdown?.value || '';
-		
+
 		const tabInfo = await getCurrentTabInfo();
 		await incrementStat('copyToClipboard', vault, path, tabInfo.url, tabInfo.title);
 
@@ -1139,7 +1165,7 @@ export async function copyToClipboard(content: string) {
 		if (clipButton) {
 			const originalText = clipButton.textContent || getMessage('addToObsidian');
 			clipButton.textContent = getMessage('copied');
-			
+
 			// Reset the text after 1.5 seconds
 			setTimeout(() => {
 				clipButton.textContent = originalText;
@@ -1156,11 +1182,11 @@ async function handleSaveToDownloads() {
 		const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
 		const pathField = document.getElementById('path-name-field') as HTMLInputElement;
 		const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
-		
+
 		let fileName = noteNameField?.value || 'untitled';
 		const path = pathField?.value || '';
 		const vault = vaultDropdown?.value || '';
-		
+
 		const properties = getPropertiesFromDOM();
 
 		const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
@@ -1172,7 +1198,7 @@ async function handleSaveToDownloads() {
 			fileName,
 			mimeType: 'text/markdown',
 			tabId: currentTabId,
-			onError: (error) => showError('failedToSaveFile')
+			onError: (error) => showError('failedToSaveFile'),
 		});
 
 		const tabInfo = await getCurrentTabInfo();
@@ -1281,25 +1307,25 @@ async function handleClipObsidian(): Promise<void> {
 function addSecondaryAction(container: Element, actionType: string, handler: () => void) {
 	const menuItem = document.createElement('div');
 	menuItem.className = 'menu-item';
-	
+
 	// Create menu item icon container
 	const menuItemIcon = document.createElement('div');
 	menuItemIcon.className = 'menu-item-icon';
-	
+
 	const iconElement = document.createElement('i');
 	iconElement.setAttribute('data-lucide', getActionIcon(actionType));
 	menuItemIcon.appendChild(iconElement);
-	
+
 	// Create menu item title
 	const menuItemTitle = document.createElement('div');
 	menuItemTitle.className = 'menu-item-title';
 	menuItemTitle.setAttribute('data-i18n', actionType);
 	menuItemTitle.textContent = getMessage(actionType);
-	
+
 	// Assemble menu item
 	menuItem.appendChild(menuItemIcon);
 	menuItem.appendChild(menuItemTitle);
-	
+
 	menuItem.addEventListener('click', handler);
 	container.appendChild(menuItem);
 	initializeIcons(menuItem);
@@ -1307,10 +1333,14 @@ function addSecondaryAction(container: Element, actionType: string, handler: () 
 
 function getActionIcon(actionType: string): string {
 	switch (actionType) {
-		case 'copyToClipboard': return 'copy';
-		case 'saveFile': return 'file-down';
-		case 'addToObsidian': return 'pen-line';
-		default: return 'plus';
+		case 'copyToClipboard':
+			return 'copy';
+		case 'saveFile':
+			return 'file-down';
+		case 'addToObsidian':
+			return 'pen-line';
+		default:
+			return 'plus';
 	}
 }
 

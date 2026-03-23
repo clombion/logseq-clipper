@@ -35,4 +35,3 @@ describe('table filter', () => {
 		expect(table('plain text')).toBe('plain text');
 	});
 });
-

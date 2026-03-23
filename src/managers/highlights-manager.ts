@@ -11,10 +11,10 @@ export async function exportHighlights(): Promise<void> {
 
 		const exportData = Object.entries(allHighlights).map(([url, data]) => ({
 			url,
-			highlights: (data.highlights as AnyHighlightData[]).map(highlight => ({
+			highlights: (data.highlights as AnyHighlightData[]).map((highlight) => ({
 				text: highlight.content,
-				timestamp: dayjs(parseInt(highlight.id)).toISOString()
-			}))
+				timestamp: dayjs(parseInt(highlight.id)).toISOString(),
+			})),
 		}));
 
 		const jsonContent = JSON.stringify(exportData, null, 2);
@@ -31,7 +31,7 @@ export async function exportHighlights(): Promise<void> {
 					await navigator.share({
 						files: [new File([blob], fileName, { type: 'application/json' })],
 						title: 'Exported Obsidian Web Clipper Highlights',
-						text: 'Here are your exported highlights from Obsidian Web Clipper.'
+						text: 'Here are your exported highlights from Obsidian Web Clipper.',
 					});
 				} catch (error) {
 					console.error('Error sharing:', error);

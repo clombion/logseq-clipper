@@ -2,7 +2,12 @@ import { describe, test, expect } from 'vitest';
 import { render, renderTemplate, RenderContext } from './renderer';
 
 // Simple filter implementation for testing (direct invocation)
-function testApplyFilterDirect(value: string, filterName: string, _paramString: string | undefined, _currentUrl: string): string {
+function testApplyFilterDirect(
+	value: string,
+	filterName: string,
+	_paramString: string | undefined,
+	_currentUrl: string,
+): string {
 	switch (filterName) {
 		case 'lower':
 			return value.toLowerCase();
@@ -232,10 +237,7 @@ describe('Renderer', () => {
 
 		test('renders elseif chain', async () => {
 			const ctx = createContext({ val: 2 });
-			const result = await render(
-				'{% if val == 1 %}one{% elseif val == 2 %}two{% else %}other{% endif %}',
-				ctx
-			);
+			const result = await render('{% if val == 1 %}one{% elseif val == 2 %}two{% else %}other{% endif %}', ctx);
 			expect(result.errors).toHaveLength(0);
 			expect(result.output).toBe('two');
 		});
@@ -424,10 +426,7 @@ Tags:
 	describe('Schema Variables', () => {
 		test('schema array access with [*] extracts property from all items', async () => {
 			const ctx = createContext({
-				'{{schema:director}}': JSON.stringify([
-					{ name: 'Christopher Nolan' },
-					{ name: 'Denis Villeneuve' },
-				]),
+				'{{schema:director}}': JSON.stringify([{ name: 'Christopher Nolan' }, { name: 'Denis Villeneuve' }]),
 			});
 			const result = await render('{% for d in schema:director[*].name %}{{d}}{% endfor %}', ctx);
 			expect(result.output).toBe('Christopher Nolan\nDenis Villeneuve');
@@ -435,10 +434,7 @@ Tags:
 
 		test('schema array access with [0] extracts property from specific index', async () => {
 			const ctx = createContext({
-				'{{schema:director}}': JSON.stringify([
-					{ name: 'Christopher Nolan' },
-					{ name: 'Denis Villeneuve' },
-				]),
+				'{{schema:director}}': JSON.stringify([{ name: 'Christopher Nolan' }, { name: 'Denis Villeneuve' }]),
 			});
 			const result = await render('{{schema:director[0].name}}', ctx);
 			expect(result.output).toBe('Christopher Nolan');
@@ -454,9 +450,7 @@ Tags:
 
 		test('schema shorthand resolution with array access', async () => {
 			const ctx = createContext({
-				'{{schema:@Movie:director}}': JSON.stringify([
-					{ name: 'Christopher Nolan' },
-				]),
+				'{{schema:@Movie:director}}': JSON.stringify([{ name: 'Christopher Nolan' }]),
 			});
 			const result = await render('{{schema:director[0].name}}', ctx);
 			expect(result.output).toBe('Christopher Nolan');
@@ -482,22 +476,26 @@ Tags:
 	describe('Map Filter', () => {
 		test('map extracts property from array of objects', async () => {
 			const ctx = createContext({
-				items: [{ gem: 'obsidian', color: 'black' }, { gem: 'amethyst', color: 'purple' }],
+				items: [
+					{ gem: 'obsidian', color: 'black' },
+					{ gem: 'amethyst', color: 'purple' },
+				],
 			});
 			// Use the real filter infrastructure via renderTemplate
-			const output = await renderTemplate(
-				'{{items|map:item => item.gem}}',
-				{ items: JSON.stringify(ctx.variables.items) },
-			);
+			const output = await renderTemplate('{{items|map:item => item.gem}}', {
+				items: JSON.stringify(ctx.variables.items),
+			});
 			expect(output).toBe('["obsidian","amethyst"]');
 		});
 
 		test('map with object literal expression', async () => {
-			const items = [{ gem: 'obsidian', color: 'black' }, { gem: 'amethyst', color: 'purple' }];
-			const output = await renderTemplate(
-				'{{items|map:item => ({name: item.gem, color: item.color})}}',
-				{ items: JSON.stringify(items) },
-			);
+			const items = [
+				{ gem: 'obsidian', color: 'black' },
+				{ gem: 'amethyst', color: 'purple' },
+			];
+			const output = await renderTemplate('{{items|map:item => ({name: item.gem, color: item.color})}}', {
+				items: JSON.stringify(items),
+			});
 			const parsed = JSON.parse(output);
 			expect(parsed).toEqual([
 				{ name: 'obsidian', color: 'black' },
@@ -506,31 +504,28 @@ Tags:
 		});
 
 		test('map with string literal expression', async () => {
-			const output = await renderTemplate(
-				'{{items|map:item => "genres/${item}"}}',
-				{ items: JSON.stringify(['rock', 'pop']) },
-			);
+			const output = await renderTemplate('{{items|map:item => "genres/${item}"}}', {
+				items: JSON.stringify(['rock', 'pop']),
+			});
 			const parsed = JSON.parse(output);
 			expect(parsed).toEqual(['genres/rock', 'genres/pop']);
 		});
 
 		test('map with string literal piped to template', async () => {
-			const output = await renderTemplate(
-				'{{items|map:item => "genres/${item}"|template:"- ${str}"}}',
-				{ items: JSON.stringify(['rock', 'pop']) },
-			);
+			const output = await renderTemplate('{{items|map:item => "genres/${item}"|template:"- ${str}"}}', {
+				items: JSON.stringify(['rock', 'pop']),
+			});
 			expect(output).toBe('- genres/rock\n\n- genres/pop');
 		});
 
 		test('map property then join with newlines', async () => {
 			const highlights = [
-				{"text":"First highlight text","timestamp":"2026-02-25T15:40:05.762Z"},
-				{"text":"Second highlight text","timestamp":"2026-02-25T15:40:05.762Z"}
+				{ text: 'First highlight text', timestamp: '2026-02-25T15:40:05.762Z' },
+				{ text: 'Second highlight text', timestamp: '2026-02-25T15:40:05.762Z' },
 			];
-			const output = await renderTemplate(
-				'{{highlights|map: item => item.text|join:"\\n\\n"}}',
-				{ highlights: JSON.stringify(highlights) },
-			);
+			const output = await renderTemplate('{{highlights|map: item => item.text|join:"\\n\\n"}}', {
+				highlights: JSON.stringify(highlights),
+			});
 			expect(output).toBe('First highlight text\n\nSecond highlight text');
 		});
 	});

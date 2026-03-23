@@ -15,7 +15,7 @@ function isInIframe(): boolean {
 /**
  * Attempts to copy text to clipboard using multiple fallback methods.
  * This is particularly useful in iframe contexts where the standard Clipboard API may be blocked.
- * 
+ *
  * @param text - The text to copy to clipboard
  * @returns Promise that resolves to true if successful, false otherwise
  */
@@ -27,15 +27,18 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 		return true;
 	} catch (clipboardError) {
 		const inIframe = isInIframe();
-		console.log(`Standard clipboard API failed${inIframe ? ' (running in iframe)' : ''}, trying content script fallback:`, clipboardError);
-		
+		console.log(
+			`Standard clipboard API failed${inIframe ? ' (running in iframe)' : ''}, trying content script fallback:`,
+			clipboardError,
+		);
+
 		try {
 			// Try using the content script fallback (works in iframe contexts)
-			const response = await browser.runtime.sendMessage({
+			const response = (await browser.runtime.sendMessage({
 				action: 'copy-to-clipboard',
-				text: text
-			}) as { success: boolean; error?: string } | undefined;
-			
+				text: text,
+			})) as { success: boolean; error?: string } | undefined;
+
 			if (response && response.success) {
 				console.log('Successfully copied to clipboard using content script fallback');
 				return true;
@@ -53,24 +56,24 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 /**
  * Attempts to copy text to clipboard with user feedback.
  * Shows success/error messages and provides visual feedback.
- * 
+ *
  * @param text - The text to copy to clipboard
  * @param successMessage - Message to show on success (optional)
  * @param errorMessage - Message to show on error (optional)
  * @returns Promise that resolves to true if successful, false otherwise
  */
 export async function copyToClipboardWithFeedback(
-	text: string, 
-	successMessage?: string, 
-	errorMessage?: string
+	text: string,
+	successMessage?: string,
+	errorMessage?: string,
 ): Promise<boolean> {
 	const success = await copyToClipboard(text);
-	
+
 	if (success && successMessage) {
 		console.log(successMessage);
 	} else if (!success && errorMessage) {
 		console.error(errorMessage);
 	}
-	
+
 	return success;
 }

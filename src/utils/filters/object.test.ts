@@ -49,4 +49,3 @@ describe('object param validation', () => {
 		expect(result.error).toContain('invalid parameter');
 	});
 });
-

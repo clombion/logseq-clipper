@@ -34,4 +34,3 @@ describe('fragment_link filter', () => {
 		expect(result).toHaveLength(2);
 	});
 });
-

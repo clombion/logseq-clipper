@@ -27,4 +27,3 @@ describe('uncamel filter', () => {
 		expect(uncamel('hello world')).toBe('hello world');
 	});
 });
-

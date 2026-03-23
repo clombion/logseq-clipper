@@ -1,32 +1,32 @@
 import {
 	AlertTriangle,
-	AlignLeft, 
+	AlignLeft,
 	ArrowUpRight,
 	Binary,
 	BookOpen,
-	Calendar, 
+	Calendar,
 	ChevronDown,
 	ChevronRight,
 	ClipboardList,
 	Clock,
 	Copy,
 	CopyPlus,
-	Ellipsis, 
+	Ellipsis,
 	FileDown,
 	Files,
 	GripVertical,
 	Highlighter,
 	Import,
-	List, 
+	List,
 	PenLine,
 	PictureInPicture2,
 	RotateCw,
 	Settings,
 	Share,
-	SquareCheckBig, 	
+	SquareCheckBig,
 	Tags,
 	Trash2,
-	X
+	X,
 } from 'lucide';
 
 import { createIcons } from 'lucide';
@@ -59,7 +59,7 @@ export const icons = {
 	SquareCheckBig,
 	Tags,
 	Trash2,
-	X
+	X,
 };
 
 export function initializeIcons(root: HTMLElement | Document = document) {
@@ -67,7 +67,7 @@ export function initializeIcons(root: HTMLElement | Document = document) {
 		icons,
 		attrs: {
 			'stroke-width': 1.75,
-			'class': 'lucide-icon'
+			class: 'lucide-icon',
 		},
 		nameAttr: 'data-lucide',
 	});
@@ -81,7 +81,7 @@ export function getPropertyTypeIcon(type: string): string {
 		checkbox: 'square-check-big',
 		date: 'calendar',
 		datetime: 'clock',
-		tags: 'tags'
+		tags: 'tags',
 	};
 	return iconMap[type] || 'align-left';
 }

@@ -32,35 +32,35 @@ export class Reader {
 		viewBox?: string;
 		className?: string;
 		paths?: string[];
-		rects?: Array<{x: string, y: string, width: string, height: string, rx?: string, ry?: string}>;
+		rects?: Array<{ x: string; y: string; width: string; height: string; rx?: string; ry?: string }>;
 	}): SVGElement {
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-		
+
 		if (config.width) svg.setAttribute('width', config.width);
 		if (config.height) svg.setAttribute('height', config.height);
 		if (config.viewBox) svg.setAttribute('viewBox', config.viewBox);
 		if (config.className) svg.setAttribute('class', config.className);
-		
+
 		// Default attributes for all SVGs
 		svg.setAttribute('fill', 'none');
 		svg.setAttribute('stroke', 'currentColor');
 		svg.setAttribute('stroke-width', '1.5');
 		svg.setAttribute('stroke-linecap', 'round');
 		svg.setAttribute('stroke-linejoin', 'round');
-		
+
 		// Add paths
 		if (config.paths) {
-			config.paths.forEach(pathData => {
+			config.paths.forEach((pathData) => {
 				const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 				path.setAttribute('d', pathData);
 				svg.appendChild(path);
 			});
 		}
-		
+
 		// Add rects
 		if (config.rects) {
-			config.rects.forEach(rectData => {
+			config.rects.forEach((rectData) => {
 				const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 				rect.setAttribute('x', rectData.x);
 				rect.setAttribute('y', rectData.y);
@@ -71,7 +71,7 @@ export class Reader {
 				svg.appendChild(rect);
 			});
 		}
-		
+
 		return svg;
 	}
 	private static settingsBar: HTMLElement | null = null;
@@ -85,7 +85,7 @@ export class Reader {
 		lineHeight: 1.6,
 		maxWidth: 38,
 		theme: 'default',
-		themeMode: 'auto'
+		themeMode: 'auto',
 	};
 
 	private static async loadSettings(): Promise<void> {
@@ -93,7 +93,7 @@ export class Reader {
 		if (savedSettings) {
 			this.settings = {
 				...this.settings,
-				...savedSettings
+				...savedSettings,
 			};
 		}
 	}
@@ -117,20 +117,28 @@ export class Reader {
 		const decreaseFontBtn = doc.createElement('button');
 		decreaseFontBtn.className = 'obsidian-reader-settings-button';
 		decreaseFontBtn.dataset.action = 'decrease-font';
-		decreaseFontBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			className: 'lucide lucide-minus-icon lucide-minus',
-			paths: ['M5 12h14']
-		}));
+		decreaseFontBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				className: 'lucide lucide-minus-icon lucide-minus',
+				paths: ['M5 12h14'],
+			}),
+		);
 
 		const increaseFontBtn = doc.createElement('button');
 		increaseFontBtn.className = 'obsidian-reader-settings-button';
 		increaseFontBtn.dataset.action = 'increase-font';
-		increaseFontBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			className: 'lucide lucide-plus-icon lucide-plus',
-			paths: ['M5 12h14', 'M12 5v14']
-		}));
+		increaseFontBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				className: 'lucide lucide-plus-icon lucide-plus',
+				paths: ['M5 12h14', 'M12 5v14'],
+			}),
+		);
 
 		fontGroup.appendChild(decreaseFontBtn);
 		fontGroup.appendChild(increaseFontBtn);
@@ -142,19 +150,27 @@ export class Reader {
 		const decreaseWidthBtn = doc.createElement('button');
 		decreaseWidthBtn.className = 'obsidian-reader-settings-button';
 		decreaseWidthBtn.dataset.action = 'decrease-width';
-		decreaseWidthBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			paths: ['M18 16L14 12L18 8', 'M1 12L10 12', 'M14 12H23', 'M6 16L10 12L6 8']
-		}));
+		decreaseWidthBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				paths: ['M18 16L14 12L18 8', 'M1 12L10 12', 'M14 12H23', 'M6 16L10 12L6 8'],
+			}),
+		);
 
 		const increaseWidthBtn = doc.createElement('button');
 		increaseWidthBtn.className = 'obsidian-reader-settings-button';
 		increaseWidthBtn.dataset.action = 'increase-width';
-		increaseWidthBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			className: 'lucide lucide-move-horizontal-icon lucide-move-horizontal',
-			paths: ['m18 8 4 4-4 4', 'M2 12h20', 'm6 8-4 4 4 4']
-		}));
+		increaseWidthBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				className: 'lucide lucide-move-horizontal-icon lucide-move-horizontal',
+				paths: ['m18 8 4 4-4 4', 'M2 12h20', 'm6 8-4 4 4 4'],
+			}),
+		);
 
 		widthGroup.appendChild(decreaseWidthBtn);
 		widthGroup.appendChild(increaseWidthBtn);
@@ -166,19 +182,27 @@ export class Reader {
 		const decreaseLineHeightBtn = doc.createElement('button');
 		decreaseLineHeightBtn.className = 'obsidian-reader-settings-button';
 		decreaseLineHeightBtn.dataset.action = 'decrease-line-height';
-		decreaseLineHeightBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			paths: ['M4 10H20', 'M4 6H20', 'M4 18H20', 'M4 14H20']
-		}));
+		decreaseLineHeightBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				paths: ['M4 10H20', 'M4 6H20', 'M4 18H20', 'M4 14H20'],
+			}),
+		);
 
 		const increaseLineHeightBtn = doc.createElement('button');
 		increaseLineHeightBtn.className = 'obsidian-reader-settings-button';
 		increaseLineHeightBtn.dataset.action = 'increase-line-height';
-		increaseLineHeightBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			className: 'lucide lucide-menu-icon lucide-menu',
-			paths: ['M4 12h16', 'M4 6h16', 'M4 18h16'] // Simplified line elements as paths
-		}));
+		increaseLineHeightBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				className: 'lucide lucide-menu-icon lucide-menu',
+				paths: ['M4 12h16', 'M4 6h16', 'M4 18h16'], // Simplified line elements as paths
+			}),
+		);
 
 		lineHeightGroup.appendChild(decreaseLineHeightBtn);
 		lineHeightGroup.appendChild(increaseLineHeightBtn);
@@ -227,11 +251,15 @@ export class Reader {
 		const highlighterBtn = doc.createElement('button');
 		highlighterBtn.className = 'obsidian-reader-settings-button';
 		highlighterBtn.dataset.action = 'toggle-highlighter';
-		highlighterBtn.appendChild(this.createSVG({
-			width: '20', height: '20', viewBox: '0 0 24 24',
-			className: 'lucide lucide-highlighter-icon lucide-highlighter',
-			paths: ['m9 11-6 6v3h9l3-3', 'm22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4']
-		}));
+		highlighterBtn.appendChild(
+			this.createSVG({
+				width: '20',
+				height: '20',
+				viewBox: '0 0 24 24',
+				className: 'lucide lucide-highlighter-icon lucide-highlighter',
+				paths: ['m9 11-6 6v3h9l3-3', 'm22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4'],
+			}),
+		);
 
 		highlighterGroup.appendChild(highlighterBtn);
 
@@ -248,9 +276,18 @@ export class Reader {
 		this.settingsBar = settingsBar;
 
 		// Initialize values from settings
-		this.updateFontSize(doc, parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-font-size')));
-		this.updateWidth(doc, parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-line-width')));
-		this.updateLineHeight(doc, parseFloat(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-line-height')));
+		this.updateFontSize(
+			doc,
+			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-font-size')),
+		);
+		this.updateWidth(
+			doc,
+			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-line-width')),
+		);
+		this.updateLineHeight(
+			doc,
+			parseFloat(getComputedStyle(doc.documentElement).getPropertyValue('--obsidian-reader-line-height')),
+		);
 
 		settingsBar.addEventListener('click', (e) => {
 			const target = e.target as HTMLElement;
@@ -275,10 +312,16 @@ export class Reader {
 					this.updateWidth(doc, parseInt(style.getPropertyValue('--obsidian-reader-line-width')) + 1);
 					break;
 				case 'decrease-line-height':
-					this.updateLineHeight(doc, parseFloat(style.getPropertyValue('--obsidian-reader-line-height')) - 0.1);
+					this.updateLineHeight(
+						doc,
+						parseFloat(style.getPropertyValue('--obsidian-reader-line-height')) - 0.1,
+					);
 					break;
 				case 'increase-line-height':
-					this.updateLineHeight(doc, parseFloat(style.getPropertyValue('--obsidian-reader-line-height')) + 0.1);
+					this.updateLineHeight(
+						doc,
+						parseFloat(style.getPropertyValue('--obsidian-reader-line-height')) + 0.1,
+					);
 					break;
 			}
 		});
@@ -297,7 +340,6 @@ export class Reader {
 
 		// Notify content script to listen for highlighter button
 		document.dispatchEvent(new CustomEvent('obsidian-reader-init'));
-		
 	}
 
 	private static updateFontSize(doc: Document, size: number) {
@@ -349,7 +391,6 @@ export class Reader {
 		}
 	}
 
-
 	private static async extractContent(doc: Document): Promise<{
 		content: string;
 		title?: string;
@@ -360,7 +401,6 @@ export class Reader {
 		parseTime?: number;
 		extractorType?: string;
 	}> {
-
 		const defuddle = new Defuddle(doc, { url: doc.URL });
 		const defuddled = await defuddle.parseAsync();
 
@@ -371,7 +411,7 @@ export class Reader {
 			published: defuddled.published,
 			domain: getDomain(doc.URL),
 			wordCount: defuddled.wordCount,
-			parseTime: defuddled.parseTime
+			parseTime: defuddled.parseTime,
 		};
 	}
 
@@ -391,7 +431,7 @@ export class Reader {
 			outline.style.display = 'none';
 			return null;
 		} else {
-			outline.style.display = ''; 
+			outline.style.display = '';
 		}
 
 		// Add unique IDs to headings if they don't have them
@@ -406,15 +446,15 @@ export class Reader {
 
 		// Keep track of the last heading at each level and their depths
 		const lastHeadingAtLevel: { [key: number]: { element: Element; depth: number } } = {};
-		
+
 		headings.forEach((heading) => {
 			const level = parseInt(heading.tagName[1]);
 			const currentRect = heading.getBoundingClientRect();
-			
+
 			// Calculate depth based on parent headings
 			let depth = 0;
 			let parentFound = false;
-			
+
 			// Look through all higher levels to find the most recent parent
 			for (let i = level - 1; i >= 2; i--) {
 				const lastHeading = lastHeadingAtLevel[i];
@@ -440,42 +480,42 @@ export class Reader {
 			item.className = `obsidian-reader-outline-item obsidian-reader-outline-${heading.tagName.toLowerCase()}`;
 			item.setAttribute('data-depth', depth.toString());
 			item.textContent = heading.textContent;
-			
+
 			item.addEventListener('click', () => {
 				const rect = heading.getBoundingClientRect();
 				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
 				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
 				window.scrollTo({
 					top: targetY,
-					behavior: 'smooth'
+					behavior: 'smooth',
 				});
 			});
 
 			outline.appendChild(item);
 			outlineItems.set(heading, item);
-			
+
 			// Update tracking variables
 			lastHeadingAtLevel[level] = { element: heading, depth };
 		});
 
 		// Set up intersection observer for headings
 		const observerCallback = (entries: IntersectionObserverEntry[]) => {
-			entries.forEach(entry => {
+			entries.forEach((entry) => {
 				const heading = entry.target;
 				const item = outlineItems.get(heading);
-				
+
 				if (entry.isIntersecting) {
 					// Remove active state from all items
 					outlineItems.forEach((outlineItem) => {
 						outlineItem.classList.remove('active');
 					});
 					item?.classList.add('active');
-					
+
 					// Update faint state for all items
 					outlineItems.forEach((outlineItem, itemHeading) => {
 						const headingRect = itemHeading.getBoundingClientRect();
 						const currentHeadingRect = heading.getBoundingClientRect();
-						
+
 						if (headingRect.top < currentHeadingRect.top) {
 							outlineItem.classList.add('faint');
 						} else {
@@ -488,10 +528,10 @@ export class Reader {
 
 		const observer = new IntersectionObserver(observerCallback, {
 			rootMargin: '-5% 0px -85% 0px', // Triggers when heading is in top 20% of viewport
-			threshold: 0
+			threshold: 0,
 		});
 
-		headings.forEach(heading => {
+		headings.forEach((heading) => {
 			observer.observe(heading);
 		});
 
@@ -502,14 +542,14 @@ export class Reader {
 			item.className = 'obsidian-reader-outline-item';
 			item.setAttribute('data-depth', '0');
 			item.textContent = 'Footnotes';
-			
+
 			item.addEventListener('click', () => {
 				const rect = footnotes.getBoundingClientRect();
 				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
 				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
 				window.scrollTo({
 					top: targetY,
-					behavior: 'smooth'
+					behavior: 'smooth',
 				});
 			});
 
@@ -670,7 +710,7 @@ export class Reader {
 			: linkRect.top - popoverRect.height - ARROW_HEIGHT - VERTICAL_SPACING;
 
 		// Calculate horizontal position (centered with link)
-		let left = linkRect.left + (linkRect.width / 2) - (popoverRect.width / 2);
+		let left = linkRect.left + linkRect.width / 2 - popoverRect.width / 2;
 
 		// Adjust horizontal position if it would overflow
 		if (left < VIEWPORT_PADDING) {
@@ -680,10 +720,7 @@ export class Reader {
 		}
 
 		// Position the arrow relative to the link
-		const arrowOffset = Math.max(0, Math.min(
-			linkRect.left + (linkRect.width / 2) - left,
-			popoverRect.width
-		));
+		const arrowOffset = Math.max(0, Math.min(linkRect.left + linkRect.width / 2 - left, popoverRect.width));
 
 		// Update arrow position with CSS custom property
 		popover.style.setProperty('--arrow-offset', `${arrowOffset}px`);
@@ -696,7 +733,7 @@ export class Reader {
 		// If popover would be outside viewport vertically, adjust its height
 		const currentTop = parseFloat(popover.style.top);
 		if (currentTop < VIEWPORT_PADDING) {
-			const maxHeight = viewportHeight - (VIEWPORT_PADDING * 2);
+			const maxHeight = viewportHeight - VIEWPORT_PADDING * 2;
 			popover.style.top = `${VIEWPORT_PADDING}px`;
 			popover.style.maxHeight = `${maxHeight}px`;
 			popover.style.overflowY = 'auto';
@@ -715,7 +752,7 @@ export class Reader {
 			if (typeof window !== 'undefined' && window.clearTimeout && window.clearInterval) {
 				const nativeClearTimeout = window.clearTimeout.bind(window);
 				const nativeClearInterval = window.clearInterval.bind(window);
-				
+
 				// Clear all timeouts and intervals
 				let id = window.setTimeout(() => {}, 0);
 				while (id--) {
@@ -731,7 +768,7 @@ export class Reader {
 
 			// Remove all script elements except JSON-LD
 			const scripts = doc.querySelectorAll('script:not([type="application/ld+json"])');
-			scripts.forEach(el => el.remove());
+			scripts.forEach((el) => el.remove());
 
 			// Replace body with a clone to remove all event listeners
 			const newBody = doc.body.cloneNode(true);
@@ -751,10 +788,10 @@ export class Reader {
 	private static initializeCodeHighlighting(doc: Document) {
 		// Find all pre > code blocks
 		const codeBlocks = doc.querySelectorAll('pre > code');
-		codeBlocks.forEach(block => {
+		codeBlocks.forEach((block) => {
 			// Try to detect the language from class
 			const classes = block.className.split(' ');
-			const languageClass = classes.find(c => c.startsWith('language-'));
+			const languageClass = classes.find((c) => c.startsWith('language-'));
 			const language = languageClass ? languageClass.replace('language-', '') : '';
 
 			if (language) {
@@ -775,9 +812,9 @@ export class Reader {
 
 		// Also highlight inline code with specified language
 		const inlineCode = doc.querySelectorAll('code:not(pre > code)');
-		inlineCode.forEach(code => {
+		inlineCode.forEach((code) => {
 			const classes = code.className.split(' ');
-			const languageClass = classes.find(c => c.startsWith('language-'));
+			const languageClass = classes.find((c) => c.startsWith('language-'));
 			if (languageClass) {
 				try {
 					hljs.highlightElement(code as HTMLElement);
@@ -791,12 +828,12 @@ export class Reader {
 	private static initializeCopyButtons(doc: Document) {
 		// Find all pre > code blocks
 		const codeBlocks = doc.querySelectorAll('pre > code');
-		codeBlocks.forEach(block => {
+		codeBlocks.forEach((block) => {
 			const pre = block.parentElement as HTMLElement;
-			
+
 			const button = doc.createElement('button');
 			button.className = 'copy-button';
-			
+
 			// Create copy SVG
 			const svg = this.createSVG({
 				width: '16',
@@ -804,7 +841,7 @@ export class Reader {
 				viewBox: '0 0 24 24',
 				className: 'lucide lucide-copy-icon lucide-copy',
 				paths: ['M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'],
-				rects: [{x: '8', y: '8', width: '14', height: '14', rx: '2', ry: '2'}]
+				rects: [{ x: '8', y: '8', width: '14', height: '14', rx: '2', ry: '2' }],
 			});
 			button.appendChild(svg);
 
@@ -813,22 +850,22 @@ export class Reader {
 					// Get the raw text content without HTML tags
 					const text = block.textContent || '';
 					const success = await copyToClipboard(text);
-					
+
 					if (success) {
 						// Show success state
 						button.classList.add('copied');
 						button.textContent = '';
-						
+
 						// Create check icon
 						const checkSvg = this.createSVG({
 							width: '16',
 							height: '16',
 							viewBox: '0 0 24 24',
 							className: 'lucide lucide-check-icon lucide-check',
-							paths: ['M20 6 9 17l-5-5']
+							paths: ['M20 6 9 17l-5-5'],
 						});
 						button.appendChild(checkSvg);
-						
+
 						// Reset after 2 seconds
 						setTimeout(() => {
 							button.classList.remove('copied');
@@ -856,29 +893,29 @@ export class Reader {
 		const closeButton = doc.createElement('button');
 		closeButton.className = 'lightbox-close';
 		closeButton.setAttribute('aria-label', 'Close image viewer');
-		
+
 		// Create close button SVG
 		const closeSvg = this.createSVG({
 			width: '20',
 			height: '20',
 			viewBox: '0 0 24 24',
-			paths: ['M18 6L6 18M6 6l12 12']
+			paths: ['M18 6L6 18M6 6l12 12'],
 		});
 		closeButton.appendChild(closeSvg);
-		
+
 		// Create content structure
 		const lightboxContent = doc.createElement('div');
 		lightboxContent.className = 'lightbox-content';
-		
+
 		const imageContainer = doc.createElement('div');
 		imageContainer.className = 'lightbox-image-container';
-		
+
 		const captionContainer = doc.createElement('div');
 		captionContainer.className = 'lightbox-caption';
-		
+
 		lightboxContent.appendChild(imageContainer);
 		lightboxContent.appendChild(captionContainer);
-		
+
 		this.lightbox.appendChild(closeButton);
 		this.lightbox.appendChild(lightboxContent);
 		doc.body.appendChild(this.lightbox);
@@ -887,23 +924,30 @@ export class Reader {
 		const article = doc.querySelector('article');
 		if (article) {
 			// Get standalone images
-			const standaloneImages = Array.from(article.querySelectorAll('img:not(a img):not(figure img)')) as HTMLImageElement[];
-			
+			const standaloneImages = Array.from(
+				article.querySelectorAll('img:not(a img):not(figure img)'),
+			) as HTMLImageElement[];
+
 			// Get images in links that point to image files
-			const linkedImages = Array.from(article.querySelectorAll('a:not(figure a) img')).filter(img => {
+			const linkedImages = Array.from(article.querySelectorAll('a:not(figure a) img')).filter((img) => {
 				const link = (img as HTMLImageElement).closest('a');
 				if (!link) return false;
 				const href = link.href.toLowerCase();
-				return href.endsWith('.jpg') || href.endsWith('.jpeg') || 
-					   href.endsWith('.png') || href.endsWith('.gif') || 
-					   href.endsWith('.webp') || href.endsWith('.avif');
+				return (
+					href.endsWith('.jpg') ||
+					href.endsWith('.jpeg') ||
+					href.endsWith('.png') ||
+					href.endsWith('.gif') ||
+					href.endsWith('.webp') ||
+					href.endsWith('.avif')
+				);
 			}) as HTMLImageElement[];
 
 			// Get figure images
 			const figures = Array.from(article.querySelectorAll('figure'));
-			const figureImages = figures.flatMap(figure => {
+			const figureImages = figures.flatMap((figure) => {
 				const images = Array.from(figure.querySelectorAll('img')) as HTMLImageElement[];
-				return images.map(img => {
+				return images.map((img) => {
 					// Store figure reference on the image for caption lookup
 					(img as any).figureElement = figure;
 					return img;
@@ -921,7 +965,7 @@ export class Reader {
 					// For figures, wrap both the image and any links
 					const wrapper = doc.createElement('div');
 					wrapper.className = 'image-wrapper';
-					
+
 					// If image is in a link, handle that first
 					if (parentLink) {
 						parentLink.parentNode?.insertBefore(wrapper, parentLink);
@@ -934,13 +978,13 @@ export class Reader {
 					const expandButton = doc.createElement('button');
 					expandButton.className = 'image-expand-button';
 					expandButton.setAttribute('aria-label', 'View full size');
-					
+
 					// Create expand SVG
 					const expandSvg = this.createSVG({
 						width: '16',
 						height: '16',
 						viewBox: '0 0 24 24',
-						paths: ['M15 3h6v6', 'M14 10l7-7', 'M9 21H3v-6', 'M10 14l-7 7']
+						paths: ['M15 3h6v6', 'M14 10l7-7', 'M9 21H3v-6', 'M10 14l-7 7'],
 					});
 					expandButton.appendChild(expandSvg);
 					wrapper.appendChild(expandButton);
@@ -961,13 +1005,13 @@ export class Reader {
 					const expandButton = doc.createElement('button');
 					expandButton.className = 'image-expand-button';
 					expandButton.setAttribute('aria-label', 'View full size');
-					
+
 					// Create expand SVG
 					const expandSvg = this.createSVG({
 						width: '16',
 						height: '16',
 						viewBox: '0 0 24 24',
-						paths: ['M15 3h6v6', 'M14 10l7-7', 'M9 21H3v-6', 'M10 14l-7 7']
+						paths: ['M15 3h6v6', 'M14 10l7-7', 'M9 21H3v-6', 'M10 14l-7 7'],
 					});
 					expandButton.appendChild(expandSvg);
 					wrapper.appendChild(expandButton);
@@ -1021,12 +1065,12 @@ export class Reader {
 		this.currentImageIndex = index;
 		const container = this.lightbox.querySelector('.lightbox-image-container');
 		const captionContainer = this.lightbox.querySelector('.lightbox-caption');
-		
+
 		if (container && captionContainer) {
 			// Clear previous content
 			container.textContent = '';
 			captionContainer.textContent = '';
-			
+
 			// Clone the original image to preserve loaded state
 			const img = this.images[index].cloneNode(true) as HTMLImageElement;
 			container.appendChild(img);
@@ -1041,7 +1085,7 @@ export class Reader {
 				}
 			}
 		}
-		
+
 		this.lightbox.classList.add('active');
 		document.body.style.overflow = 'hidden';
 	}
@@ -1055,21 +1099,17 @@ export class Reader {
 
 	private static showPreviousImage() {
 		if (this.images.length <= 1) return;
-		
-		const newIndex = this.currentImageIndex > 0 
-			? this.currentImageIndex - 1 
-			: this.images.length - 1;
-		
+
+		const newIndex = this.currentImageIndex > 0 ? this.currentImageIndex - 1 : this.images.length - 1;
+
 		this.showLightbox(newIndex);
 	}
 
 	private static showNextImage() {
 		if (this.images.length <= 1) return;
-		
-		const newIndex = this.currentImageIndex < this.images.length - 1 
-			? this.currentImageIndex + 1 
-			: 0;
-		
+
+		const newIndex = this.currentImageIndex < this.images.length - 1 ? this.currentImageIndex + 1 : 0;
+
 		this.showLightbox(newIndex);
 	}
 
@@ -1107,16 +1147,16 @@ export class Reader {
 			while (doc.body.attributes.length > 0) {
 				doc.body.removeAttribute(doc.body.attributes[0].name);
 			}
-			
+
 			// Clean the html element but preserve lang and dir attributes
 			const htmlElement = doc.documentElement;
 			const lang = htmlElement.getAttribute('lang');
 			const dir = htmlElement.getAttribute('dir');
-			
+
 			// Restore lang and dir if they existed
 			if (lang) htmlElement.setAttribute('lang', lang);
 			if (dir) htmlElement.setAttribute('dir', dir);
-			
+
 			// Clone document for Defuddle before we clear the body
 			const docClone = doc.cloneNode(true) as Document;
 			// Preserve the URL for Defuddle's extractors
@@ -1129,11 +1169,11 @@ export class Reader {
 
 			// Remove base tags
 			const baseTags = head.querySelectorAll('base');
-			baseTags.forEach(el => el.remove());
+			baseTags.forEach((el) => el.remove());
 
 			// Remove stylesheet links and style tags, except reader styles
 			const styleElements = head.querySelectorAll('link[rel="stylesheet"], link[as="style"], style');
-			styleElements.forEach(el => {
+			styleElements.forEach((el) => {
 				if (el.id !== 'obsidian-reader-styles') {
 					el.remove();
 				}
@@ -1235,7 +1275,8 @@ export class Reader {
 			this.isActive = true;
 
 			// Now await content extraction and populate the page
-			const { content, title, author, published, domain, extractorType, wordCount, parseTime } = await contentPromise;
+			const { content, title, author, published, domain, extractorType, wordCount, parseTime } =
+				await contentPromise;
 
 			// If reader was toggled off while waiting, abort
 			if (!this.isActive) return;
@@ -1266,7 +1307,7 @@ export class Reader {
 							year: 'numeric',
 							month: 'long',
 							day: 'numeric',
-							timeZone: 'UTC'
+							timeZone: 'UTC',
 						}).format(date);
 					} else {
 						formattedDate = published;
@@ -1277,11 +1318,7 @@ export class Reader {
 				}
 			}
 
-			const metadataItems = [
-				author ? author : '',
-				formattedDate || '',
-				domain ? domain : ''
-			].filter(Boolean);
+			const metadataItems = [author ? author : '', formattedDate || '', domain ? domain : ''].filter(Boolean);
 
 			if (metadataItems.length > 0) {
 				const metadata = doc.createElement('div');
@@ -1329,24 +1366,31 @@ export class Reader {
 					if (isSafari && videoId) {
 						// Safari can't modify request headers, so YouTube blocks
 						// self-referrer embeds. Show a clickable thumbnail instead.
-						const watchUrl = 'https://www.youtube.com/watch?v=' + videoId
-							+ (videoTimestamp > 0 ? '&t=' + videoTimestamp : '');
+						const watchUrl =
+							'https://www.youtube.com/watch?v=' +
+							videoId +
+							(videoTimestamp > 0 ? '&t=' + videoTimestamp : '');
 						const thumbnail = doc.createElement('a');
 						thumbnail.href = watchUrl;
 						thumbnail.target = '_blank';
 						thumbnail.rel = 'noopener';
-						thumbnail.style.cssText = 'display:block;position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:8px;overflow:hidden;';
+						thumbnail.style.cssText =
+							'display:block;position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:8px;overflow:hidden;';
 						thumbnail.innerHTML =
-							'<img src="https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;mix-blend-mode:normal!important;">'
-							+ '<svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;" viewBox="0 0 68 48">'
-							+ '<path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/>'
-							+ '<path d="M45 24L27 14v20" fill="white"/></svg>';
+							'<img src="https://img.youtube.com/vi/' +
+							videoId +
+							'/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;mix-blend-mode:normal!important;">' +
+							'<svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;" viewBox="0 0 68 48">' +
+							'<path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/>' +
+							'<path d="M45 24L27 14v20" fill="white"/></svg>';
 						iframe.replaceWith(thumbnail);
 					} else {
 						// Chrome/Firefox: use direct embed with header modification
-						await browser.runtime.sendMessage({
-							action: 'enableYouTubeEmbedRule'
-						}).catch(() => {});
+						await browser.runtime
+							.sendMessage({
+								action: 'enableYouTubeEmbedRule',
+							})
+							.catch(() => {});
 
 						if (videoTimestamp > 0 || videoWasPlaying) {
 							const src = new URL(iframe.src);
@@ -1375,7 +1419,7 @@ export class Reader {
 			const footerItems = [
 				'Obsidian Reader',
 				wordCount ? new Intl.NumberFormat().format(wordCount) + ' words' : '',
-				(parseTime ? 'parsed in ' + new Intl.NumberFormat().format(parseTime) + ' ms' : '')
+				parseTime ? 'parsed in ' + new Intl.NumberFormat().format(parseTime) + ' ms' : '',
 			].filter(Boolean);
 			footer.textContent = footerItems.join(' · ');
 			footer.style.display = '';
@@ -1388,14 +1432,13 @@ export class Reader {
 			this.initializeLightbox(doc);
 
 			applyHighlights();
-
 		} catch (e) {
 			console.error('Reader', 'Error during apply:', e);
 		}
 	}
 
 	static restore(doc: Document) {
-		if (this.originalHTML) {			
+		if (this.originalHTML) {
 			// Disconnect the observer if it exists
 			if (this.observer) {
 				this.observer.disconnect();
@@ -1431,11 +1474,8 @@ export class Reader {
 
 			const parser = new DOMParser();
 			const newDoc = parser.parseFromString(this.originalHTML, 'text/html');
-			doc.replaceChild(
-				newDoc.documentElement,
-				doc.documentElement
-			);
-			
+			doc.replaceChild(newDoc.documentElement, doc.documentElement);
+
 			this.originalHTML = null;
 			this.settingsBar = null;
 			const outline = doc.querySelector('.obsidian-reader-outline');

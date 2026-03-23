@@ -28,4 +28,3 @@ describe('title filter', () => {
 		expect(result).toContain('World');
 	});
 });
-

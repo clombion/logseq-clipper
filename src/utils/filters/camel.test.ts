@@ -31,4 +31,3 @@ describe('camel filter', () => {
 		expect(camel('hello   world')).toBe('helloWorld');
 	});
 });
-

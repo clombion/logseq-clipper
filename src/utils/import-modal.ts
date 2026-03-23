@@ -7,7 +7,7 @@ export async function showImportModal(
 	importFunction: (content: string) => Promise<void>,
 	fileExtension: string = '.json',
 	isTemplateImport: boolean = false,
-	modalTitleKey: string = 'import'
+	modalTitleKey: string = 'import',
 ): Promise<void> {
 	const modal = document.getElementById(modalId);
 	const dropZone = modal?.querySelector('.import-drop-zone') as HTMLElement;
@@ -70,8 +70,8 @@ export async function showImportModal(
 		const files = e.dataTransfer?.files;
 		if (files && files.length > 0) {
 			Array.prototype.forEach.call(files, (file) => {
-				handleFile(file)
-			})
+				handleFile(file);
+			});
 		}
 	}
 
@@ -80,18 +80,18 @@ export async function showImportModal(
 		e.stopPropagation();
 		fileInput = document.createElement('input');
 		fileInput.type = 'file';
-		fileInput.multiple = true
+		fileInput.multiple = true;
 		fileInput.accept = fileExtension;
 		fileInput.onchange = handleFileInputChange;
 		fileInput.click();
 	}
 
 	function handleFileInputChange(event: Event): void {
-		const files = (event.target as HTMLInputElement).files
+		const files = (event.target as HTMLInputElement).files;
 		if (files && files.length > 0) {
 			Array.prototype.forEach.call(files, (file) => {
-				handleFile(file)
-			})
+				handleFile(file);
+			});
 		}
 		// Clean up the file input
 		if (fileInput) {
@@ -113,13 +113,15 @@ export async function showImportModal(
 					jsonTextarea.value = content;
 				}
 				// Immediately import the file
-				importFunction(content).then(() => {
-					cleanupModal();
-					hideModal(modal);
-				}).catch((error) => {
-					console.error('Error parsing imported template:', error);
-					alert(getMessage('failedToImportTemplate'));
-				});
+				importFunction(content)
+					.then(() => {
+						cleanupModal();
+						hideModal(modal);
+					})
+					.catch((error) => {
+						console.error('Error parsing imported template:', error);
+						alert(getMessage('failedToImportTemplate'));
+					});
 			};
 			reader.readAsText(file);
 		}
@@ -134,13 +136,15 @@ export async function showImportModal(
 		if (jsonTextarea) {
 			const jsonContent = jsonTextarea.value.trim();
 			if (jsonContent) {
-				importFunction(jsonContent).then(() => {
-					cleanupModal();
-					hideModal(modal);
-				}).catch((error) => {
-					console.error('Import failed:', error);
-					alert(getMessage('importFailed'));
-				});
+				importFunction(jsonContent)
+					.then(() => {
+						cleanupModal();
+						hideModal(modal);
+					})
+					.catch((error) => {
+						console.error('Import failed:', error);
+						alert(getMessage('importFailed'));
+					});
 			}
 		}
 	}

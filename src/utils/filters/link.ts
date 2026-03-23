@@ -19,18 +19,20 @@ export const link = (str: string, param?: string): string => {
 
 	try {
 		const data = JSON.parse(str);
-		
+
 		const processObject = (obj: any): string[] => {
-			return Object.entries(obj).map(([key, value]) => {
-				if (typeof value === 'object' && value !== null) {
-					return processObject(value);
-				}
-				return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
-			}).flat();
+			return Object.entries(obj)
+				.map(([key, value]) => {
+					if (typeof value === 'object' && value !== null) {
+						return processObject(value);
+					}
+					return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
+				})
+				.flat();
 		};
 
 		if (Array.isArray(data)) {
-			const result = data.map(item => {
+			const result = data.map((item) => {
 				if (typeof item === 'object' && item !== null) {
 					return processObject(item);
 				}

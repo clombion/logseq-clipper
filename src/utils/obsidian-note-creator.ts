@@ -15,18 +15,20 @@ export async function generateFrontmatter(properties: Property[]): Promise<strin
 }
 
 function openObsidianUrl(url: string): void {
-	browser.runtime.sendMessage({
-		action: "openObsidianUrl",
-		url: url
-	}).catch((error) => {
-		console.error('Error opening Obsidian URL via background script:', error);
-		window.open(url, '_blank');
-	});
+	browser.runtime
+		.sendMessage({
+			action: 'openObsidianUrl',
+			url: url,
+		})
+		.catch((error) => {
+			console.error('Error opening Obsidian URL via background script:', error);
+			window.open(url, '_blank');
+		});
 }
 
 async function tryClipboardWrite(fileContent: string, obsidianUrl: string): Promise<void> {
 	const success = await copyToClipboard(fileContent);
-	
+
 	if (success) {
 		obsidianUrl += `&clipboard&content=${encodeURIComponent(getMessage('clipboardError', 'https://help.obsidian.md/web-clipper/troubleshoot'))}`;
 		openObsidianUrl(obsidianUrl);
