@@ -1,9 +1,9 @@
 {
-	"name": "obsidian-clipper",
-	"version": "1.2.1",
-	"description": "Official web clipper for Obsidian.",
+	"name": "logseq-clipper",
+	"version": "0.1.0",
+	"description": "Web clipper for Logseq.",
 	"bin": {
-		"obsidian-clipper": "./dist/cli.cjs"
+		"logseq-clipper": "./dist/cli.cjs"
 	},
 	"files": [
 		"dist"
@@ -17,11 +17,9 @@
 		"defuddle-prod": "node scripts/set-defuddle-prod.js",
 		"dev:chrome": "webpack --watch --env BROWSER=chrome --mode development",
 		"dev:firefox": "webpack --watch --env BROWSER=firefox --mode development",
-		"dev:safari": "webpack --watch --env BROWSER=safari --mode development",
 		"build:chrome": "webpack --env BROWSER=chrome --mode production",
 		"build:firefox": "webpack --env BROWSER=firefox --mode production",
-		"build:safari": "webpack --env BROWSER=safari --mode production",
-		"build": "npm run build:chrome && npm run build:firefox && npm run build:safari",
+		"build": "pnpm run build:chrome && pnpm run build:firefox",
 		"build:cli": "node scripts/build-cli.mjs",
 		"build:api": "node scripts/build-api.mjs",
 		"dev": "npm run dev:chrome",
@@ -58,7 +56,6 @@
 		"zip-webpack-plugin": "^4.0.1"
 	},
 	"dependencies": {
-		"@types/safari-extension": "^0.0.33",
 		"dayjs": "^1.11.13",
 		"defuddle": "^0.14.0",
 		"dompurify": "^3.0.9",

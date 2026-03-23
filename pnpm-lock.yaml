@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@types/safari-extension':
-        specifier: ^0.0.33
-        version: 0.0.33
       dayjs:
         specifier: ^1.11.13
         version: 1.11.20
@@ -597,9 +594,6 @@ packages:
 
   '@types/node@25.5.0':
     resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
-
-  '@types/safari-extension@0.0.33':
-    resolution: {integrity: sha512-WkgGZrcovQ8ryXRT7vmeE+k4jBs8fAJ6gDuxTWUr8SelEeK1gYnIJtbOYA++ucswUJBex1VxBaoj3wArPwrTkA==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -2019,8 +2013,6 @@ snapshots:
   '@types/node@25.5.0':
     dependencies:
       undici-types: 7.18.2
-
-  '@types/safari-extension@0.0.33': {}
 
   '@types/trusted-types@2.0.7':
     optional: true

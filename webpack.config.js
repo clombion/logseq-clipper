@@ -22,19 +22,18 @@ function removeDSStore(dir) {
 
 module.exports = (env, argv) => {
 	const isFirefox = env.BROWSER === 'firefox';
-	const isSafari = env.BROWSER === 'safari';
 	const isProduction = argv.mode === 'production';
 
 	const getOutputDir = () => {
 		if (isProduction) {
-			return isFirefox ? 'dist_firefox' : (isSafari ? 'dist_safari' : 'dist');
+			return isFirefox ? 'dist_firefox' : 'dist';
 		} else {
-			return isFirefox ? 'dev_firefox' : (isSafari ? 'dev_safari' : 'dev');
+			return isFirefox ? 'dev_firefox' : 'dev';
 		}
 	};
 
 	const outputDir = getOutputDir();
-	const browserName = isFirefox ? 'firefox' : (isSafari ? 'safari' : 'chrome');
+	const browserName = isFirefox ? 'firefox' : 'chrome';
 
 	const mainConfig = {
 		mode: argv.mode,
@@ -136,10 +135,9 @@ module.exports = (env, argv) => {
 		plugins: [
 			new CopyPlugin({
 				patterns: [
-					{ 
-						from: isFirefox ? "src/manifest.firefox.json" : 
-							  (isSafari ? "src/manifest.safari.json" : "src/manifest.chrome.json"), 
-						to: "manifest.json" 
+					{
+						from: isFirefox ? "src/manifest.firefox.json" : "src/manifest.chrome.json",
+						to: "manifest.json"
 					},
 					{ from: "src/popup.html", to: "popup.html" },
 					{ from: "src/side-panel.html", to: "side-panel.html" },
@@ -170,7 +168,7 @@ module.exports = (env, argv) => {
 			...(isProduction ? [
 				new ZipPlugin({
 					path: path.resolve(__dirname, 'builds'),
-					filename: `obsidian-web-clipper-${package.version}-${browserName}.zip`,
+					filename: `logseq-web-clipper-${package.version}-${browserName}.zip`,
 				})
 			] : [])
 		]
