@@ -68,14 +68,17 @@ describe('createPage', () => {
 		const result = await createPage(config, 'Test Page');
 
 		expect(result).toEqual(page);
-		const [url, opts] = mockFetch.mock.calls[0];
-		expect(url).toBe('http://127.0.0.1:12315/api');
-		expect(opts.headers['Authorization']).toBe('Bearer test-token');
-		const body = JSON.parse(opts.body);
-		expect(body.method).toBe('logseq.Editor.createPage');
-		expect(body.args[0]).toBe('Test Page');
-		expect(body.args[1]).toEqual({}); // properties always empty — use upsertBlockProperty instead
-		expect(body.args[2]).toEqual({ redirect: false });
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				method: 'POST',
+				headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+				body: JSON.stringify({
+					method: 'logseq.Editor.createPage',
+					args: ['Test Page', {}, { redirect: false }],
+				}),
+			}),
+		);
 	});
 });
 
@@ -95,9 +98,15 @@ describe('appendBlockInPage', () => {
 		const result = await appendBlockInPage(config, 'My Page', 'Hello');
 
 		expect(result).toEqual(block);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.appendBlockInPage');
-		expect(body.args).toEqual(['My Page', 'Hello']);
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.appendBlockInPage',
+					args: ['My Page', 'Hello'],
+				}),
+			}),
+		);
 	});
 });
 
@@ -115,11 +124,15 @@ describe('insertBatchBlock', () => {
 		const result = await insertBatchBlock(config, 'target-uuid', blocks);
 
 		expect(result).toEqual(resultBlocks);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.insertBatchBlock');
-		expect(body.args[0]).toBe('target-uuid');
-		expect(body.args[1]).toEqual(blocks);
-		expect(body.args[2]).toEqual({ sibling: false });
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.insertBatchBlock',
+					args: ['target-uuid', blocks, { sibling: false }],
+				}),
+			}),
+		);
 	});
 });
 
@@ -130,9 +143,15 @@ describe('queryByProperty', () => {
 		const result = await queryByProperty(config, 'url', 'https://example.com');
 
 		expect(result).toEqual([{ uuid: 'r1' }]);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.DB.q');
-		expect(body.args[0]).toBe('(property url "https://example.com")');
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.DB.q',
+					args: ['(property url "https://example.com")'],
+				}),
+			}),
+		);
 	});
 });
 
@@ -142,9 +161,15 @@ describe('removeBlock', () => {
 
 		await removeBlock(config, 'block-uuid');
 
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.removeBlock');
-		expect(body.args).toEqual(['block-uuid']);
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.removeBlock',
+					args: ['block-uuid'],
+				}),
+			}),
+		);
 	});
 });
 
@@ -178,8 +203,12 @@ describe('timeout', () => {
 	test('fetch is called with AbortSignal.timeout', async () => {
 		mockFetch.mockReturnValue(jsonResponse({ name: 'graph' }));
 		await checkConnection(config);
-		const fetchOptions = mockFetch.mock.calls[0][1];
-		expect(fetchOptions.signal).toBeDefined();
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({
+				signal: expect.anything(),
+			}),
+		);
 	});
 });
 

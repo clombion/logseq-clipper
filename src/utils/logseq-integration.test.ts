@@ -114,7 +114,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 		const page = await createPage(config, pageName);
 		expect(page).not.toBeNull();
-		expect(page.uuid).toBeTruthy();
+		expect(typeof page.uuid).toBe('string');
 
 		const found = await getPage(config, pageName);
 		expect(found).not.toBeNull();
@@ -143,7 +143,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 		const block = await appendBlockInPage(config, pageName, 'Test block content');
 		expect(block).not.toBeNull();
-		expect(block.uuid).toBeTruthy();
+		expect(typeof block.uuid).toBe('string');
 		expect(block.content).toBe('Test block content');
 	});
 
@@ -154,7 +154,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		// Don't call createPage first — appendBlockInPage should auto-create
 		const block = await appendBlockInPage(config, pageName, 'Auto-created page content');
 		expect(block).not.toBeNull();
-		expect(block.uuid).toBeTruthy();
+		expect(typeof block.uuid).toBe('string');
 
 		const page = await getPage(config, pageName);
 		expect(page).not.toBeNull();
@@ -169,7 +169,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		const prepended = await prependBlockInPage(config, pageName, 'Prepended block');
 
 		expect(prepended).not.toBeNull();
-		expect(prepended.uuid).toBeTruthy();
+		expect(typeof prepended.uuid).toBe('string');
 
 		const tree = await getPageBlocksTree(config, pageName);
 		// Prepended block should be first (after any empty initial block)
@@ -183,7 +183,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		await createPage(config, pageName);
 
 		const parent = await appendBlockInPage(config, pageName, 'Parent block');
-		expect(parent.uuid).toBeTruthy();
+		expect(typeof parent.uuid).toBe('string');
 
 		await insertBatchBlock(config, parent.uuid, [
 			{ content: 'Child 1' },
@@ -260,7 +260,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 
 	test('getTodayJournalPageName returns a non-empty string', async () => {
 		const name = await getTodayJournalPageName(config);
-		expect(name).toBeTruthy();
+		expect(name).toBeDefined();
 		expect(typeof name).toBe('string');
 		expect(name.length).toBeGreaterThan(0);
 	});
@@ -298,7 +298,7 @@ describe.skipIf(!logseqAvailable)('Logseq API integration', () => {
 		const metadata = 'resource:: Integration Test\nresource-type:: #test';
 		const parent = await appendBlockInPage(config, journalPage, metadata);
 		expect(parent).not.toBeNull();
-		expect(parent.uuid).toBeTruthy();
+		expect(typeof parent.uuid).toBe('string');
 		createdBlockUuids.push(parent.uuid);
 
 		// Content as children

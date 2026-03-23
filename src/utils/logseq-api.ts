@@ -1,4 +1,8 @@
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
 import { debugLog } from './debug';
+
+dayjs.extend(advancedFormat);
 
 export interface LogseqApiConfig {
 	port: number;
@@ -15,6 +19,7 @@ export interface LogseqPage {
 	name: string;
 	uuid: string;
 	originalName?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq property values are untyped
 	properties?: Record<string, any>;
 }
 
@@ -22,6 +27,7 @@ export interface LogseqBlock {
 	uuid: string;
 	content: string;
 	children?: LogseqBlock[];
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq property values are untyped
 	properties?: Record<string, any>;
 }
 
@@ -49,6 +55,7 @@ export class LogseqApiError extends Error {
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic JSON-RPC wrapper returns untyped data
 async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = []): Promise<any> {
 	debugLog('LogseqAPI', `${method}`, args);
 	let response: Response;
@@ -175,10 +182,7 @@ export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<
 		}
 	}
 	// Fallback: use Logseq's default format (MMM do, yyyy)
-	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	const day = today.getDate();
-	const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
-	return `${months[today.getMonth()]} ${day}${suffix}, ${today.getFullYear()}`;
+	return dayjs(today).format('MMM Do, YYYY');
 }
 
 export async function removeBlock(config: LogseqApiConfig, blockUuid: string): Promise<void> {

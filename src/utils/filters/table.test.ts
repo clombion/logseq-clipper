@@ -34,4 +34,21 @@ describe('table filter', () => {
 	test('returns original for non-JSON', () => {
 		expect(table('plain text')).toBe('plain text');
 	});
+
+	test('returns original for malformed table HTML passed as string', () => {
+		const malformed = '<table><tr><td>no closing';
+		expect(table(malformed)).toBe(malformed);
+	});
+
+	test('handles null/undefined string values', () => {
+		expect(table('null')).toBe('null');
+		expect(table('undefined')).toBe('undefined');
+	});
+
+	test('handles JSON object with empty values', () => {
+		const result = table('{"a":"","b":""}');
+		// Object renders as key-value rows
+		expect(result).toContain('| a |');
+		expect(result).toContain('| b |');
+	});
 });

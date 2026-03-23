@@ -30,4 +30,19 @@ describe('footnote filter', () => {
 	test('returns original for non-JSON', () => {
 		expect(footnote('plain text')).toBe('plain text');
 	});
+
+	test('handles missing/null values in object', () => {
+		const result = footnote('{"Note": null}');
+		expect(result).toContain('[^note]:');
+	});
+
+	test('returns original for invalid JSON', () => {
+		expect(footnote('{broken')).toBe('{broken');
+	});
+
+	test('handles numeric values in array', () => {
+		const result = footnote('[42, 100]');
+		expect(result).toContain('[^1]: 42');
+		expect(result).toContain('[^2]: 100');
+	});
 });

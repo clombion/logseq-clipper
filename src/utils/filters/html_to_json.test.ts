@@ -26,4 +26,15 @@ describe('html_to_json filter', () => {
 		// In browser this would return JSON, in Node it returns original
 		expect(typeof result).toBe('string');
 	});
+
+	test('returns input for null/undefined coerced to string', () => {
+		// Verifies graceful handling when input is not valid HTML
+		const result = html_to_json('null');
+		expect(typeof result).toBe('string');
+	});
+
+	test('handles unclosed tags gracefully', () => {
+		const result = html_to_json('<p>unclosed paragraph<div>mixed');
+		expect(typeof result).toBe('string');
+	});
 });
