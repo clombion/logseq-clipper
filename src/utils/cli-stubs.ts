@@ -7,10 +7,6 @@ import type { Settings } from '../types/types';
 export default {} as any;
 
 export const generalSettings: Settings = {
-	vaults: [],
-	betaFeatures: false,
-	legacyMode: false,
-	silentOpen: false,
 	openBehavior: 'popup',
 	highlighterEnabled: false,
 	alwaysShowHighlights: false,
@@ -30,15 +26,18 @@ export const generalSettings: Settings = {
 		theme: 'default',
 		themeMode: 'auto',
 	},
+	logseqApiPort: 12315,
+	logseqApiToken: '',
+	logseqLogPage: 'Web Clips Log',
 	stats: {
-		addToObsidian: 0,
+		addToLogseq: 0,
 		saveFile: 0,
 		copyToClipboard: 0,
 		share: 0,
 	},
 	history: [],
 	ratings: [],
-	saveBehavior: 'addToObsidian',
+	saveBehavior: 'addToLogseq',
 };
 
 export const loadSettings = async () => {};

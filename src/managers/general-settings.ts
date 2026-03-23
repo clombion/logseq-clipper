@@ -1,4 +1,3 @@
-import { handleDragStart, handleDragOver, handleDrop, handleDragEnd } from '../utils/drag-and-drop';
 import { initializeIcons } from '../icons/icons';
 import { getCommands } from '../utils/hotkeys';
 import { initializeToggles, updateToggleState, initializeSettingToggle } from '../utils/ui-utils';
@@ -28,56 +27,7 @@ const STORE_URLS = {
 	edge: 'https://microsoftedge.microsoft.com/addons/detail/obsidian-web-clipper/eigdjhmgnaaeaonimdklocfekkaanfme',
 };
 
-export function updateVaultList(): void {
-	const vaultList = document.getElementById('vault-list') as HTMLUListElement;
-	if (!vaultList) return;
-
-	// Clear existing vaults
-	vaultList.textContent = '';
-	generalSettings.vaults.forEach((vault, index) => {
-		const li = document.createElement('li');
-		li.dataset.index = index.toString();
-		li.draggable = true;
-
-		const dragHandle = createElementWithClass('div', 'drag-handle');
-		dragHandle.appendChild(createElementWithHTML('i', '', { 'data-lucide': 'grip-vertical' }));
-		li.appendChild(dragHandle);
-
-		const span = document.createElement('span');
-		span.textContent = vault;
-		li.appendChild(span);
-
-		const removeBtn = createElementWithClass('button', 'remove-vault-btn clickable-icon');
-		removeBtn.setAttribute('type', 'button');
-		removeBtn.setAttribute('aria-label', getMessage('removeVault'));
-		removeBtn.appendChild(createElementWithHTML('i', '', { 'data-lucide': 'trash-2' }));
-		li.appendChild(removeBtn);
-
-		li.addEventListener('dragstart', handleDragStart);
-		li.addEventListener('dragover', handleDragOver);
-		li.addEventListener('drop', handleDrop);
-		li.addEventListener('dragend', handleDragEnd);
-		removeBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			removeVault(index);
-		});
-		vaultList.appendChild(li);
-	});
-
-	initializeIcons(vaultList);
-}
-
-export function addVault(vault: string): void {
-	generalSettings.vaults.push(vault);
-	saveSettings();
-	updateVaultList();
-}
-
-export function removeVault(index: number): void {
-	generalSettings.vaults.splice(index, 1);
-	saveSettings();
-	updateVaultList();
-}
+// Vault management removed — vaults field no longer exists in Settings
 
 export async function setShortcutInstructions() {
 	const shortcutInstructionsElement = document.querySelector('.shortcut-instructions');
@@ -211,12 +161,7 @@ export function initializeGeneralSettings(): void {
 			}
 		}
 
-		updateVaultList();
 		initializeShowMoreActionsToggle();
-		initializeBetaFeaturesToggle();
-		initializeLegacyModeToggle();
-		initializeSilentOpenToggle();
-		initializeVaultInput();
 		initializeOpenBehaviorDropdown();
 		initializeKeyboardShortcuts();
 		initializeToggles();
@@ -250,9 +195,6 @@ function initializeAutoSave(): void {
 function saveSettingsFromForm(): void {
 	const openBehaviorDropdown = document.getElementById('open-behavior-dropdown') as HTMLSelectElement;
 	const showMoreActionsToggle = document.getElementById('show-more-actions-toggle') as HTMLInputElement;
-	const betaFeaturesToggle = document.getElementById('beta-features-toggle') as HTMLInputElement;
-	const legacyModeToggle = document.getElementById('legacy-mode-toggle') as HTMLInputElement;
-	const silentOpenToggle = document.getElementById('silent-open-toggle') as HTMLInputElement;
 	const highlighterToggle = document.getElementById('highlighter-toggle') as HTMLInputElement;
 	const alwaysShowHighlightsToggle = document.getElementById('highlighter-visibility') as HTMLInputElement;
 	const highlightBehaviorSelect = document.getElementById('highlighter-behavior') as HTMLSelectElement;
@@ -261,9 +203,6 @@ function saveSettingsFromForm(): void {
 		...generalSettings, // Keep existing settings
 		openBehavior: (openBehaviorDropdown?.value as 'popup' | 'embedded') ?? generalSettings.openBehavior,
 		showMoreActionsButton: showMoreActionsToggle?.checked ?? generalSettings.showMoreActionsButton,
-		betaFeatures: betaFeaturesToggle?.checked ?? generalSettings.betaFeatures,
-		legacyMode: legacyModeToggle?.checked ?? generalSettings.legacyMode,
-		silentOpen: silentOpenToggle?.checked ?? generalSettings.silentOpen,
 		highlighterEnabled: highlighterToggle?.checked ?? generalSettings.highlighterEnabled,
 		alwaysShowHighlights: alwaysShowHighlightsToggle?.checked ?? generalSettings.alwaysShowHighlights,
 		highlightBehavior: highlightBehaviorSelect?.value ?? generalSettings.highlightBehavior,
@@ -276,22 +215,6 @@ function initializeShowMoreActionsToggle(): void {
 	initializeSettingToggle('show-more-actions-toggle', generalSettings.showMoreActionsButton, (checked) => {
 		saveSettings({ ...generalSettings, showMoreActionsButton: checked });
 	});
-}
-
-function initializeVaultInput(): void {
-	const vaultInput = document.getElementById('vault-input') as HTMLInputElement;
-	if (vaultInput) {
-		vaultInput.addEventListener('keypress', (e) => {
-			if (e.key === 'Enter') {
-				e.preventDefault();
-				const newVault = vaultInput.value.trim();
-				if (newVault) {
-					addVault(newVault);
-					vaultInput.value = '';
-				}
-			}
-		});
-	}
 }
 
 async function initializeKeyboardShortcuts(): Promise<void> {
@@ -326,24 +249,6 @@ async function initializeKeyboardShortcuts(): Promise<void> {
 	}
 }
 
-function initializeBetaFeaturesToggle(): void {
-	initializeSettingToggle('beta-features-toggle', generalSettings.betaFeatures, (checked) => {
-		saveSettings({ ...generalSettings, betaFeatures: checked });
-	});
-}
-
-function initializeLegacyModeToggle(): void {
-	initializeSettingToggle('legacy-mode-toggle', generalSettings.legacyMode, (checked) => {
-		saveSettings({ ...generalSettings, legacyMode: checked });
-	});
-}
-
-function initializeSilentOpenToggle(): void {
-	initializeSettingToggle('silent-open-toggle', generalSettings.silentOpen, (checked) => {
-		saveSettings({ ...generalSettings, silentOpen: checked });
-	});
-}
-
 function initializeOpenBehaviorDropdown(): void {
 	initializeSettingDropdown('open-behavior-dropdown', generalSettings.openBehavior, (value) => {
 		saveSettings({ ...generalSettings, openBehavior: value as 'popup' | 'embedded' });
@@ -363,7 +268,7 @@ function initializeSaveBehaviorDropdown(): void {
 
 	dropdown.value = generalSettings.saveBehavior;
 	dropdown.addEventListener('change', () => {
-		const newValue = dropdown.value as 'addToObsidian' | 'copyToClipboard' | 'saveFile';
+		const newValue = dropdown.value as 'addToLogseq' | 'copyToClipboard' | 'saveFile';
 		saveSettings({ saveBehavior: newValue });
 	});
 }

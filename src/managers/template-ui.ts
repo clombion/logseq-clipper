@@ -253,23 +253,6 @@ export function showTemplateEditor(template: Template | null): void {
 		});
 	}
 
-	const vaultSelect = document.getElementById('template-vault') as HTMLSelectElement;
-	if (vaultSelect) {
-		// Clear existing vault options
-		vaultSelect.textContent = '';
-		const lastUsedOption = document.createElement('option');
-		lastUsedOption.value = '';
-		lastUsedOption.textContent = getMessage('lastUsed');
-		vaultSelect.appendChild(lastUsedOption);
-		generalSettings.vaults.forEach((vault) => {
-			const option = document.createElement('option');
-			option.value = vault;
-			option.textContent = vault;
-			vaultSelect.appendChild(option);
-		});
-		vaultSelect.value = editingTemplate.vault || '';
-	}
-
 	updateUrl('templates', editingTemplate.id);
 	updatePromptContextVisibility();
 }
@@ -292,7 +275,6 @@ function updateBehaviorFields(): void {
 			switch (selectedBehavior) {
 				case 'append-specific':
 				case 'prepend-specific':
-				case 'overwrite':
 					noteNameFormat.placeholder = getMessage('specificNoteName');
 					break;
 				case 'append-daily':
@@ -561,9 +543,6 @@ export function updateTemplateFromForm(): void {
 
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
 	if (triggersTextarea) template.triggers = triggersTextarea.value.split('\n').filter(Boolean);
-
-	const vaultSelect = document.getElementById('template-vault') as HTMLSelectElement;
-	if (vaultSelect) template.vault = vaultSelect.value || undefined;
 
 	hasUnsavedChanges = true;
 }

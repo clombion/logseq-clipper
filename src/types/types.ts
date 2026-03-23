@@ -1,13 +1,12 @@
 export interface Template {
 	id: string;
 	name: string;
-	behavior: 'create' | 'append-specific' | 'append-daily' | 'prepend-specific' | 'prepend-daily' | 'overwrite';
+	behavior: 'create' | 'append-specific' | 'append-daily' | 'prepend-specific' | 'prepend-daily';
 	noteNameFormat: string;
 	path: string;
 	noteContentFormat: string;
 	properties: Property[];
 	triggers?: string[];
-	vault?: string;
 	context?: string;
 }
 
@@ -50,7 +49,7 @@ export interface Rating {
 	date: string;
 }
 
-export type SaveBehavior = 'addToObsidian' | 'saveFile' | 'copyToClipboard';
+export type SaveBehavior = 'addToLogseq' | 'saveFile' | 'copyToClipboard';
 
 export interface ReaderSettings {
 	fontSize: number;
@@ -61,11 +60,7 @@ export interface ReaderSettings {
 }
 
 export interface Settings {
-	vaults: string[];
 	showMoreActionsButton: boolean;
-	betaFeatures: boolean;
-	legacyMode: boolean;
-	silentOpen: boolean;
 	openBehavior: 'popup' | 'embedded';
 	highlighterEnabled: boolean;
 	alwaysShowHighlights: boolean;
@@ -78,15 +73,18 @@ export interface Settings {
 	defaultPromptContext: string;
 	propertyTypes: PropertyType[];
 	readerSettings: ReaderSettings;
+	logseqApiPort: number;
+	logseqApiToken: string;
+	logseqLogPage: string;
 	stats: {
-		addToObsidian: number;
+		addToLogseq: number;
 		saveFile: number;
 		copyToClipboard: number;
 		share: number;
 	};
 	history: HistoryEntry[];
 	ratings: Rating[];
-	saveBehavior: 'addToObsidian' | 'saveFile' | 'copyToClipboard';
+	saveBehavior: 'addToLogseq' | 'saveFile' | 'copyToClipboard';
 }
 
 export interface ModelConfig {
@@ -100,9 +98,8 @@ export interface ModelConfig {
 export interface HistoryEntry {
 	datetime: string;
 	url: string;
-	action: 'addToObsidian' | 'saveFile' | 'copyToClipboard' | 'share';
+	action: 'addToLogseq' | 'saveFile' | 'copyToClipboard' | 'share';
 	title?: string;
-	vault?: string;
 	path?: string;
 }
 

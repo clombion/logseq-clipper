@@ -5,6 +5,10 @@ import { Template } from '../types/types';
 
 const execFileAsync = promisify(execFile);
 
+// TODO: CLI is not yet adapted for Logseq. These functions still reference
+// the Obsidian CLI and URI scheme. They compile but are not functional.
+// Logseq integration uses the HTTP API via logseq-api.ts in the browser extension.
+
 /**
  * Check if the `obsidian` CLI is available on PATH.
  */
@@ -24,16 +28,14 @@ async function openViaObsidianCli(
 	fileContent: string,
 	noteName: string,
 	path: string,
-	vault: string,
 	behavior: Template['behavior'],
 	silent: boolean,
 ): Promise<string> {
 	const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
-	const vaultArgs = vault ? [`vault=${vault}`] : [];
 
 	if (isDailyNote) {
 		const command = behavior === 'append-daily' ? 'daily:append' : 'daily:prepend';
-		const { stdout } = await execFileAsync('obsidian', [command, `content=${fileContent}`, ...vaultArgs]);
+		const { stdout } = await execFileAsync('obsidian', [command, `content=${fileContent}`]);
 		return stdout.trim();
 	}
 
@@ -43,20 +45,12 @@ async function openViaObsidianCli(
 
 	if (behavior === 'append-specific' || behavior === 'prepend-specific') {
 		const command = behavior === 'append-specific' ? 'append' : 'prepend';
-		const { stdout } = await execFileAsync('obsidian', [
-			command,
-			`path=${filePath}`,
-			`content=${fileContent}`,
-			...vaultArgs,
-		]);
+		const { stdout } = await execFileAsync('obsidian', [command, `path=${filePath}`, `content=${fileContent}`]);
 		return stdout.trim();
 	}
 
-	// create or overwrite
-	const args = ['create', `path=${filePath}`, `content=${fileContent}`, 'open', ...vaultArgs];
-	if (behavior === 'overwrite') {
-		args.push('overwrite');
-	}
+	// create
+	const args = ['create', `path=${filePath}`, `content=${fileContent}`, 'open'];
 
 	const { stdout } = await execFileAsync('obsidian', args);
 	return stdout.trim();
@@ -69,7 +63,6 @@ async function openViaUri(
 	fileContent: string,
 	noteName: string,
 	path: string,
-	vault: string,
 	behavior: Template['behavior'],
 	silent: boolean,
 ): Promise<void> {
@@ -88,12 +81,6 @@ async function openViaUri(
 		obsidianUrl += '&append=true';
 	} else if (behavior.startsWith('prepend')) {
 		obsidianUrl += '&prepend=true';
-	} else if (behavior === 'overwrite') {
-		obsidianUrl += '&overwrite=true';
-	}
-
-	if (vault) {
-		obsidianUrl += `&vault=${encodeURIComponent(vault)}`;
 	}
 
 	if (silent) {
@@ -120,16 +107,15 @@ export async function openInObsidian(
 	fileContent: string,
 	noteName: string,
 	path: string,
-	vault: string,
 	behavior: Template['behavior'],
 	silent: boolean,
 	forceUri: boolean,
 ): Promise<string> {
 	if (!forceUri && (await hasObsidianCli())) {
-		const result = await openViaObsidianCli(fileContent, noteName, path, vault, behavior, silent);
+		const result = await openViaObsidianCli(fileContent, noteName, path, behavior, silent);
 		return result;
 	}
 
-	await openViaUri(fileContent, noteName, path, vault, behavior, silent);
-	return `Opened in Obsidian${vault ? ` (vault: ${vault})` : ''}`;
+	await openViaUri(fileContent, noteName, path, behavior, silent);
+	return 'Opened in Obsidian';
 }

@@ -6,10 +6,6 @@ import { copyToClipboard } from 'core/popup';
 export type { Settings, ModelConfig, PropertyType, HistoryEntry, Provider, Rating };
 
 export let generalSettings: Settings = {
-	vaults: [],
-	betaFeatures: false,
-	legacyMode: false,
-	silentOpen: false,
 	openBehavior: 'popup',
 	highlighterEnabled: true,
 	alwaysShowHighlights: false,
@@ -29,15 +25,18 @@ export let generalSettings: Settings = {
 		theme: 'default',
 		themeMode: 'auto',
 	},
+	logseqApiPort: 12315,
+	logseqApiToken: '',
+	logseqLogPage: 'Web Clips Log',
 	stats: {
-		addToObsidian: 0,
+		addToLogseq: 0,
 		saveFile: 0,
 		copyToClipboard: 0,
 		share: 0,
 	},
 	history: [],
 	ratings: [],
-	saveBehavior: 'addToObsidian',
+	saveBehavior: 'addToLogseq',
 };
 
 export function setLocalStorage(key: string, value: any): Promise<void> {
@@ -51,13 +50,9 @@ export function getLocalStorage(key: string): Promise<any> {
 interface StorageData {
 	general_settings?: {
 		showMoreActionsButton?: boolean;
-		betaFeatures?: boolean;
-		legacyMode?: boolean;
-		silentOpen?: boolean;
 		openBehavior?: boolean | 'popup' | 'embedded';
-		saveBehavior?: 'addToObsidian' | 'copyToClipboard' | 'saveFile';
+		saveBehavior?: 'addToLogseq' | 'copyToClipboard' | 'saveFile';
 	};
-	vaults?: string[];
 	highlighter_settings?: {
 		highlighterEnabled?: boolean;
 		alwaysShowHighlights?: boolean;
@@ -78,9 +73,14 @@ interface StorageData {
 		interpreterAutoRun?: boolean;
 		defaultPromptContext?: string;
 	};
+	logseq_settings?: {
+		apiPort?: number;
+		apiToken?: string;
+		logPage?: string;
+	};
 	property_types?: PropertyType[];
 	stats?: {
-		addToObsidian: number;
+		addToLogseq: number;
 		saveFile: number;
 		copyToClipboard: number;
 		share: number;
@@ -97,11 +97,7 @@ export async function loadSettings(): Promise<Settings> {
 
 	// Load default settings first
 	const defaultSettings: Settings = {
-		vaults: [],
 		showMoreActionsButton: false,
-		betaFeatures: false,
-		legacyMode: false,
-		silentOpen: false,
 		openBehavior: 'popup',
 		highlighterEnabled: true,
 		alwaysShowHighlights: true,
@@ -113,7 +109,7 @@ export async function loadSettings(): Promise<Settings> {
 		interpreterAutoRun: false,
 		defaultPromptContext: '',
 		propertyTypes: [],
-		saveBehavior: 'addToObsidian',
+		saveBehavior: 'addToLogseq',
 		readerSettings: {
 			fontSize: 1.5,
 			lineHeight: 1.6,
@@ -121,8 +117,11 @@ export async function loadSettings(): Promise<Settings> {
 			theme: 'default',
 			themeMode: 'auto',
 		},
+		logseqApiPort: 12315,
+		logseqApiToken: '',
+		logseqLogPage: 'Web Clips Log',
 		stats: {
-			addToObsidian: 0,
+			addToLogseq: 0,
 			saveFile: 0,
 			copyToClipboard: 0,
 			share: 0,
@@ -138,7 +137,6 @@ export async function loadSettings(): Promise<Settings> {
 	}
 
 	// Validate and sanitize data to prevent corruption
-	const sanitizedVaults = Array.isArray(data.vaults) ? data.vaults.filter((v) => typeof v === 'string') : [];
 	const sanitizedModels = Array.isArray(data.interpreter_settings?.models)
 		? data.interpreter_settings.models.filter((m) => m && typeof m === 'object' && typeof m.id === 'string')
 		: [];
@@ -148,11 +146,7 @@ export async function loadSettings(): Promise<Settings> {
 
 	// Load user settings
 	const loadedSettings: Settings = {
-		vaults: sanitizedVaults.length > 0 ? sanitizedVaults : defaultSettings.vaults,
 		showMoreActionsButton: data.general_settings?.showMoreActionsButton ?? defaultSettings.showMoreActionsButton,
-		betaFeatures: data.general_settings?.betaFeatures ?? defaultSettings.betaFeatures,
-		legacyMode: data.general_settings?.legacyMode ?? defaultSettings.legacyMode,
-		silentOpen: data.general_settings?.silentOpen ?? defaultSettings.silentOpen,
 		openBehavior:
 			typeof data.general_settings?.openBehavior === 'boolean'
 				? data.general_settings.openBehavior
@@ -178,6 +172,9 @@ export async function loadSettings(): Promise<Settings> {
 				(data.reader_settings?.themeMode as 'auto' | 'light' | 'dark') ??
 				defaultSettings.readerSettings.themeMode,
 		},
+		logseqApiPort: data.logseq_settings?.apiPort ?? defaultSettings.logseqApiPort,
+		logseqApiToken: data.logseq_settings?.apiToken ?? defaultSettings.logseqApiToken,
+		logseqLogPage: data.logseq_settings?.logPage ?? defaultSettings.logseqLogPage,
 		stats: data.stats || defaultSettings.stats,
 		history: data.history || defaultSettings.history,
 		ratings: data.ratings || defaultSettings.ratings,
@@ -195,12 +192,8 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 	}
 
 	await browser.storage.sync.set({
-		vaults: generalSettings.vaults,
 		general_settings: {
 			showMoreActionsButton: generalSettings.showMoreActionsButton,
-			betaFeatures: generalSettings.betaFeatures,
-			legacyMode: generalSettings.legacyMode,
-			silentOpen: generalSettings.silentOpen,
 			openBehavior: generalSettings.openBehavior,
 			saveBehavior: generalSettings.saveBehavior,
 		},
@@ -217,6 +210,11 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 			interpreterAutoRun: generalSettings.interpreterAutoRun,
 			defaultPromptContext: generalSettings.defaultPromptContext,
 		},
+		logseq_settings: {
+			apiPort: generalSettings.logseqApiPort,
+			apiToken: generalSettings.logseqApiToken,
+			logPage: generalSettings.logseqLogPage,
+		},
 		property_types: generalSettings.propertyTypes,
 		reader_settings: {
 			fontSize: generalSettings.readerSettings.fontSize,
@@ -229,14 +227,8 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 	});
 }
 
-export async function setLegacyMode(enabled: boolean): Promise<void> {
-	await saveSettings({ legacyMode: enabled });
-	console.log(`Legacy mode ${enabled ? 'enabled' : 'disabled'}`);
-}
-
 export async function incrementStat(
 	action: keyof Settings['stats'],
-	vault?: string,
 	path?: string,
 	url?: string,
 	title?: string,
@@ -247,7 +239,7 @@ export async function incrementStat(
 
 	// Add history entry if URL is provided
 	if (url) {
-		await addHistoryEntry(action, url, title, vault, path);
+		await addHistoryEntry(action, url, title, path);
 	}
 }
 
@@ -255,7 +247,6 @@ export async function addHistoryEntry(
 	action: keyof Settings['stats'],
 	url: string,
 	title?: string,
-	vault?: string,
 	path?: string,
 ): Promise<void> {
 	const entry: HistoryEntry = {
@@ -263,7 +254,6 @@ export async function addHistoryEntry(
 		url,
 		action,
 		title,
-		vault,
 		path,
 	};
 

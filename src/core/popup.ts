@@ -34,7 +34,7 @@ let currentTemplate: Template | null = null;
 let templates: Template[] = [];
 let currentVariables: { [key: string]: string } = {};
 let currentTabId: number | undefined;
-let lastSelectedVault: string | null = null;
+// vault selection removed — vaults no longer exist in Settings
 
 const isSidePanel = window.location.pathname.includes('side-panel.html');
 const urlParams = new URLSearchParams(window.location.search);
@@ -185,15 +185,6 @@ async function initializeExtension(tabId: number) {
 
 		currentTemplate = templates[0];
 		debugLog('Templates', 'Current template set to:', currentTemplate);
-
-		// Load last selected vault
-		lastSelectedVault = await getLocalStorage('lastSelectedVault');
-		if (!lastSelectedVault && loadedSettings.vaults.length > 0) {
-			lastSelectedVault = loadedSettings.vaults[0];
-		}
-		debugLog('Vaults', 'Last selected vault:', lastSelectedVault);
-
-		updateVaultDropdown(loadedSettings.vaults);
 
 		const tab = await getTabInfo(tabId);
 		if (!tab.url || isBlankPage(tab.url)) {
@@ -347,7 +338,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 			try {
 				// DOM-dependent initializations
-				updateVaultDropdown(loadedSettings.vaults);
 				populateTemplateDropdown();
 				setupEventListeners(currentTabId);
 				await initializeUI();
@@ -481,15 +471,13 @@ function setupEventListeners(tabId: number) {
 
 							if (navigator.canShare(shareData)) {
 								const pathField = document.getElementById('path-name-field') as HTMLInputElement;
-								const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
 								const path = pathField?.value || '';
-								const vault = vaultDropdown?.value || '';
 
 								navigator
 									.share(shareData)
 									.then(async () => {
 										const tabInfo = await getCurrentTabInfo();
-										await incrementStat('share', vault, path, tabInfo.url, tabInfo.title);
+										await incrementStat('share', path, tabInfo.url, tabInfo.title);
 										const moreDropdown = document.getElementById('more-dropdown');
 										if (moreDropdown) {
 											moreDropdown.classList.remove('show');
@@ -730,16 +718,6 @@ function populateTemplateDropdown() {
 
 function buildTemplateFieldsSkeleton(template: Template | null) {
 	if (!template) return;
-
-	// Handle vault selection
-	const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
-	if (vaultDropdown) {
-		if (template.vault) {
-			vaultDropdown.value = template.vault;
-		} else if (lastSelectedVault) {
-			vaultDropdown.value = lastSelectedVault;
-		}
-	}
 
 	const existingTemplateProperties = document.querySelector('.metadata-properties') as HTMLElement;
 
@@ -1017,41 +995,6 @@ async function getReplacedTemplate(
 	return replacedTemplate;
 }
 
-function updateVaultDropdown(vaults: string[]) {
-	const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement | null;
-	const vaultContainer = document.getElementById('vault-container');
-
-	if (!vaultDropdown || !vaultContainer) return;
-
-	// Clear existing options
-	vaultDropdown.textContent = '';
-
-	vaults.forEach((vault) => {
-		const option = document.createElement('option');
-		option.value = vault;
-		option.textContent = vault;
-		vaultDropdown.appendChild(option);
-	});
-
-	// Only show vault selector if vaults are defined
-	if (vaults.length > 0) {
-		vaultContainer.style.display = 'block';
-		if (lastSelectedVault && vaults.includes(lastSelectedVault)) {
-			vaultDropdown.value = lastSelectedVault;
-		} else {
-			vaultDropdown.value = vaults[0];
-		}
-	} else {
-		vaultContainer.style.display = 'none';
-	}
-
-	// Add event listener to update lastSelectedVault when changed
-	vaultDropdown.addEventListener('change', () => {
-		lastSelectedVault = vaultDropdown.value;
-		setLocalStorage('lastSelectedVault', lastSelectedVault);
-	});
-}
-
 function refreshPopup() {
 	window.location.reload();
 }
@@ -1153,17 +1096,15 @@ export async function copyToClipboard(content: string) {
 		});
 
 		const pathField = document.getElementById('path-name-field') as HTMLInputElement;
-		const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
 		const path = pathField?.value || '';
-		const vault = vaultDropdown?.value || '';
 
 		const tabInfo = await getCurrentTabInfo();
-		await incrementStat('copyToClipboard', vault, path, tabInfo.url, tabInfo.title);
+		await incrementStat('copyToClipboard', path, tabInfo.url, tabInfo.title);
 
 		// Change the main button text temporarily
 		const clipButton = document.getElementById('clip-btn');
 		if (clipButton) {
-			const originalText = clipButton.textContent || getMessage('addToObsidian');
+			const originalText = clipButton.textContent || getMessage('addToLogseq');
 			clipButton.textContent = getMessage('copied');
 
 			// Reset the text after 1.5 seconds
@@ -1181,11 +1122,9 @@ async function handleSaveToDownloads() {
 	try {
 		const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
 		const pathField = document.getElementById('path-name-field') as HTMLInputElement;
-		const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
 
 		let fileName = noteNameField?.value || 'untitled';
 		const path = pathField?.value || '';
-		const vault = vaultDropdown?.value || '';
 
 		const properties = getPropertiesFromDOM();
 
@@ -1202,7 +1141,7 @@ async function handleSaveToDownloads() {
 		});
 
 		const tabInfo = await getCurrentTabInfo();
-		await incrementStat('saveFile', vault, path, tabInfo.url, tabInfo.title);
+		await incrementStat('saveFile', path, tabInfo.url, tabInfo.title);
 
 		const moreDropdown = document.getElementById('more-dropdown');
 		if (moreDropdown) {
@@ -1229,18 +1168,18 @@ function determineMainAction() {
 			mainButton.textContent = getMessage('copyToClipboard');
 			mainButton.onclick = () => copyContent();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToObsidian', () => handleClipObsidian());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipObsidian());
 			addSecondaryAction(secondaryActions, 'saveFile', handleSaveToDownloads);
 			break;
 		case 'saveFile':
 			mainButton.textContent = getMessage('saveFile');
 			mainButton.onclick = () => handleSaveToDownloads();
 			// Add direct actions to secondary
-			addSecondaryAction(secondaryActions, 'addToObsidian', () => handleClipObsidian());
+			addSecondaryAction(secondaryActions, 'addToLogseq', () => handleClipObsidian());
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
 			break;
-		default: // 'addToObsidian'
-			mainButton.textContent = getMessage('addToObsidian');
+		default: // 'addToLogseq'
+			mainButton.textContent = getMessage('addToLogseq');
 			mainButton.onclick = () => handleClipObsidian();
 			// Add direct actions to secondary
 			addSecondaryAction(secondaryActions, 'copyToClipboard', copyContent);
@@ -1251,13 +1190,12 @@ function determineMainAction() {
 async function handleClipObsidian(): Promise<void> {
 	if (!currentTemplate) return;
 
-	const vaultDropdown = document.getElementById('vault-select') as HTMLSelectElement;
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 	const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
 	const pathField = document.getElementById('path-name-field') as HTMLInputElement;
 	const interpretBtn = document.getElementById('interpret-btn') as HTMLButtonElement;
 
-	if (!vaultDropdown || !noteContentField) {
+	if (!noteContentField) {
 		showError('Some required fields are missing. Please try reloading the extension.');
 		return;
 	}
@@ -1280,19 +1218,13 @@ async function handleClipObsidian(): Promise<void> {
 		const fileContent = frontmatter + noteContentField.value;
 
 		// Save to Obsidian
-		const selectedVault = currentTemplate.vault || vaultDropdown.value;
 		const isDailyNote = currentTemplate.behavior === 'append-daily' || currentTemplate.behavior === 'prepend-daily';
 		const noteName = isDailyNote ? '' : noteNameField?.value || '';
 		const path = isDailyNote ? '' : pathField?.value || '';
 
-		await saveToObsidian(fileContent, noteName, path, selectedVault, currentTemplate.behavior);
+		await saveToObsidian(fileContent, noteName, path, currentTemplate.behavior);
 		const tabInfo = await getCurrentTabInfo();
-		await incrementStat('addToObsidian', selectedVault, path, tabInfo.url, tabInfo.title);
-
-		if (!currentTemplate.vault) {
-			lastSelectedVault = selectedVault;
-			await setLocalStorage('lastSelectedVault', lastSelectedVault);
-		}
+		await incrementStat('addToLogseq', path, tabInfo.url, tabInfo.title);
 
 		if (!isSidePanel) {
 			setTimeout(() => window.close(), 500);
@@ -1337,7 +1269,7 @@ function getActionIcon(actionType: string): string {
 			return 'copy';
 		case 'saveFile':
 			return 'file-down';
-		case 'addToObsidian':
+		case 'addToLogseq':
 			return 'pen-line';
 		default:
 			return 'plus';

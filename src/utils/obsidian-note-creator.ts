@@ -2,7 +2,7 @@ import browser from './browser-polyfill';
 import { sanitizeFileName } from '../utils/string-utils';
 import { generateFrontmatter as generateFrontmatterCore } from './shared';
 import { Template, Property } from '../types/types';
-import { generalSettings, incrementStat } from './storage-utils';
+import { generalSettings } from './storage-utils';
 import { copyToClipboard } from './clipboard-utils';
 import { getMessage } from './i18n';
 
@@ -47,7 +47,6 @@ export async function saveToObsidian(
 	fileContent: string,
 	noteName: string,
 	path: string,
-	vault: string,
 	behavior: Template['behavior'],
 ): Promise<void> {
 	let obsidianUrl: string;
@@ -70,25 +69,8 @@ export async function saveToObsidian(
 		obsidianUrl += '&append=true';
 	} else if (behavior.startsWith('prepend')) {
 		obsidianUrl += '&prepend=true';
-	} else if (behavior === 'overwrite') {
-		obsidianUrl += '&overwrite=true';
 	}
 
-	const vaultParam = vault ? `&vault=${encodeURIComponent(vault)}` : '';
-	obsidianUrl += vaultParam;
-
-	// Add silent parameter if silentOpen is enabled
-	if (generalSettings.silentOpen) {
-		obsidianUrl += '&silent=true';
-	}
-
-	if (generalSettings.legacyMode) {
-		// Use the URI method
-		obsidianUrl += `&content=${encodeURIComponent(fileContent)}`;
-		console.log('Obsidian URL:', obsidianUrl);
-		openObsidianUrl(obsidianUrl);
-	} else {
-		// Try to copy to clipboard with fallback mechanisms
-		await tryClipboardWrite(fileContent, obsidianUrl);
-	}
+	// Try to copy to clipboard with fallback mechanisms
+	await tryClipboardWrite(fileContent, obsidianUrl);
 }
