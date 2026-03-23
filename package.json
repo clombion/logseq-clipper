@@ -51,6 +51,9 @@
 		"webpack-cli": "^5.1.4",
 		"zip-webpack-plugin": "^4.0.1"
 	},
+	"engines": {
+		"node": ">=18"
+	},
 	"dependencies": {
 		"dayjs": "^1.11.13",
 		"defuddle": "^0.14.0",

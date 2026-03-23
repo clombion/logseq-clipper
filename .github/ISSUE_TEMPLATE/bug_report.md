@@ -1,30 +1,9 @@
 ---
 name: Bug report
-about: Create a report to help us improve. Please review Troubleshooting steps before you submit a bug.
+description: Create a report to help us improve. Please review Troubleshooting steps before you submit a bug.
 title: 'BUG: '
 labels: 'bug'
 assignees: ''
-body:
-- type: checkboxes
-  attributes:
-    label: Troubleshooting
-    description: Please review [Logseq Web Clipper README](https://github.com/clombion/logseq-clipper#readme) before opening an issue.
-    options:
-      - label: I have reviewed the troubleshooting instructions
-        required: true
-- type: input
-  attributes:
-    label: Operating System
-    description: What operating system are you using?
-    value: operating system
-  validations:
-    required: true
-- type: input
-  attributes:
-    label: Browser
-  validations:
-    required: true
-
 ---
 
 IMPORTANT: If your issue is related to missing content on page, please review the README and open your issue on the Defuddle repo.
