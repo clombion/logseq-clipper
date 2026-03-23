@@ -51,7 +51,6 @@ import {
 	saveToLogseq,
 	updateExistingClip,
 	computeContentHash,
-	getTodayJournalPageName,
 	syncSettings,
 } from './logseq-note-creator';
 import { generalSettings } from './storage-utils';
@@ -438,18 +437,6 @@ describe('computeContentHash', () => {
 	});
 });
 
-describe('getTodayJournalPageName', () => {
-	test('returns a string in YYYY_MM_DD format', () => {
-		const result = getTodayJournalPageName();
-		expect(result).toMatch(/^\d{4}_\d{2}_\d{2}$/);
-	});
-
-	test('matches current date', () => {
-		const now = new Date();
-		const expected = `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}_${String(now.getDate()).padStart(2, '0')}`;
-		expect(getTodayJournalPageName()).toBe(expected);
-	});
-});
 
 describe('clip log entry format', () => {
 	test('new clip log entry has source, clipped-at, content-hash properties', async () => {
