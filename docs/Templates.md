@@ -2,7 +2,7 @@
 permalink: web-clipper/templates
 description: Learn to create templates that capture and organize web page metadata automatically with Web Clipper.
 ---
-[[Introduction to Obsidian Web Clipper|Web Clipper]] allows you to create templates that automatically capture and organize metadata from web pages. Example templates are available in the [clipper-templates repo](https://github.com/kepano/clipper-templates). 
+[[Introduction to Logseq Web Clipper|Web Clipper]] allows you to create templates that automatically capture and organize metadata from web pages. Example templates are available in the [clipper-templates repo](https://github.com/kepano/clipper-templates).
 
 ## Create or edit a template
 
@@ -16,7 +16,7 @@ Templates make use of [[Variables]], [[Filters]], and [[Logic]], which allow you
 
 To import a template:
 
-1. Open the extension and click the **[[Settings]]** cog icon.
+1. Open the extension and click the **Settings** cog icon.
 2. Go to any template in the list.
 3. Click **Import** in the top right or drag and drop your `.json` template file(s) anywhere in the template area.
 
@@ -26,11 +26,10 @@ To export a template click **Export** in the top right. This will download the t
 
 ### Behavior
 
-Define how content from Web Clipper will be added to Obsidian:
+Define how content from Web Clipper will be added to Logseq:
 
-- **Create a new note**
-- **Add to an existing note**, at the top or bottom
-- **Add to daily note**, at the top or bottom (requires the [[daily notes]] plugin to be active)
+- **Create a new page**
+- **Add to an existing page**, at the top or bottom
 
 ### Automatically trigger a template
 
@@ -42,7 +41,7 @@ The first match in your template list determines which template is used. You can
 
 Simple matching triggers a template if the current page URL *starts with* the given pattern. For example:
 
-- `https://obsidian.md` will match any URL that starts with this text.
+- `https://logseq.com` will match any URL that starts with this text.
 
 #### Regular expression matching
 

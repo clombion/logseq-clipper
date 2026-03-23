@@ -1,9 +1,9 @@
 ---
 permalink: web-clipper/variables
 ---
-[[Obsidian Web Clipper/Templates|Web Clipper templates]] can use variables to automatically pre-populate data from the page in a template. Variables can be used in the **note name**, **note location**, **properties**, and **note content**. Variables can also be modified using [[filters]].
+[[Templates|Web Clipper templates]] can use variables to automatically pre-populate data from the page in a template. Variables can be used in the **page name**, **page location**, **properties**, and **note content**. Variables can also be modified using [[filters]].
 
-Use the `...` icon in the [[Introduction to Obsidian Web Clipper|Web Clipper]] extension to access the current page variables for use in templates. There are five types of variables you can use:
+Use the `...` icon in the [[Introduction to Logseq Web Clipper|Web Clipper]] extension to access the current page variables for use in templates. There are five types of variables you can use:
 
 - [[Variables#Preset variables|Preset variables]]
 - [[Variables#Prompt variables|Prompt variables]]
@@ -50,9 +50,9 @@ Prompt variables have the benefit of being extremely flexible and easy to write,
 
 Unlike other variable types, prompt variables need to be processed by an external language model, so they are replaced only once [[Interpret web pages|Interpreter]] has run.
 
-It is best to *not* use prompt variables if the data you want to extract is in a consistent format that could be extracted with other variable types. 
+It is best to *not* use prompt variables if the data you want to extract is in a consistent format that could be extracted with other variable types.
 
-On the other hand, prompt variables can be useful if the data you want to extract is an *inconsistent* format across websites. For example, you can make a [[Obsidian Web Clipper/Templates|template]] to save books that is agnostic of the book site. Prompt variables like `{{"author of the book"}}` will work across any book site, whereas selector variables typically only work for one site.
+On the other hand, prompt variables can be useful if the data you want to extract is an *inconsistent* format across websites. For example, you can make a [[Templates|template]] to save books that is agnostic of the book site. Prompt variables like `{{"author of the book"}}` will work across any book site, whereas selector variables typically only work for one site.
 
 ### Examples
 
@@ -97,7 +97,7 @@ Selector variables can also be used directly in [[Templates#Template logic|templ
 
 ## Schema.org variables
 
-Schema variables allow you to extract data from [schema.org](https://schema.org/) JSON-LD on the page. Schema.org data can also be used to automatically [[Obsidian Web Clipper/Templates#Schema.org matching|trigger a template]].
+Schema variables allow you to extract data from [schema.org](https://schema.org/) JSON-LD on the page. Schema.org data can also be used to automatically [[Templates#Schema.org matching|trigger a template]].
 
 - `{{schema:@Type:key}}` returns the value of the key from the schema.
 - `{{schema:@Type:parent.child}}` returns the value of a nested property.
@@ -117,4 +117,3 @@ Nested properties and array access work as well, both with and without the schem
 - `{{schema:author.name}}` will find the first `author` property and then access its `name` sub-property.
 - `{{schema:author[0].name}}` will access the `name` of the first author in an array of authors.
 - `{{schema:author[*].name}}` will return an array of all author names.
-
