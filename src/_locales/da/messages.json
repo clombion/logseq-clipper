@@ -17,11 +17,8 @@
 	"addProviderTitle": {
 		"message": "Tilføj udbyder"
 	},
-	"addToObsidian": {
-		"message": "Tilføj til Obsidian"
-	},
-	"addVaultPlaceholder": {
-		"message": "Tryk Enter for at tilføje boks"
+	"addToLogseq": {
+		"message": "Tilføj til Logseq"
 	},
 	"advanced": {
 		"message": "Avanceret"
@@ -42,7 +39,7 @@
 		"message": "API-nøgle mangler"
 	},
 	"apiKeysWarning": {
-		"message": "Ved at bruge en ekstern udbyder accepterer du deres vilkår og betingelser samt privatlivspolitik. Fortolkerforespørgsler sendes direkte til din valgte udbyder. Obsidian indsamler eller gemmer ikke information om dine forespørgsler."
+		"message": "Ved at bruge en ekstern udbyder accepterer du deres vilkår og betingelser samt privatlivspolitik. Fortolkerforespørgsler sendes direkte til din valgte udbyder. Logseq indsamler eller gemmer ikke information om dine forespørgsler."
 	},
 	"appendToDaily": {
 		"message": "Tilføj til daglig note, i slutningen"
@@ -93,7 +90,7 @@
 		"message": "Klipningsopførsel"
 	},
 	"clipBehaviorDescription": {
-		"message": "Vælg hvordan det markerede indhold gemmes i Obsidian. Sætter variablen $strong_start${{content}}$strong_end$",
+		"message": "Vælg hvordan det markerede indhold gemmes i Logseq. Sætter variablen $strong_start${{content}}$strong_end$",
 		"placeholders": {
 			"strong_end": {
 				"content": "</strong>"
@@ -104,7 +101,7 @@
 		}
 	},
 	"clipboardError": {
-		"message": "Obsidian kan ikke få adgang til din udklipsholder. Prøv fejlfindingsvejledningen her: $1",
+		"message": "Logseq kan ikke få adgang til din udklipsholder. Prøv fejlfindingsvejledningen her: $1",
 		"placeholders": {
 			"1": {
 				"content": "$1"
@@ -115,7 +112,7 @@
 		"message": "Luk"
 	},
 	"commandOpenClipper": {
-		"message": "Åbn Obsidian Clipper"
+		"message": "Åbn Logseq Clipper"
 	},
 	"commandQuickClip": {
 		"message": "Hurtigklip"
@@ -183,20 +180,6 @@
 	"duplicate": {
 		"message": "Duplikér"
 	},
-	"earlyAccessDescription": {
-		"message": "Brug funktioner der kræver den nyeste $link_start$tidlig adgang-version$link_end$ af Obsidian. Kræver i øjeblikket Obsidian 1.7.2 eller nyere.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/Obsidian/Early+access+versions\" target=\"_blank\">"
-			}
-		}
-	},
-	"earlyAccessFeatures": {
-		"message": "Tidlig adgang-funktioner"
-	},
 	"editModel": {
 		"message": "Redigér model"
 	},
@@ -213,7 +196,7 @@
 		"message": "Aktivér fremhævning"
 	},
 	"enableHighlighterDescription": {
-		"message": "Fremhæv indhold på websider for at gemme i Obsidian"
+		"message": "Fremhæv indhold på websider for at gemme i Logseq"
 	},
 	"enableInterpreter": {
 		"message": "Aktivér fortolker"
@@ -225,7 +208,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/interpreter\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/interpreter\" target=\"_blank\">"
 			},
 			"strong_end": {
 				"content": "</strong>"
@@ -260,7 +243,7 @@
 		"message": "Eksportér egenskaber"
 	},
 	"exportPropertiesDescription": {
-		"message": "Gem Web Clipper-egenskaber til en $strong_start$types.json$strong_end$-fil, som kan importeres i din Obsidian-boks eller Web Clipper på andre enheder",
+		"message": "Gem Web Clipper-egenskaber til en $strong_start$types.json$strong_end$-fil, som kan importeres i din Logseq-boks eller Web Clipper på andre enheder",
 		"placeholders": {
 			"strong_end": {
 				"content": "</strong>"
@@ -271,10 +254,10 @@
 		}
 	},
 	"extensionDescription": {
-		"message": "Gem webindhold i et privat og holdbart format, tilgængeligt offline. Den officielle browserudvidelse til Obsidian."
+		"message": "Gem webindhold i et privat og holdbart format, tilgængeligt offline. Den officielle browserudvidelse til Logseq."
 	},
 	"extensionName": {
-		"message": "Obsidian Web Clipper"
+		"message": "Logseq Web Clipper"
 	},
 	"failedToCopyText": {
 		"message": "Kunne ikke kopiere tekst"
@@ -385,21 +368,7 @@
 		"message": "Importér egenskaber"
 	},
 	"importPropertiesDescription": {
-		"message": "For at importere egenskaber fra Obsidian, find $strong_1_start$types.json$strong_1_end$-filen i $strong_2_start$.obsidian$strong_2_end$-mappen i din boks. Denne mappe er som standard skjult på de fleste operativsystemer.",
-		"placeholders": {
-			"strong_1_end": {
-				"content": "</strong>"
-			},
-			"strong_1_start": {
-				"content": "<strong>"
-			},
-			"strong_2_end": {
-				"content": "</strong>"
-			},
-			"strong_2_start": {
-				"content": "<strong>"
-			}
-		}
+		"message": "For at importere egenskaber fra Logseq, find $strong_1_start$types.json$strong_1_end$-filen i $strong_2_start$.logseq$strong_2_end$-mappen i din boks. Denne mappe er som standard skjult på de fleste operativsystemer."
 	},
 	"importSettings": {
 		"message": "Importér indstillinger"
@@ -438,12 +407,6 @@
 	},
 	"lastUsed": {
 		"message": "Sidst brugt"
-	},
-	"legacyMode": {
-		"message": "Legacy-tilstand"
-	},
-	"legacyModeDescription": {
-		"message": "Bruger URI-indfangningsmetoden som er kompatibel med Obsidian 1.6.7 og ældre. Bemærk at længden af indfanget indhold er begrænset af browseren og operativsystemet. Nogle sider kan fejle uden fejlmeddelelse."
 	},
 	"modelName": {
 		"message": "Modelnavn"
@@ -531,9 +494,6 @@
 	},
 	"orPasteBelow": {
 		"message": "Eller indsæt indholdet nedenfor"
-	},
-	"overwriteNote": {
-		"message": "Overskriv note"
 	},
 	"pageCannotBeClipped": {
 		"message": "Denne side kan ikke klippes."
@@ -667,9 +627,6 @@
 	"removeUnusedPropertiesDescription": {
 		"message": "Fjern alle egenskaber der ikke bruges i nogen skabeloner."
 	},
-	"removeVault": {
-		"message": "Fjern boks"
-	},
 	"replaceContent": {
 		"message": "Erstat noteindhold"
 	},
@@ -754,12 +711,6 @@
 	"showPageVariables": {
 		"message": "Vis sidevariabler"
 	},
-	"silentOpen": {
-		"message": "Gem noter uden at åbne dem"
-	},
-	"silentOpenDescription": {
-		"message": "Klippede noter vil blive gemt men ikke åbnet i en ny fane. Obsidian vil stadig blive bragt i forgrunden."
-	},
 	"specificNoteName": {
 		"message": "Specifikt notenavn"
 	},
@@ -810,34 +761,6 @@
 	},
 	"usingLatestVersion": {
 		"message": "Du bruger den nyeste version"
-	},
-	"vault": {
-		"message": "Boks"
-	},
-	"vaultDescription": {
-		"message": "Vælg standardboks for denne skabelon. Gå til $link_start$generelle indstillinger$link_end$ for at tilføje eller fjerne bokse.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"?section=general\">"
-			}
-		}
-	},
-	"vaults": {
-		"message": "Bokse"
-	},
-	"vaultsDescription": {
-		"message": "Som standard gemmes klippede noter i den åbne boks. Du kan tilføje bokse her hvis du ønsker muligheden for at gemme i forskellige bokse. Boksnavnet skal matche præcist med Obsidian-boksnavnet. Tryk $strong_start$enter$strong_end$ for at tilføje en boks.",
-		"placeholders": {
-			"strong_end": {
-				"content": "</strong>"
-			},
-			"strong_start": {
-				"content": "<strong>"
-			}
-		}
 	},
 	"version": {
 		"message": "Version"

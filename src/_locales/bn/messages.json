@@ -17,11 +17,8 @@
 	"addProviderTitle": {
 		"message": "প্রোভাইডার যোগ করুন"
 	},
-	"addToObsidian": {
+	"addToLogseq": {
 		"message": "অবসিডিয়ানে যোগ করুন"
-	},
-	"addVaultPlaceholder": {
-		"message": "ভল্ট যোগ করতে এন্টার চাপুন"
 	},
 	"advanced": {
 		"message": "অ্যাডভান্সড"
@@ -42,7 +39,7 @@
 		"message": "API কী নেই"
 	},
 	"apiKeysWarning": {
-		"message": "বাহ্যিক প্রোভাইডার ব্যবহার করে আপনি তাদের শর্তাবলী এবং গোপনীয়তা নীতির সাথে সম্মত হচ্ছেন। ইন্টারপ্রিটার রিকোয়েস্টগুলি আপনার নির্বাচিত প্রোভাইডারের কাছে সরাসরি পাঠানো হয়। Obsidian আপনার রিকোয়েস্ট সম্পর্কিত কোনও তথ্য সংগ্রহ বা সংরক্ষণ করে না।"
+		"message": "বাহ্যিক প্রোভাইডার ব্যবহার করে আপনি তাদের শর্তাবলী এবং গোপনীয়তা নীতির সাথে সম্মত হচ্ছেন। ইন্টারপ্রিটার রিকোয়েস্টগুলি আপনার নির্বাচিত প্রোভাইডারের কাছে সরাসরি পাঠানো হয়। Logseq আপনার রিকোয়েস্ট সম্পর্কিত কোনও তথ্য সংগ্রহ বা সংরক্ষণ করে না।"
 	},
 	"appendToDaily": {
 		"message": "ডেইলি নোটের শেষে যোগ করুন"
@@ -93,7 +90,7 @@
 		"message": "ক্লিপের আচরণ"
 	},
 	"clipBehaviorDescription": {
-		"message": "Obsidian এ হাইলাইট করা কনটেন্ট কীভাবে সংরক্ষণ করা হবে তা নির্বাচন করুন। এটি $strong_start${{content}}$strong_end$ ভেরিয়েবল সংজ্ঞায়িত করে।",
+		"message": "Logseq এ হাইলাইট করা কনটেন্ট কীভাবে সংরক্ষণ করা হবে তা নির্বাচন করুন। এটি $strong_start${{content}}$strong_end$ ভেরিয়েবল সংজ্ঞায়িত করে।",
 		"placeholders": {
 			"strong_end": {
 				"content": "</strong>"
@@ -104,7 +101,7 @@
 		}
 	},
 	"clipboardError": {
-		"message": "Obsidian আপনার ক্লিপবোর্ডে অ্যাক্সেস করতে পারছে না। এখানে ট্রাবলশুটিং নির্দেশনা দেখুন: $1",
+		"message": "Logseq আপনার ক্লিপবোর্ডে অ্যাক্সেস করতে পারছে না। এখানে ট্রাবলশুটিং নির্দেশনা দেখুন: $1",
 		"placeholders": {
 			"1": {
 				"content": "$1"
@@ -115,7 +112,7 @@
 		"message": "বন্ধ করুন"
 	},
 	"commandOpenClipper": {
-		"message": "Obsidian Clipper খুলুন"
+		"message": "Logseq Clipper খুলুন"
 	},
 	"commandQuickClip": {
 		"message": "দ্রুত ক্লিপ করুন"
@@ -183,20 +180,6 @@
 	"duplicate": {
 		"message": "ডুপ্লিকেট করুন"
 	},
-	"earlyAccessDescription": {
-		"message": "Obsidian এর সর্বশেষ $link_start$আর্লি অ্যাক্সেস সংস্করণের$link_end$ প্রয়োজনীয় ফিচারগুলো ব্যবহার করুন। বর্তমানে Obsidian 1.7.2 বা তার পরের সংস্করণ প্রয়োজন।",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/Obsidian/Early+access+versions\" target=\"_blank\">"
-			}
-		}
-	},
-	"earlyAccessFeatures": {
-		"message": "আর্লি অ্যাক্সেসের ফিচারগুলো"
-	},
 	"editModel": {
 		"message": "মডেল সম্পাদনা করুন"
 	},
@@ -213,7 +196,7 @@
 		"message": "হাইলাইটার সক্রিয় করুন"
 	},
 	"enableHighlighterDescription": {
-		"message": "ওয়েব পেজ থেকে বিষয়বস্তু হাইলাইট করে Obsidian এ সংরক্ষণ করুন।"
+		"message": "ওয়েব পেজ থেকে বিষয়বস্তু হাইলাইট করে Logseq এ সংরক্ষণ করুন।"
 	},
 	"enableInterpreter": {
 		"message": "ইন্টারপ্রিটার সক্রিয় করুন"
@@ -225,7 +208,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/interpreter\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/interpreter\" target=\"_blank\">"
 			},
 			"strong_end": {
 				"content": "</strong>"
@@ -260,7 +243,7 @@
 		"message": "প্রোপার্টিগুলি এক্সপোর্ট করুন"
 	},
 	"exportPropertiesDescription": {
-		"message": "ওয়েব ক্লিপারের প্রোপার্টিগুলিকে একটি $strong_start$types.json$strong_end$ ফাইলে সংরক্ষণ করুন যা আপনার Obsidian ভল্টে বা অন্যান্য ডিভাইসে ওয়েব ক্লিপারে ইম্পোর্ট করা যেতে পারে।",
+		"message": "ওয়েব ক্লিপারের প্রোপার্টিগুলিকে একটি $strong_start$types.json$strong_end$ ফাইলে সংরক্ষণ করুন যা আপনার Logseq ভল্টে বা অন্যান্য ডিভাইসে ওয়েব ক্লিপারে ইম্পোর্ট করা যেতে পারে।",
 		"placeholders": {
 			"strong_end": {
 				"content": "</strong>"
@@ -271,10 +254,10 @@
 		}
 	},
 	"extensionDescription": {
-		"message": "ওয়েব থেকে বিষয়বস্তু একটি ব্যক্তিগত এবং স্থায়ী ফর্ম্যাটে সংরক্ষণ করুন যা আপনি অফলাইনে অ্যাক্সেস করতে পারেন। Obsidian এর জন্য অফিসিয়াল ব্রাউজার এক্সটেনশান।"
+		"message": "ওয়েব থেকে বিষয়বস্তু একটি ব্যক্তিগত এবং স্থায়ী ফর্ম্যাটে সংরক্ষণ করুন যা আপনি অফলাইনে অ্যাক্সেস করতে পারেন। Logseq এর জন্য অফিসিয়াল ব্রাউজার এক্সটেনশান।"
 	},
 	"extensionName": {
-		"message": "Obsidian Web Clipper"
+		"message": "Logseq Web Clipper"
 	},
 	"failedToCopyText": {
 		"message": "টেক্সট কপি করতে ব্যর্থ হয়েছে"
@@ -385,21 +368,7 @@
 		"message": "প্রোপার্টিগুলি ইম্পোর্ট করুন"
 	},
 	"importPropertiesDescription": {
-		"message": "Obsidian থেকে প্রোপার্টিগুলি ইম্পোর্ট করার জন্য আপনার ভল্টের মধ্যে $strong_2_start$.obsidian$strong_2_end$ ফোল্ডারে অবস্থিত $strong_1_start$types.json$strong_1_end$ ফাইলটি খুঁজুন। মনে রাখবেন এই ফোল্ডারটি বেশিরভাগ অপারেটিং সিস্টেমে ডিফল্টভাবে লুকানো থাকে।",
-		"placeholders": {
-			"strong_1_end": {
-				"content": "</strong>"
-			},
-			"strong_1_start": {
-				"content": "<strong>"
-			},
-			"strong_2_end": {
-				"content": "</strong>"
-			},
-			"strong_2_start": {
-				"content": "<strong>"
-			}
-		}
+		"message": "Logseq থেকে প্রোপার্টিগুলি ইম্পোর্ট করার জন্য আপনার ভল্টের মধ্যে $strong_2_start$.logseq$strong_2_end$ ফোল্ডারে অবস্থিত $strong_1_start$types.json$strong_1_end$ ফাইলটি খুঁজুন। মনে রাখবেন এই ফোল্ডারটি বেশিরভাগ অপারেটিং সিস্টেমে ডিফল্টভাবে লুকানো থাকে।"
 	},
 	"importSettings": {
 		"message": "সেটিংস ইম্পোর্ট করুন"
@@ -438,12 +407,6 @@
 	},
 	"lastUsed": {
 		"message": "শেষ ব্যবহৃত"
-	},
-	"legacyMode": {
-		"message": "লেগ্যাসি মোড"
-	},
-	"legacyModeDescription": {
-		"message": "এটি Obsidian 1.6.7 বা তার আগের সংস্করণের সাথে সামঞ্জস্যপূর্ণ URI ক্লিপিং পদ্ধতি ব্যবহার করে। মনে রাখবেন, আপনার ব্রাউজার এবং অপারেটিং সিস্টেমের সীমাবদ্ধতার কারণে পেজের বিষয়বস্তু ক্লিপ করার পরিমাণ সীমিত থাকতে পারে। কিছু পেজ কোনো ত্রুটি বার্তা ছাড়াই ব্যর্থ হতে পারে।"
 	},
 	"modelName": {
 		"message": "প্রদর্শিত নাম"
@@ -509,7 +472,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/variables\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/variables\" target=\"_blank\">"
 			}
 		}
 	},
@@ -539,9 +502,6 @@
 	},
 	"orPasteBelow": {
 		"message": "অথবা নিচে কনটেন্ট পেস্ট করুন"
-	},
-	"overwriteNote": {
-		"message": "নোট পুনর্লিখন করুন"
 	},
 	"pageCannotBeClipped": {
 		"message": "এই পেজ ক্লিপ করা যাবে না।"
@@ -675,9 +635,6 @@
 	"removeUnusedPropertiesDescription": {
 		"message": "যে প্রোপার্টিগুলি কোনো টেমপ্লেটে ব্যবহার হয়নি, সেগুলি মুছে ফেলুন।"
 	},
-	"removeVault": {
-		"message": "ভল্ট মুছে ফেলুন"
-	},
 	"replaceContent": {
 		"message": "পেজের বিষয়বস্তু রিপ্লেস করুন"
 	},
@@ -762,12 +719,6 @@
 	"showPageVariables": {
 		"message": "পেজ ভ্যারিয়েবল দেখান"
 	},
-	"silentOpen": {
-		"message": "ক্লিপ করা নোটটি না খুলে সংরক্ষণ করুন"
-	},
-	"silentOpenDescription": {
-		"message": "ক্লিপ করা নোট সংরক্ষণ হবে, তবে এটি নতুন ট্যাবে খুলবে না। Obsidian অ্যাপটি সামনে প্রদর্শিত হবে।"
-	},
 	"specificNoteName": {
 		"message": "নির্দিষ্ট নোটের নাম"
 	},
@@ -818,34 +769,6 @@
 	},
 	"usingLatestVersion": {
 		"message": "আপনি সর্বশেষ সংস্করণ ব্যবহার করছেন।"
-	},
-	"vault": {
-		"message": "ভল্ট"
-	},
-	"vaultDescription": {
-		"message": "এই টেমপ্লেটের জন্য ডিফল্ট ভল্ট নির্বাচন করুন। ভল্ট যোগ বা মুছে ফেলতে $link_start$সাধারণ সেটিংস$link_end$ এ যান।",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"?section=general\">"
-			}
-		}
-	},
-	"vaults": {
-		"message": "ভল্ট"
-	},
-	"vaultsDescription": {
-		"message": "ডিফল্টভাবে, ক্লিপ করা নোটগুলি বর্তমানে খোলা থাকা ভল্টে সংরক্ষিত হয়। আপনি যদি বিভিন্ন ভল্টে সংরক্ষণ করার অপশন চান, তবে এখানে ভল্ট যোগ করতে পারেন। ভল্টের নাম অবশ্যই Obsidian ভল্টের নামের সাথে পুরোপুরি মিলতে হবে। একটি ভল্ট যোগ করতে $strong_start$এন্টার$strong_end$ চাপুন।",
-		"placeholders": {
-			"strong_end": {
-				"content": "</strong>"
-			},
-			"strong_start": {
-				"content": "<strong>"
-			}
-		}
 	},
 	"version": {
 		"message": "সংস্করণ"

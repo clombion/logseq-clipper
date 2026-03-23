@@ -17,11 +17,8 @@
 	"addProviderTitle": {
 		"message": "Add provider"
 	},
-	"addToObsidian": {
-		"message": "Add to Obsidian"
-	},
-	"addVaultPlaceholder": {
-		"message": "Press enter to add a vault"
+	"addToLogseq": {
+		"message": "Add to Logseq"
 	},
 	"advanced": {
 		"message": "Advanced"
@@ -42,7 +39,13 @@
 		"message": "No API key"
 	},
 	"apiKeysWarning": {
-		"message": "By using an external provider you agree to their terms and privacy policy. Interpreter requests are sent directly to the provider you choose. Obsidian does not gather or store any data about your requests."
+		"message": "By using an external provider you agree to their terms and privacy policy. Interpreter requests are sent directly to the provider you choose. Logseq does not gather or store any data about your requests."
+	},
+	"apiPort": {
+		"message": "API port"
+	},
+	"apiToken": {
+		"message": "API token"
 	},
 	"appendToDaily": {
 		"message": "Add to daily note, at the bottom"
@@ -93,7 +96,7 @@
 		"message": "Clip behavior"
 	},
 	"clipBehaviorDescription": {
-		"message": "Choose how highlighted content is saved to Obsidian. Defines the $strong_start${{content}}$strong_end$ variable.",
+		"message": "Choose how highlighted content is saved to Logseq. Defines the $strong_start${{content}}$strong_end$ variable.",
 		"placeholders": {
 			"strong_end": {
 				"content": "</strong>"
@@ -104,7 +107,7 @@
 		}
 	},
 	"clipboardError": {
-		"message": "Obsidian is not able to access your clipboard. Try the troubleshooting instructions here: $1",
+		"message": "Logseq is not able to access your clipboard. Try the troubleshooting instructions here: $1",
 		"placeholders": {
 			"1": {
 				"content": "$1"
@@ -115,7 +118,7 @@
 		"message": "Close"
 	},
 	"commandOpenClipper": {
-		"message": "Open Obsidian Clipper"
+		"message": "Open Logseq Clipper"
 	},
 	"commandQuickClip": {
 		"message": "Quick clip"
@@ -132,6 +135,12 @@
 	"confirmReplaceSettings": {
 		"message": "This will replace all your current settings, including templates and properties. Are you sure you want to continue?"
 	},
+	"connectionFailed": {
+		"message": "Connection failed"
+	},
+	"connectionSuccess": {
+		"message": "Connected"
+	},
 	"copied": {
 		"message": "Copied!"
 	},
@@ -140,6 +149,9 @@
 	},
 	"copyToClipboard": {
 		"message": "Copy to clipboard"
+	},
+	"createNew": {
+		"message": "Create new"
 	},
 	"createNewNote": {
 		"message": "Create new note"
@@ -183,19 +195,8 @@
 	"duplicate": {
 		"message": "Duplicate"
 	},
-	"earlyAccessDescription": {
-		"message": "Use features that require the latest $link_start$early access version$link_end$ of Obsidian. Currently requires Obsidian 1.7.2 or later.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/Obsidian/Early+access+versions\" target=\"_blank\">"
-			}
-		}
-	},
-	"earlyAccessFeatures": {
-		"message": "Early access features"
+	"duplicateFound": {
+		"message": "This page has already been clipped"
 	},
 	"editModel": {
 		"message": "Edit model"
@@ -213,7 +214,7 @@
 		"message": "Enable highlighter"
 	},
 	"enableHighlighterDescription": {
-		"message": "Highlight content on web pages that you can save to Obsidian."
+		"message": "Highlight content on web pages that you can save to Logseq."
 	},
 	"enableInterpreter": {
 		"message": "Enable interpreter"
@@ -225,7 +226,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/interpreter\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/interpreter\" target=\"_blank\">"
 			},
 			"strong_end": {
 				"content": "</strong>"
@@ -260,21 +261,13 @@
 		"message": "Export properties"
 	},
 	"exportPropertiesDescription": {
-		"message": "Save Web Clipper properties to a $strong_start$types.json$strong_end$ file that can be imported into your Obsidian vault, or into Web Clipper on other devices.",
-		"placeholders": {
-			"strong_end": {
-				"content": "</strong>"
-			},
-			"strong_start": {
-				"content": "<strong>"
-			}
-		}
+		"message": "Save Web Clipper properties to a JSON file that can be imported into Web Clipper on other devices."
 	},
 	"extensionDescription": {
-		"message": "Save content from the web in a private and durable format that you can access offline. The official browser extension for Obsidian."
+		"message": "Save and highlight web pages to Logseq in a private and durable format that you can access offline."
 	},
 	"extensionName": {
-		"message": "Obsidian Web Clipper"
+		"message": "Logseq Web Clipper"
 	},
 	"failedToCopyText": {
 		"message": "Failed to copy text"
@@ -385,21 +378,7 @@
 		"message": "Import properties"
 	},
 	"importPropertiesDescription": {
-		"message": "To import your properties from Obsidian, locate the $strong_1_start$types.json$strong_1_end$ file in the $strong_2_start$.obsidian$strong_2_end$ folder within your vault. Note this folder is hidden by default on most operating systems.",
-		"placeholders": {
-			"strong_1_end": {
-				"content": "</strong>"
-			},
-			"strong_1_start": {
-				"content": "<strong>"
-			},
-			"strong_2_end": {
-				"content": "</strong>"
-			},
-			"strong_2_start": {
-				"content": "<strong>"
-			}
-		}
+		"message": "Import property type definitions from a JSON file to use in your templates."
 	},
 	"importSettings": {
 		"message": "Import settings"
@@ -439,11 +418,11 @@
 	"lastUsed": {
 		"message": "Last used"
 	},
-	"legacyMode": {
-		"message": "Legacy mode"
+	"logPage": {
+		"message": "Clip log page"
 	},
-	"legacyModeDescription": {
-		"message": "Uses the URI clipping method compatible with Obsidian 1.6.7 or earlier. Note that the length of the content you can clip is limited by your browser and OS. Some pages may fail without any errors."
+	"logseqConnection": {
+		"message": "Logseq connection"
 	},
 	"modelName": {
 		"message": "Display name"
@@ -509,7 +488,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/variables\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/variables\" target=\"_blank\">"
 			}
 		}
 	},
@@ -539,9 +518,6 @@
 	},
 	"orPasteBelow": {
 		"message": "Or paste content below"
-	},
-	"overwriteNote": {
-		"message": "Overwrite note"
 	},
 	"pageCannotBeClipped": {
 		"message": "This page cannot be clipped."
@@ -675,9 +651,6 @@
 	"removeUnusedPropertiesDescription": {
 		"message": "Remove all properties that are not used in any template."
 	},
-	"removeVault": {
-		"message": "Remove vault"
-	},
 	"replaceContent": {
 		"message": "Replace the page content"
 	},
@@ -762,12 +735,6 @@
 	"showPageVariables": {
 		"message": "Show page variables"
 	},
-	"silentOpen": {
-		"message": "Save clipped note without opening it"
-	},
-	"silentOpenDescription": {
-		"message": "Clipped notes will be saved but will not open as a new tab. Obsidian will still be brought to the foreground."
-	},
 	"specificNoteName": {
 		"message": "Specific note name"
 	},
@@ -807,6 +774,9 @@
 	"templatesHeading": {
 		"message": "Templates"
 	},
+	"testConnection": {
+		"message": "Test connection"
+	},
 	"thinking": {
 		"message": "thinking"
 	},
@@ -816,36 +786,11 @@
 	"updateAvailable": {
 		"message": "An update is available."
 	},
+	"updateExisting": {
+		"message": "Update existing"
+	},
 	"usingLatestVersion": {
 		"message": "You are using the latest version."
-	},
-	"vault": {
-		"message": "Vault"
-	},
-	"vaultDescription": {
-		"message": "Select the default vault for this template. Go to $link_start$general settings$link_end$ to add or remove vaults.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"?section=general\">"
-			}
-		}
-	},
-	"vaults": {
-		"message": "Vaults"
-	},
-	"vaultsDescription": {
-		"message": "By default, clipped notes are saved to the currently open vault. You can add vaults here if you want the option to save to different vaults. Vault names must exactly match the name of the Obsidian vault. Press $strong_start$enter$strong_end$ to add a vault.",
-		"placeholders": {
-			"strong_end": {
-				"content": "</strong>"
-			},
-			"strong_start": {
-				"content": "<strong>"
-			}
-		}
 	},
 	"version": {
 		"message": "Version"

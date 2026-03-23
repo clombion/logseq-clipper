@@ -17,11 +17,8 @@
 	"addProviderTitle": {
 		"message": "أضف مزود"
 	},
-	"addToObsidian": {
+	"addToLogseq": {
 		"message": "إضافة إلى أوبسيديان"
-	},
-	"addVaultPlaceholder": {
-		"message": "اضغط على Enter لإضافة خزينة"
 	},
 	"advanced": {
 		"message": "متقدم"
@@ -42,7 +39,7 @@
 		"message": "لا يوجد مفتاح API"
 	},
 	"apiKeysWarning": {
-		"message": "باستخدام مزود خارجي، فإنك توافق على شروطهم وسياسة الخصوصية الخاصة بهم. يتم إرسال طلبات المفسر مباشرة إلى المزود الذي تختاره. لا يقوم Obsidian بجمع أو تخزين أي بيانات حول طلباتك."
+		"message": "باستخدام مزود خارجي، فإنك توافق على شروطهم وسياسة الخصوصية الخاصة بهم. يتم إرسال طلبات المفسر مباشرة إلى المزود الذي تختاره. لا يقوم Logseq بجمع أو تخزين أي بيانات حول طلباتك."
 	},
 	"appendToDaily": {
 		"message": "إضافة إلى الملاحظة اليومية، في النهاية"
@@ -104,7 +101,7 @@
 		}
 	},
 	"clipboardError": {
-		"message": "لا يستطيع Obsidian الوصول إلى الحافظة لديك. جرّب إرشادات استكشاف الأخطاء وإصلاحها هنا: $1",
+		"message": "لا يستطيع Logseq الوصول إلى الحافظة لديك. جرّب إرشادات استكشاف الأخطاء وإصلاحها هنا: $1",
 		"placeholders": {
 			"1": {
 				"content": "$1"
@@ -183,20 +180,6 @@
 	"duplicate": {
 		"message": "نسخ"
 	},
-	"earlyAccessDescription": {
-		"message": "استخدم الميزات التي تتطلب أحدث $link_start$نسخة وصول مبكر$link_end$ من أوبسيديان. تتطلب حالياً أوبسيديان 1.7.2 أو أحدث.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/Obsidian/Early+access+versions\" target=\"_blank\">"
-			}
-		}
-	},
-	"earlyAccessFeatures": {
-		"message": "ميزات الوصول المبكر"
-	},
 	"editModel": {
 		"message": "تعديل النموذج"
 	},
@@ -225,7 +208,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/interpreter\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/interpreter\" target=\"_blank\">"
 			},
 			"strong_end": {
 				"content": "</strong>"
@@ -385,21 +368,7 @@
 		"message": "استيراد الخصائص"
 	},
 	"importPropertiesDescription": {
-		"message": "لاستيراد خصائصك من أوبسيديان، حدد موقع ملف $strong_1_start$types.json$strong_1_end$ في مجلد $strong_2_start$.obsidian$strong_2_end$ داخل خزينتك. لاحظ أن هذا المجلد مخفي افتراضياً في معظم أنظمة التشغيل.",
-		"placeholders": {
-			"strong_1_end": {
-				"content": "</strong>"
-			},
-			"strong_1_start": {
-				"content": "<strong>"
-			},
-			"strong_2_end": {
-				"content": "</strong>"
-			},
-			"strong_2_start": {
-				"content": "<strong>"
-			}
-		}
+		"message": "لاستيراد خصائصك من أوبسيديان، حدد موقع ملف $strong_1_start$types.json$strong_1_end$ في مجلد $strong_2_start$.logseq$strong_2_end$ داخل خزينتك. لاحظ أن هذا المجلد مخفي افتراضياً في معظم أنظمة التشغيل."
 	},
 	"importSettings": {
 		"message": "استيراد الإعدادات"
@@ -438,12 +407,6 @@
 	},
 	"lastUsed": {
 		"message": "آخر استخدام"
-	},
-	"legacyMode": {
-		"message": "الوضع القديم"
-	},
-	"legacyModeDescription": {
-		"message": "يستخدم طريقة قص URI المتوافقة مع أوبسيديان 1.6.7 أو أقدم. لاحظ أن طول المحتوى الذي يمكنك قصه محدود بواسطة متصفحك ونظام التشغيل. قد تفشل بعض الصفحات بدون أي أخطاء."
 	},
 	"modelName": {
 		"message": "اسم النموذج"
@@ -509,7 +472,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://help.obsidian.md/web-clipper/variables\" target=\"_blank\">"
+				"content": "<a href=\"https://help.logseq.com/web-clipper/variables\" target=\"_blank\">"
 			}
 		}
 	},
@@ -539,9 +502,6 @@
 	},
 	"orPasteBelow": {
 		"message": "أو الصق المحتوى أدناه"
-	},
-	"overwriteNote": {
-		"message": "استبدال الملاحظة"
 	},
 	"pageCannotBeClipped": {
 		"message": "لا يمكن قص هذه الصفحة."
@@ -675,9 +635,6 @@
 	"removeUnusedPropertiesDescription": {
 		"message": "إزالة جميع الخصائص التي لا تستخدم في أي قالب."
 	},
-	"removeVault": {
-		"message": "إزالة الخزينة"
-	},
 	"replaceContent": {
 		"message": "استبدال محتوى الصفحة"
 	},
@@ -762,12 +719,6 @@
 	"showPageVariables": {
 		"message": "إظهار متغيرات الصفحة"
 	},
-	"silentOpen": {
-		"message": "حفظ الملاحظة المقصوصة دون فتحها"
-	},
-	"silentOpenDescription": {
-		"message": "سيتم حفظ الملاحظات المقصوصة ولكن لن يتم فتحها كتبويب جديد. سيظل أوبسيديان يُجلب إلى المقدمة."
-	},
 	"specificNoteName": {
 		"message": "اسم ملاحظة محدد"
 	},
@@ -818,34 +769,6 @@
 	},
 	"usingLatestVersion": {
 		"message": "أنت تستخدم أحدث إصدار."
-	},
-	"vault": {
-		"message": "الخزينة"
-	},
-	"vaultDescription": {
-		"message": "حدد الخزينة الافتراضية لهذا القالب. انتقل إلى $link_start$الإعدادات العامة$link_end$ لإضافة أو إزالة الخزائن.",
-		"placeholders": {
-			"link_end": {
-				"content": "</a>"
-			},
-			"link_start": {
-				"content": "<a href=\"?section=general\">"
-			}
-		}
-	},
-	"vaults": {
-		"message": "الخزائن"
-	},
-	"vaultsDescription": {
-		"message": "بشكل افتراضي، يتم حفظ الملاحظات المقصوصة في الخزينة المفتوحة حالياً. يمكنك إضافة خزائن هنا إذا كنت تريد خيار الحفظ في خزائن مختلفة. يجب أن تتطابق أسماء الخزائن بالضبط مع اسم خزينة أوبسيديان. اضغط على $strong_start$enter$strong_end$ لإضافة خزينة.",
-		"placeholders": {
-			"strong_end": {
-				"content": "</strong>"
-			},
-			"strong_start": {
-				"content": "<strong>"
-			}
-		}
 	},
 	"version": {
 		"message": "الإصدار"
