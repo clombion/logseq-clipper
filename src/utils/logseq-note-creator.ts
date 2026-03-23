@@ -63,14 +63,13 @@ export async function saveToLogseq(
 ): Promise<void> {
 	const config = getApiConfig();
 	const clipId = Date.now().toString(36);
-	const now = new Date().toISOString();
 
+	// Only include properties from the template — no injected keys.
+	// source and clipped-at go in the clip log, not the metadata block.
 	const propsObj: Record<string, string> = {};
 	for (const prop of properties) {
 		propsObj[prop.name] = String(prop.value);
 	}
-	propsObj['source'] = sourceUrl;
-	propsObj['clipped-at'] = now;
 
 	const blocks = markdownToBlocks(noteContent);
 	const contentHash = await computeContentHash(noteContent);
@@ -180,7 +179,6 @@ export async function updateExistingClip(
 ): Promise<void> {
 	const config = getApiConfig();
 	const clipId = Date.now().toString(36);
-	const now = new Date().toISOString();
 
 	debugLog('Save', `[${clipId}] updating existing clip '${pageTitle}'`);
 
@@ -189,13 +187,11 @@ export async function updateExistingClip(
 		throw new Error(`Page '${pageTitle}' not found`);
 	}
 
-	// Update properties
+	// Update properties from template only
 	const propsObj: Record<string, string> = {};
 	for (const prop of properties) {
 		propsObj[prop.name] = String(prop.value);
 	}
-	propsObj['source'] = sourceUrl;
-	propsObj['clipped-at'] = now;
 	debugLog('Save', `[${clipId}] updating ${Object.keys(propsObj).length} properties`);
 	for (const [key, value] of Object.entries(propsObj)) {
 		await upsertBlockProperty(config, page.uuid, key, value);

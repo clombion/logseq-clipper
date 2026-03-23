@@ -140,21 +140,14 @@ describe('saveToLogseq', () => {
 		expect(createArgs[1]).toBe('Test Note');
 		expect(createArgs[2]).toEqual({ redirect: false });
 
-		// upsertBlockProperty called for each property
+		// upsertBlockProperty called only for template properties (not source/clipped-at)
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledTimes(1);
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
 			'page-uuid',
 			'tags',
 			'test',
 		);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'page-uuid',
-			'source',
-			'https://example.com',
-		);
-		const clippedAtCall = mockedUpsertBlockProperty.mock.calls.find(c => c[2] === 'clipped-at');
-		expect(clippedAtCall).toBeDefined();
 
 		// appendBlockInPage called with page name and first block content
 		expect(mockedAppendBlockInPage).toHaveBeenCalledWith(
@@ -198,18 +191,13 @@ describe('saveToLogseq', () => {
 
 		await saveToLogseq('', 'Existing', [{ name: 'tags', value: 'retest' }], 'create', 'https://example.com/existing');
 
-		// upsertBlockProperty is the mechanism that works for existing pages
+		// upsertBlockProperty is the mechanism that works for existing pages (template props only)
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledTimes(1);
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
 			'existing-uuid',
 			'tags',
 			'retest',
-		);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'existing-uuid',
-			'source',
-			'https://example.com/existing',
 		);
 	});
 
@@ -226,13 +214,14 @@ describe('saveToLogseq', () => {
 			'https://example.com/append',
 		);
 
-		// Metadata block created with properties as content (skip separator block)
+		// Metadata block created with template properties only (no source/clipped-at)
 		const appendCalls = mockedAppendBlockInPage.mock.calls;
 		const metaCall = appendCalls.find((c) => c[1] === 'Existing Page' && c[2] !== '');
 		expect(metaCall).toBeDefined();
 		expect(metaCall![2]).toContain('resource:: Test Resource');
-		expect(metaCall![2]).toContain('source:: https://example.com/append');
-		expect(metaCall![2]).toContain('clipped-at::');
+		// source and clipped-at are no longer injected into the metadata block
+		expect(metaCall![2]).not.toMatch(/^source::/m);
+		expect(metaCall![2]).not.toMatch(/^clipped-at::/m);
 
 		// Content inserted as children via insertBatchBlock
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
@@ -264,7 +253,7 @@ describe('saveToLogseq', () => {
 		expect(logCall![2]).toBe('[[Log Test]]');
 	});
 
-	test('properties include source and clipped-at via upsertBlockProperty', async () => {
+	test('template properties passed through via upsertBlockProperty, no source/clipped-at', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([]);
 		mockedCreatePage.mockResolvedValue({ name: 'Props Test', uuid: 'p-uuid' });
 
@@ -279,18 +268,19 @@ describe('saveToLogseq', () => {
 		// createPage called without properties (upsertBlockProperty handles them)
 		expect(mockedCreatePage.mock.calls[0][2]).toEqual({ redirect: false });
 
-		// Properties set via upsertBlockProperty
+		// Only template properties set via upsertBlockProperty
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledTimes(1);
 		const upsertCalls = mockedUpsertBlockProperty.mock.calls;
-		const sourceCall = upsertCalls.find(c => c[2] === 'source');
-		expect(sourceCall).toBeDefined();
-		expect(sourceCall![3]).toBe('https://example.com/props');
-
-		const clippedAtCall = upsertCalls.find(c => c[2] === 'clipped-at');
-		expect(clippedAtCall).toBeDefined();
 
 		const authorCall = upsertCalls.find(c => c[2] === 'author');
 		expect(authorCall).toBeDefined();
 		expect(authorCall![3]).toBe('Alice');
+
+		// source and clipped-at are NOT set via upsertBlockProperty
+		const sourceCall = upsertCalls.find(c => c[2] === 'source');
+		expect(sourceCall).toBeUndefined();
+		const clippedAtCall = upsertCalls.find(c => c[2] === 'clipped-at');
+		expect(clippedAtCall).toBeUndefined();
 	});
 
 	test('prepend-specific creates metadata parent with properties, content as children', async () => {
@@ -311,7 +301,9 @@ describe('saveToLogseq', () => {
 			(c) => c[1] === 'Prepend Page',
 		);
 		expect(prependCall).toBeDefined();
-		expect(prependCall![2]).toContain('source:: https://example.com/prepend');
+		// Metadata block contains only template properties (none here), not source/clipped-at
+		expect(prependCall![2]).not.toContain('source::');
+		expect(prependCall![2]).not.toContain('clipped-at::');
 
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
 			expect.anything(),
@@ -347,21 +339,14 @@ describe('updateExistingClip', () => {
 			'Existing Article',
 		);
 
-		// upsertBlockProperty for properties
+		// upsertBlockProperty for template properties only (not source/clipped-at)
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledTimes(1);
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
 			'page-uuid',
 			'tags',
 			'updated',
 		);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'page-uuid',
-			'source',
-			'https://example.com/existing',
-		);
-		const clippedAtCall = mockedUpsertBlockProperty.mock.calls.find(c => c[2] === 'clipped-at');
-		expect(clippedAtCall).toBeDefined();
 
 		// ALL old blocks removed (not skipping first)
 		expect(mockedRemoveBlock).toHaveBeenCalledTimes(3);
@@ -573,13 +558,8 @@ describe('saveToLogseq edge cases', () => {
 		// createPage called without properties
 		expect(mockedCreatePage.mock.calls[0][2]).toEqual({ redirect: false });
 
-		// Properties set via upsertBlockProperty
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'p-uuid',
-			'source',
-			'https://example.com/empty',
-		);
+		// Only template properties set via upsertBlockProperty (not source/clipped-at)
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledTimes(1);
 		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
 			'p-uuid',
@@ -614,7 +594,9 @@ describe('saveToLogseq edge cases', () => {
 		expect(mockedPrependBlockInPage).toHaveBeenCalled();
 		const prependCall = mockedPrependBlockInPage.mock.calls[0];
 		expect(prependCall[1]).toBe('Mar 23rd, 2026');
-		expect(prependCall[2]).toContain('source:: https://example.com/prepend-daily');
+		// Metadata block contains only template properties (none here), not source/clipped-at
+		expect(prependCall[2]).not.toContain('source::');
+		expect(prependCall[2]).not.toContain('clipped-at::');
 
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
 			expect.anything(),
@@ -637,11 +619,16 @@ describe('saveToLogseq edge cases', () => {
 			'https://example.com/daily',
 		);
 
-		const appendCall = mockedAppendBlockInPage.mock.calls.find(
-			(c) => c[1] === 'Mar 23rd, 2026' && c[2] !== '',
+		// Metadata block is created on journal page (even if empty, since no template props)
+		const journalCalls = mockedAppendBlockInPage.mock.calls.filter(
+			(c) => c[1] === 'Mar 23rd, 2026',
 		);
-		expect(appendCall).toBeDefined();
-		expect(appendCall![2]).toContain('source:: https://example.com/daily');
+		expect(journalCalls.length).toBeGreaterThanOrEqual(1);
+		// None of the journal calls should contain source:: or clipped-at::
+		for (const call of journalCalls) {
+			expect(call[2]).not.toContain('source::');
+			expect(call[2]).not.toContain('clipped-at::');
+		}
 
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
 			expect.anything(),
