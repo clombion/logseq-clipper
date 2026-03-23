@@ -332,8 +332,8 @@ export async function exportAllSettings(): Promise<void> {
 		const allData = (await browser.storage.sync.get(null)) as StorageData;
 		console.log('All data fetched:', allData);
 
-		// Create a copy of the data to modify
-		const exportData: StorageData = { ...allData };
+		// Create a copy of the data to modify, excluding connection settings (machine-specific secret)
+		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: any };
 
 		// Decompress all templates
 		const templateIds = exportData.template_list || [];
@@ -413,8 +413,20 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 				}
 			}
 
+			// Preserve connection settings (machine-specific, contains API token)
+			const currentStorage = await browser.storage.sync.get('logseq_settings');
+			const preservedLogseqSettings = currentStorage.logseq_settings;
+
+			// Remove logseq_settings from import data if present (don't import secrets)
+			delete (importData as any).logseq_settings;
+
 			await browser.storage.sync.clear();
 			await browser.storage.sync.set(importData);
+
+			// Restore connection settings
+			if (preservedLogseqSettings) {
+				await browser.storage.sync.set({ logseq_settings: preservedLogseqSettings });
+			}
 			await loadSettings();
 			await loadTemplates();
 			updateTemplateList();
