@@ -76,6 +76,7 @@ export const filterMetadata: Record<string, FilterMetadata> = {
 	map: { example: 'map:x => x.name', validateParams: validateMapParams },
 	replace: { example: 'replace:"old":"new"', validateParams: validateReplaceParams },
 	slice: { example: 'slice:0,5', validateParams: validateSliceParams },
+	// biome-ignore lint/suspicious/noTemplateCurlyInString: template syntax example, not a template literal
 	template: { example: 'template:"${name}"', validateParams: validateTemplateParams },
 
 	// Filters with optional parameters (examples for documentation)

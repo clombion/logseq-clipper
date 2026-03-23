@@ -21,6 +21,9 @@
 			"suspicious": {
 				"noExplicitAny": "error"
 			},
+			"style": {
+				"noNonNullAssertion": "off"
+			},
 			"complexity": {
 				"noForEach": "off"
 			}
@@ -38,7 +41,8 @@
 			"linter": {
 				"rules": {
 					"suspicious": {
-						"noExplicitAny": "off"
+						"noExplicitAny": "off",
+						"noTemplateCurlyInString": "off"
 					}
 				}
 			}

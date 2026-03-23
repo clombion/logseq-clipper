@@ -20,6 +20,7 @@ interface ReaderSettings {
 	themeMode: 'auto' | 'light' | 'dark';
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: Reader uses static methods for singleton pattern with stored state
 export class Reader {
 	private static originalHTML: string | null = null;
 	private static isActive: boolean = false;

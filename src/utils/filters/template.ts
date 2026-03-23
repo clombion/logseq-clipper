@@ -3,6 +3,7 @@ import type { ParamValidationResult } from '../filters';
 
 export const validateTemplateParams = (param: string | undefined): ParamValidationResult => {
 	if (!param) {
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: template syntax example in error message
 		return { valid: false, error: 'requires a template string (e.g., template:"${name}")' };
 	}
 

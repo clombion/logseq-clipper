@@ -14,6 +14,13 @@ let lastRequestTime = 0;
 // Store event listeners for cleanup
 const eventListeners = new WeakMap<HTMLElement, { [key: string]: EventListener }>();
 
+// Track in-flight interpreter operation so callers can await it directly
+let activeInterpreterPromise: Promise<void> | null = null;
+
+export function getActiveInterpreterPromise(): Promise<void> | null {
+	return activeInterpreterPromise;
+}
+
 export async function sendToLLM(
 	promptContext: string,
 	_content: string,
@@ -250,127 +257,140 @@ interface LLMResponse {
 	prompts_responses: { [key: string]: string };
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
-function parseLLMResponse(responseContent: string, promptVariables: PromptVariable[]): { promptResponses: any[] } {
+// --- JSON sanitization for messy LLM output ---
+
+function sanitizeJsonString(str: string): string {
+	let result = str.replace(/\r\n/g, '\n');
+	result = result.replace(/\n/g, '\\n');
+	result = result.replace(/(?<!\\)"/g, '\\"');
+	result = result.replace(/(?<=[{[,:]\s*)\\"/g, '"').replace(/\\"(?=\s*[}\],:}])/g, '"');
+	return (
+		result
+			.replace(/[\u201C\u201D]/g, '\\"')
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character removal
+			.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '')
+			.replace(/"\s*:/g, '":')
+			.replace(/:\s*"/g, ':"')
+			.replace(/\\{3,}/g, '\\\\')
+	);
+}
+
+// --- Parse strategies (tried in order, first success wins) ---
+
+function tryDirectParse(content: string): LLMResponse | null {
 	try {
-		let parsedResponse: LLMResponse;
+		const sanitized = sanitizeJsonString(content);
+		debugLog('Interpreter', 'Trying direct parse');
+		return JSON.parse(sanitized);
+	} catch {
+		return null;
+	}
+}
 
-		// If responseContent is already an object, convert to string
-		if (typeof responseContent === 'object') {
-			responseContent = JSON.stringify(responseContent);
-		}
+function tryExtractedMinimalSanitize(content: string): LLMResponse | null {
+	const jsonMatch = content.match(/\{[\s\S]*\}/);
+	if (!jsonMatch) return null;
+	try {
+		const sanitized = jsonMatch[0]
+			.replace(/[\u201C\u201D]/g, '"')
+			.replace(/\r\n/g, '\\n')
+			.replace(/\n/g, '\\n');
+		debugLog('Interpreter', 'Trying extracted JSON with minimal sanitization');
+		return JSON.parse(sanitized);
+	} catch {
+		return null;
+	}
+}
 
-		// Helper function to sanitize JSON string
-		const sanitizeJsonString = (str: string) => {
-			// First, normalize all newlines to \n
-			let result = str.replace(/\r\n/g, '\n');
+function tryExtractedFullSanitize(content: string): LLMResponse | null {
+	const jsonMatch = content.match(/\{[\s\S]*\}/);
+	if (!jsonMatch) return null;
+	try {
+		const sanitized = sanitizeJsonString(jsonMatch[0]);
+		debugLog('Interpreter', 'Trying extracted JSON with full sanitization');
+		return JSON.parse(sanitized);
+	} catch {
+		return null;
+	}
+}
 
-			// Escape newlines properly
-			result = result.replace(/\n/g, '\\n');
-
-			// Escape quotes that are part of the content
-			result = result.replace(/(?<!\\)"/g, '\\"');
-
-			// Then unescape the quotes that are JSON structural elements
-			result = result.replace(/(?<=[{[,:]\s*)\\"/g, '"').replace(/\\"(?=\s*[}\],:}])/g, '"');
-
-			return (
-				result
-					// Replace curly quotes
-					.replace(/[""]/g, '\\"')
-					// Remove any bad control characters
-					.replace(new RegExp('[\u0000-\u0008\u000B-\u001F\u007F-\u009F]', 'g'), '')
-					// Remove any whitespace between quotes and colons
-					.replace(/"\s*:/g, '":')
-					.replace(/:\s*"/g, ':"')
-					// Fix any triple or more backslashes
-					.replace(/\\{3,}/g, '\\\\')
-			);
-		};
-
-		// First try to parse the content directly
-		try {
-			const sanitizedContent = sanitizeJsonString(responseContent);
-			debugLog('Interpreter', 'Sanitized content:', sanitizedContent);
-			parsedResponse = JSON.parse(sanitizedContent);
-		} catch (e) {
-			// If direct parsing fails, try to extract and parse the JSON content
-			const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-			if (!jsonMatch) {
-				throw new Error('No JSON object found in response', { cause: e });
-			}
-
-			// Try parsing with minimal sanitization first
-			try {
-				const minimalSanitized = jsonMatch[0]
-					?.replace(/[""]/g, '"')
+function tryRegexRebuild(content: string, promptVariables: PromptVariable[]): LLMResponse | null {
+	const jsonMatch = content.match(/\{[\s\S]*\}/);
+	if (!jsonMatch) return null;
+	try {
+		const prompts_responses: { [key: string]: string } = {};
+		for (let i = 0; i < promptVariables.length; i++) {
+			const promptKey = `prompt_${i + 1}`;
+			const promptRegex = new RegExp(`"${promptKey}"\\s*:\\s*"([^]*?)(?:"\\s*,|"\\s*})`, 'g');
+			const match = promptRegex.exec(jsonMatch[0]);
+			if (match?.[1]) {
+				prompts_responses[promptKey] = match[1]
+					.replace(/"/g, '\\"')
 					.replace(/\r\n/g, '\\n')
 					.replace(/\n/g, '\\n');
-				parsedResponse = JSON.parse(minimalSanitized);
-			} catch (_minimalError) {
-				// If minimal sanitization fails, try full sanitization
-				const sanitizedMatch = sanitizeJsonString(jsonMatch[0]!);
-				debugLog('Interpreter', 'Fully sanitized match:', sanitizedMatch);
-
-				try {
-					parsedResponse = JSON.parse(sanitizedMatch);
-				} catch (_fullError) {
-					// Last resort: try to manually rebuild the JSON structure
-					const prompts_responses: { [key: string]: string } = {};
-
-					// Extract each prompt response separately
-					promptVariables.forEach((_variable, index) => {
-						const promptKey = `prompt_${index + 1}`;
-						const promptRegex = new RegExp(`"${promptKey}"\\s*:\\s*"([^]*?)(?:"\\s*,|"\\s*})`, 'g');
-						const match = promptRegex.exec(jsonMatch[0]!);
-						if (match) {
-							const content = match[1]
-								?.replace(/"/g, '\\"')
-								.replace(/\r\n/g, '\\n')
-								.replace(/\n/g, '\\n');
-							prompts_responses[promptKey] = content ?? '';
-						}
-					});
-
-					const rebuiltJson = JSON.stringify({ prompts_responses });
-					debugLog('Interpreter', 'Rebuilt JSON:', rebuiltJson);
-					parsedResponse = JSON.parse(rebuiltJson);
-				}
 			}
 		}
+		debugLog('Interpreter', 'Trying regex key extraction rebuild');
+		const rebuilt = JSON.stringify({ prompts_responses });
+		return JSON.parse(rebuilt);
+	} catch {
+		return null;
+	}
+}
 
-		// Validate the response structure
-		if (!parsedResponse?.prompts_responses) {
-			debugLog('Interpreter', 'No prompts_responses found in parsed response', parsedResponse);
-			return { promptResponses: [] };
-		}
+// --- Main parse function ---
 
-		// Convert escaped newlines to actual newlines in the responses
-		Object.keys(parsedResponse.prompts_responses).forEach((key) => {
-			if (typeof parsedResponse.prompts_responses[key] === 'string') {
-				parsedResponse.prompts_responses[key] = parsedResponse.prompts_responses[key]
-					.replace(/\\n/g, '\n')
-					.replace(/\r/g, '');
-			}
-		});
+interface PromptResponse {
+	key: string;
+	prompt: string;
+	user_response: string;
+}
 
-		// Map the responses to their prompts
-		const promptResponses = promptVariables.map((variable) => ({
-			key: variable.key,
-			prompt: variable.prompt,
-			user_response: parsedResponse.prompts_responses[variable.key] || '',
-		}));
+function parseLLMResponse(
+	responseContent: string,
+	promptVariables: PromptVariable[],
+): { promptResponses: PromptResponse[] } {
+	// Normalize: if already an object, stringify first
+	if (typeof responseContent === 'object') {
+		responseContent = JSON.stringify(responseContent);
+	}
 
-		debugLog('Interpreter', 'Successfully mapped prompt responses:', promptResponses);
-		return { promptResponses };
-	} catch (parseError) {
-		console.error('Failed to parse LLM response:', parseError);
-		debugLog('Interpreter', 'Parse error details:', {
-			error: parseError,
-			responseContent: responseContent,
-		});
+	// Try parse strategies in order of preference
+	const strategies = [
+		() => tryDirectParse(responseContent),
+		() => tryExtractedMinimalSanitize(responseContent),
+		() => tryExtractedFullSanitize(responseContent),
+		() => tryRegexRebuild(responseContent, promptVariables),
+	];
+
+	let parsedResponse: LLMResponse | null = null;
+	for (const strategy of strategies) {
+		parsedResponse = strategy();
+		if (parsedResponse) break;
+	}
+
+	if (!parsedResponse?.prompts_responses) {
+		debugLog('Interpreter', 'All parse strategies failed for LLM response');
 		return { promptResponses: [] };
 	}
+
+	// Convert escaped newlines to actual newlines
+	for (const key of Object.keys(parsedResponse.prompts_responses)) {
+		const value = parsedResponse.prompts_responses[key];
+		if (typeof value === 'string') {
+			parsedResponse.prompts_responses[key] = value.replace(/\\n/g, '\n').replace(/\r/g, '');
+		}
+	}
+
+	// Map responses to prompt variables
+	const promptResponses = promptVariables.map((variable) => ({
+		key: variable.key,
+		prompt: variable.prompt,
+		user_response: parsedResponse.prompts_responses[variable.key] || '',
+	}));
+
+	debugLog('Interpreter', 'Successfully mapped prompt responses:', promptResponses);
+	return { promptResponses };
 }
 
 export function collectPromptVariables(template: Template | null): PromptVariable[] {
@@ -541,6 +561,22 @@ export async function handleInterpreterUI(
 	_currentUrl: string,
 	modelConfig: ModelConfig,
 ): Promise<void> {
+	const work = handleInterpreterUIInternal(template, variables, _tabId, _currentUrl, modelConfig);
+	activeInterpreterPromise = work;
+	try {
+		await work;
+	} finally {
+		activeInterpreterPromise = null;
+	}
+}
+
+async function handleInterpreterUIInternal(
+	template: Template,
+	variables: { [key: string]: string },
+	_tabId: number,
+	_currentUrl: string,
+	modelConfig: ModelConfig,
+): Promise<void> {
 	const interpreterContainer = document.getElementById('interpreter');
 	const interpretBtn = document.getElementById('interpret-btn') as HTMLButtonElement;
 	const interpreterErrorMessage = document.getElementById('interpreter-error') as HTMLDivElement;
@@ -579,7 +615,7 @@ export async function handleInterpreterUI(
 
 		// Start the timer
 		const startTime = performance.now();
-		let timerInterval: number;
+		let timerInterval = 0;
 
 		// Change button text and add class
 		interpretBtn.textContent = getMessage('thinking');

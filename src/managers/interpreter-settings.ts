@@ -402,12 +402,14 @@ function addProviderToList(event: Event) {
 }
 
 function editProvider(index: number) {
-	const providerToEdit = generalSettings.providers[index]!;
+	const providerToEdit = generalSettings.providers[index];
+	if (!providerToEdit) return;
 	showProviderModal(providerToEdit, index);
 }
 
 function _duplicateProvider(index: number) {
-	const providerToDuplicate = generalSettings.providers[index]!;
+	const providerToDuplicate = generalSettings.providers[index];
+	if (!providerToDuplicate) return;
 	const duplicatedProvider: Provider = {
 		...providerToDuplicate,
 		id: Date.now().toString(),
@@ -424,7 +426,8 @@ function _duplicateProvider(index: number) {
 }
 
 function deleteProvider(index: number): void {
-	const providerToDelete = generalSettings.providers[index]!;
+	const providerToDelete = generalSettings.providers[index];
+	if (!providerToDelete) return;
 
 	const modelsUsingProvider = generalSettings.models.filter((m) => m.providerId === providerToDelete.id);
 	if (modelsUsingProvider.length > 0) {
@@ -1142,6 +1145,7 @@ function saveInterpreterSettingsFromForm(): void {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
+// biome-ignore lint/complexity/noBannedTypes: local utility, Function type is acceptable
 function debounce(func: Function, delay: number): (...args: any[]) => void {
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing

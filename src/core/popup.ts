@@ -11,7 +11,12 @@ import { debugLog } from '../utils/debug';
 import { createElementWithClass } from '../utils/dom-utils';
 import { saveFile } from '../utils/file-utils';
 import { getMessage, setupLanguageAndDirection, translatePage } from '../utils/i18n';
-import { collectPromptVariables, handleInterpreterUI, initializeInterpreter } from '../utils/interpreter';
+import {
+	collectPromptVariables,
+	getActiveInterpreterPromise,
+	handleInterpreterUI,
+	initializeInterpreter,
+} from '../utils/interpreter';
 import { LogseqApiError, LogseqAuthError, LogseqConnectionError } from '../utils/logseq-api';
 import { checkDuplicate, saveToLogseq, updateExistingClip } from '../utils/logseq-note-creator';
 import { memoizeWithExpiration } from '../utils/memoize';
@@ -188,7 +193,12 @@ async function initializeExtension(tabId: number) {
 		// Initialize triggers to speed up template matching
 		initializeTriggers(templates);
 
-		currentTemplate = templates[0]!;
+		const firstTemplate = templates[0];
+		if (!firstTemplate) {
+			showError('noTemplates');
+			return;
+		}
+		currentTemplate = firstTemplate;
 		debugLog('Templates', 'Current template set to:', currentTemplate);
 
 		const tab = await getTabInfo(tabId);
@@ -600,31 +610,7 @@ function _logError(message: string, error?: any): void {
 	showError(message);
 }
 
-async function waitForInterpreter(interpretBtn: HTMLButtonElement): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const TIMEOUT_MS = 30000;
-		const timeout = setTimeout(() => {
-			reject(new Error('Interpreter timed out after 30 seconds'));
-		}, TIMEOUT_MS);
-
-		const checkProcessing = () => {
-			if (!interpretBtn.classList.contains('processing')) {
-				if (interpretBtn.classList.contains('done')) {
-					clearTimeout(timeout);
-					resolve();
-				} else if (interpretBtn.classList.contains('error')) {
-					clearTimeout(timeout);
-					reject(new Error(getMessage('failedToProcessInterpreter')));
-				} else {
-					setTimeout(checkProcessing, 100);
-				}
-			} else {
-				setTimeout(checkProcessing, 100);
-			}
-		};
-		checkProcessing();
-	});
-}
+// waitForInterpreter removed — replaced by direct Promise tracking via getActiveInterpreterPromise()
 
 async function refreshFields(tabId: number, checkTemplateTriggers: boolean = true) {
 	if (templates.length === 0) {
@@ -856,17 +842,18 @@ async function fillTemplateFieldValues(
 
 	if (!Array.isArray(template.properties)) return;
 
+	const tabId = currentTabId ?? 0;
 	// Compile all templates in parallel
 	const [compiledPropertyValues, formattedNoteName, formattedPath, formattedContent] = await Promise.all([
 		Promise.all(
 			template.properties.map((property) =>
-				memoizedCompileTemplate(currentTabId!, unescapeValue(property.value), variables, currentUrl),
+				memoizedCompileTemplate(tabId, unescapeValue(property.value), variables, currentUrl),
 			),
 		),
-		memoizedCompileTemplate(currentTabId!, template.noteNameFormat, variables, currentUrl),
-		memoizedCompileTemplate(currentTabId!, template.path, variables, currentUrl),
+		memoizedCompileTemplate(tabId, template.noteNameFormat, variables, currentUrl),
+		memoizedCompileTemplate(tabId, template.path, variables, currentUrl),
 		template.noteContentFormat
-			? memoizedCompileTemplate(currentTabId!, template.noteContentFormat, variables, currentUrl)
+			? memoizedCompileTemplate(tabId, template.noteContentFormat, variables, currentUrl)
 			: Promise.resolve(''),
 	]);
 
@@ -1241,11 +1228,18 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 	try {
 		// Handle interpreter if needed
 		if (generalSettings.interpreterEnabled && interpretBtn && collectPromptVariables(currentTemplate).length > 0) {
-			if (interpretBtn.classList.contains('processing')) {
-				await waitForInterpreter(interpretBtn);
+			const inFlight = getActiveInterpreterPromise();
+			if (inFlight) {
+				// Interpreter already running — await it directly
+				await inFlight;
 			} else if (!interpretBtn.classList.contains('done')) {
-				interpretBtn.click();
-				await waitForInterpreter(interpretBtn);
+				// Start interpreter and await it directly (no click + poll)
+				const modelSelect = document.getElementById('model-select') as HTMLSelectElement;
+				const selectedModelId = modelSelect?.value || generalSettings.interpreterModel;
+				const modelConfig = generalSettings.models.find((m) => m.id === selectedModelId);
+				if (modelConfig) {
+					await handleInterpreterUI(currentTemplate, currentVariables, currentTabId!, '', modelConfig);
+				}
 			}
 		}
 
