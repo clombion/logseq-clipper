@@ -116,6 +116,26 @@ export async function saveToLogseq(
 		}
 	};
 
+	// Helper: insert content blocks directly on a page (no metadata parent).
+	// Used when metadataContent is empty — mirrors the 'create' flow pattern.
+	const insertContentDirectlyOnPage = async (pageName: string) => {
+		if (blocks.length > 0) {
+			const anchor = await appendBlockInPage(config, pageName, blocks[0].content);
+			if (!anchor?.uuid) {
+				throw new Error(`Failed to create block on page '${pageName}'`);
+			}
+			debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
+			const children = blocks[0].children ?? [];
+			if (children.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, children);
+			}
+			const remaining = blocks.slice(1);
+			if (remaining.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+			}
+		}
+	};
+
 	// Track the actual destination page for the clip log
 	let destinationPage = noteName;
 
@@ -154,45 +174,63 @@ export async function saveToLogseq(
 		}
 		case 'append-specific': {
 			await appendBlockInPage(config, noteName, ''); // visual separator
-			const anchor = await appendBlockInPage(config, noteName, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to append block to page '${noteName}'`);
+			if (metadataContent) {
+				const anchor = await appendBlockInPage(config, noteName, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to page '${noteName}'`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(noteName);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
-			await insertContentAsChildren(anchor.uuid);
 			destinationPage = noteName;
 			break;
 		}
 		case 'append-daily': {
 			const journalPage = await fetchTodayJournalPage(config);
 			await appendBlockInPage(config, journalPage, ''); // visual separator
-			const anchor = await appendBlockInPage(config, journalPage, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to append block to daily journal page`);
+			if (metadataContent) {
+				const anchor = await appendBlockInPage(config, journalPage, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to daily journal page`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(journalPage);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
-			await insertContentAsChildren(anchor.uuid);
 			destinationPage = journalPage;
 			break;
 		}
 		case 'prepend-specific': {
-			const anchor = await prependBlockInPage(config, noteName, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to prepend block to page '${noteName}'`);
+			if (metadataContent) {
+				const anchor = await prependBlockInPage(config, noteName, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to page '${noteName}'`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(noteName);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
-			await insertContentAsChildren(anchor.uuid);
+			await appendBlockInPage(config, noteName, ''); // visual separator after prepended content
 			destinationPage = noteName;
 			break;
 		}
 		case 'prepend-daily': {
 			const journalPage = await fetchTodayJournalPage(config);
-			const anchor = await prependBlockInPage(config, journalPage, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to prepend block to daily journal page`);
+			if (metadataContent) {
+				const anchor = await prependBlockInPage(config, journalPage, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to daily journal page`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(journalPage);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
-			await insertContentAsChildren(anchor.uuid);
+			await appendBlockInPage(config, journalPage, ''); // visual separator after prepended content
 			destinationPage = journalPage;
 			break;
 		}

@@ -1241,6 +1241,11 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 		const noteName = isDailyNote ? '' : noteNameField?.value || '';
 		const path = isDailyNote ? '' : pathField?.value || '';
 
+		if (behavior === 'create' && !noteName.trim()) {
+			showError('Page name is required when saving as a new page.');
+			return;
+		}
+
 		// Get current URL for dedup check
 		const tabInfo = await getCurrentTabInfo();
 		const currentUrl = tabInfo.url || '';

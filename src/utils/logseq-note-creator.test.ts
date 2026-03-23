@@ -284,10 +284,10 @@ describe('saveToLogseq', () => {
 		expect(clippedAtCall).toBeUndefined();
 	});
 
-	test('prepend-specific creates metadata parent with properties, content as children', async () => {
+	test('prepend-specific with empty properties inserts content directly, adds separator', async () => {
 		const blocks = [{ content: 'Prepended content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: 'Prepended content' });
 
 		await saveToLogseq(
 			'Prepended content',
@@ -297,14 +297,40 @@ describe('saveToLogseq', () => {
 			'https://example.com/prepend',
 		);
 
+		// No metadata block — content inserted directly via appendBlockInPage
+		expect(mockedPrependBlockInPage).not.toHaveBeenCalled();
+		// Content block created on page
+		const contentCall = mockedAppendBlockInPage.mock.calls.find(
+			(c) => c[1] === 'Prepend Page' && c[2] === 'Prepended content',
+		);
+		expect(contentCall).toBeDefined();
+		// Separator block added after prepended content
+		const separatorCall = mockedAppendBlockInPage.mock.calls.find(
+			(c) => c[1] === 'Prepend Page' && c[2] === '',
+		);
+		expect(separatorCall).toBeDefined();
+	});
+
+	test('prepend-specific with properties creates metadata parent, content as children', async () => {
+		const blocks = [{ content: 'Prepended content' }];
+		mockedMarkdownToBlocks.mockReturnValue(blocks);
+		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
+
+		await saveToLogseq(
+			'Prepended content',
+			'Prepend Page',
+			[{ name: 'author', value: 'Bob' }],
+			'prepend-specific',
+			'https://example.com/prepend',
+		);
+
 		expect(mockedPrependBlockInPage).toHaveBeenCalled();
 		const prependCall = mockedPrependBlockInPage.mock.calls.find(
 			(c) => c[1] === 'Prepend Page',
 		);
 		expect(prependCall).toBeDefined();
-		// Metadata block contains only template properties (none here), not source/clipped-at
+		expect(prependCall![2]).toContain('author:: Bob');
 		expect(prependCall![2]).not.toContain('source::');
-		expect(prependCall![2]).not.toContain('clipped-at::');
 
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
 			expect.anything(),
@@ -579,10 +605,10 @@ describe('saveToLogseq edge cases', () => {
 		expect(contentInsertCalls).toHaveLength(0);
 	});
 
-	test('prepend-daily creates metadata block on journal page with content as children', async () => {
+	test('prepend-daily with empty properties inserts content directly on journal page', async () => {
 		const blocks = [{ content: 'Prepended daily content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: 'Prepended daily content' });
 
 		await saveToLogseq(
 			'Prepended daily content',
@@ -592,25 +618,19 @@ describe('saveToLogseq edge cases', () => {
 			'https://example.com/prepend-daily',
 		);
 
-		expect(mockedPrependBlockInPage).toHaveBeenCalled();
-		const prependCall = mockedPrependBlockInPage.mock.calls[0];
-		expect(prependCall[1]).toBe('Mar 23rd, 2026');
-		// Metadata block contains only template properties (none here), not source/clipped-at
-		expect(prependCall[2]).not.toContain('source::');
-		expect(prependCall[2]).not.toContain('clipped-at::');
-
-		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
-			expect.anything(),
-			'meta-uuid',
-			blocks,
-			{ sibling: false },
+		// No metadata block — content inserted directly
+		expect(mockedPrependBlockInPage).not.toHaveBeenCalled();
+		// Content block created on journal page
+		const contentCall = mockedAppendBlockInPage.mock.calls.find(
+			(c) => c[1] === 'Mar 23rd, 2026' && c[2] === 'Prepended daily content',
 		);
+		expect(contentCall).toBeDefined();
 	});
 
-	test('append-daily creates metadata block on journal page with content as children', async () => {
+	test('append-daily with empty properties inserts content directly on journal page', async () => {
 		const blocks = [{ content: 'Daily content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: 'Daily content' });
 
 		await saveToLogseq(
 			'Daily content',
@@ -620,23 +640,20 @@ describe('saveToLogseq edge cases', () => {
 			'https://example.com/daily',
 		);
 
-		// Metadata block is created on journal page (even if empty, since no template props)
+		// Separator + content block on journal page, no metadata block
 		const journalCalls = mockedAppendBlockInPage.mock.calls.filter(
 			(c) => c[1] === 'Mar 23rd, 2026',
 		);
-		expect(journalCalls.length).toBeGreaterThanOrEqual(1);
-		// None of the journal calls should contain source:: or clipped-at::
+		// At least separator + content block
+		expect(journalCalls.length).toBeGreaterThanOrEqual(2);
+		// Content block created directly
+		const contentCall = journalCalls.find((c) => c[2] === 'Daily content');
+		expect(contentCall).toBeDefined();
+		// No source/clipped-at in any journal call
 		for (const call of journalCalls) {
 			expect(call[2]).not.toContain('source::');
 			expect(call[2]).not.toContain('clipped-at::');
 		}
-
-		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
-			expect.anything(),
-			'meta-uuid',
-			blocks,
-			{ sibling: false },
-		);
 	});
 });
 
