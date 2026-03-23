@@ -9,6 +9,7 @@ vi.mock('./logseq-api', () => ({
 	getPageBlocksTree: vi.fn(),
 	queryByProperty: vi.fn(),
 	removeBlock: vi.fn(),
+	upsertBlockProperty: vi.fn(),
 	getTodayJournalPageName: vi.fn().mockResolvedValue('Mar 23rd, 2026'),
 }));
 
@@ -35,12 +36,14 @@ vi.stubGlobal('crypto', {
 
 import {
 	createPage,
+	getPage,
 	appendBlockInPage,
 	prependBlockInPage,
 	insertBatchBlock,
 	getPageBlocksTree,
 	queryByProperty,
 	removeBlock,
+	upsertBlockProperty,
 } from './logseq-api';
 import { markdownToBlocks } from './markdown-to-blocks';
 import {
@@ -55,11 +58,13 @@ import { generalSettings } from './storage-utils';
 
 const mockedQueryByProperty = vi.mocked(queryByProperty);
 const mockedCreatePage = vi.mocked(createPage);
+const mockedGetPage = vi.mocked(getPage);
 const mockedAppendBlockInPage = vi.mocked(appendBlockInPage);
 const mockedPrependBlockInPage = vi.mocked(prependBlockInPage);
 const mockedInsertBatchBlock = vi.mocked(insertBatchBlock);
 const mockedGetPageBlocksTree = vi.mocked(getPageBlocksTree);
 const mockedRemoveBlock = vi.mocked(removeBlock);
+const mockedUpsertBlockProperty = vi.mocked(upsertBlockProperty);
 const mockedMarkdownToBlocks = vi.mocked(markdownToBlocks);
 
 // Helper: SHA-256 of empty-ish content
@@ -113,16 +118,14 @@ describe('checkDuplicate', () => {
 });
 
 describe('saveToLogseq', () => {
-	test('create behavior calls createPage with properties, then insertBatchBlock', async () => {
+	test('create behavior calls createPage with empty props, upsertBlockProperty for each property, then appendBlockInPage + insertBatchBlock', async () => {
 		const blocks = [
 			{ content: 'Hello world' },
 			{ content: 'Second block' },
 		];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
 		mockedCreatePage.mockResolvedValue({ name: 'Test Note', uuid: 'page-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([
-			{ uuid: 'first-block-uuid', content: '' },
-		]);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: 'Hello world' });
 
 		await saveToLogseq(
 			'Hello world\n\nSecond block',
@@ -132,21 +135,83 @@ describe('saveToLogseq', () => {
 			'https://example.com',
 		);
 
-		// createPage called with properties including source and clipped-at
+		// createPage called with empty {} for properties (upsertBlockProperty handles props)
 		expect(mockedCreatePage).toHaveBeenCalledTimes(1);
 		const createArgs = mockedCreatePage.mock.calls[0];
 		expect(createArgs[1]).toBe('Test Note');
-		expect(createArgs[2]).toMatchObject({
-			tags: 'test',
-			source: 'https://example.com',
-		});
-		expect(createArgs[2]).toHaveProperty('clipped-at');
+		expect(createArgs[2]).toEqual({});
+		expect(createArgs[3]).toEqual({ redirect: false });
 
-		// insertBatchBlock called with first block UUID
+		// upsertBlockProperty called for each property
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'page-uuid',
+			'tags',
+			'test',
+		);
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'page-uuid',
+			'source',
+			'https://example.com',
+		);
+		const clippedAtCall = mockedUpsertBlockProperty.mock.calls.find(c => c[2] === 'clipped-at');
+		expect(clippedAtCall).toBeDefined();
+
+		// appendBlockInPage called with page name and first block content
+		expect(mockedAppendBlockInPage).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'Test Note',
+			'Hello world',
+		);
+
+		// insertBatchBlock called with anchor uuid for remaining blocks as siblings
 		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
-			'first-block-uuid',
-			blocks,
+			'anchor-uuid',
+			[{ content: 'Second block' }],
+			{ sibling: true },
+		);
+	});
+
+	test('create with null page from createPage throws "Failed to create page"', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([{ content: 'test' }]);
+		mockedCreatePage.mockResolvedValue(null as any);
+
+		await expect(
+			saveToLogseq('test', 'Bad Page', [], 'create', 'https://example.com'),
+		).rejects.toThrow("Failed to create page 'Bad Page'");
+	});
+
+	test('create with null anchor from appendBlockInPage throws "Failed to create block"', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([{ content: 'test' }]);
+		mockedCreatePage.mockResolvedValue({ name: 'Test', uuid: 'page-uuid' });
+		mockedAppendBlockInPage.mockResolvedValue(null as any);
+
+		await expect(
+			saveToLogseq('test', 'Test', [], 'create', 'https://example.com'),
+		).rejects.toThrow("Failed to create block on page 'Test'");
+	});
+
+	test('create on existing page — upsertBlockProperty called (verifies F2 fix)', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([]);
+		// createPage on existing page returns the existing page entity
+		mockedCreatePage.mockResolvedValue({ name: 'Existing', uuid: 'existing-uuid' });
+
+		await saveToLogseq('', 'Existing', [{ name: 'tags', value: 'retest' }], 'create', 'https://example.com/existing');
+
+		// upsertBlockProperty is the mechanism that works for existing pages
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'existing-uuid',
+			'tags',
+			'retest',
+		);
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'existing-uuid',
+			'source',
+			'https://example.com/existing',
 		);
 	});
 
@@ -173,7 +238,7 @@ describe('saveToLogseq', () => {
 	test('always calls appendToClipLog (log entry created)', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([{ content: 'test' }]);
 		mockedCreatePage.mockResolvedValue({ name: 'Log Test', uuid: 'p-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([{ uuid: 'fb-uuid', content: '' }]);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: '' });
 
 		await saveToLogseq(
 			'test content',
@@ -191,10 +256,9 @@ describe('saveToLogseq', () => {
 		expect(logCall![2]).toBe('[[Log Test]]');
 	});
 
-	test('properties include source and clipped-at', async () => {
+	test('properties include source and clipped-at via upsertBlockProperty', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([]);
 		mockedCreatePage.mockResolvedValue({ name: 'Props Test', uuid: 'p-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([]);
 
 		await saveToLogseq(
 			'',
@@ -204,10 +268,21 @@ describe('saveToLogseq', () => {
 			'https://example.com/props',
 		);
 
-		const propsArg = mockedCreatePage.mock.calls[0][2] as Record<string, string>;
-		expect(propsArg['source']).toBe('https://example.com/props');
-		expect(propsArg['clipped-at']).toBeDefined();
-		expect(propsArg['author']).toBe('Alice');
+		// createPage called with empty {} (not propsObj)
+		expect(mockedCreatePage.mock.calls[0][2]).toEqual({});
+
+		// Properties set via upsertBlockProperty
+		const upsertCalls = mockedUpsertBlockProperty.mock.calls;
+		const sourceCall = upsertCalls.find(c => c[2] === 'source');
+		expect(sourceCall).toBeDefined();
+		expect(sourceCall![3]).toBe('https://example.com/props');
+
+		const clippedAtCall = upsertCalls.find(c => c[2] === 'clipped-at');
+		expect(clippedAtCall).toBeDefined();
+
+		const authorCall = upsertCalls.find(c => c[2] === 'author');
+		expect(authorCall).toBeDefined();
+		expect(authorCall![3]).toBe('Alice');
 	});
 
 	test('prepend-specific calls prependBlockInPage', async () => {
@@ -233,14 +308,16 @@ describe('saveToLogseq', () => {
 });
 
 describe('updateExistingClip', () => {
-	test('removes old blocks, inserts new ones, appends log with replaces', async () => {
+	test('gets page, upserts properties, removes ALL old blocks, inserts new ones, appends log', async () => {
+		mockedGetPage.mockResolvedValue({ uuid: 'page-uuid', name: 'Existing Article' });
 		mockedGetPageBlocksTree.mockResolvedValue([
-			{ uuid: 'props-block', content: 'properties block' },
-			{ uuid: 'old-block-1', content: 'old content 1' },
-			{ uuid: 'old-block-2', content: 'old content 2' },
+			{ uuid: 'block-1', content: 'first block' },
+			{ uuid: 'block-2', content: 'old content 1' },
+			{ uuid: 'block-3', content: 'old content 2' },
 		]);
 		const newBlocks = [{ content: 'Updated content' }];
 		mockedMarkdownToBlocks.mockReturnValue(newBlocks);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'new-anchor', content: 'Updated content' });
 
 		await updateExistingClip(
 			'Existing Article',
@@ -249,22 +326,48 @@ describe('updateExistingClip', () => {
 			'https://example.com/existing',
 		);
 
-		// Old content blocks removed (not the first/properties block)
-		expect(mockedRemoveBlock).toHaveBeenCalledTimes(2);
-		expect(mockedRemoveBlock).toHaveBeenCalledWith(
+		// getPage called
+		expect(mockedGetPage).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
-			'old-block-1',
-		);
-		expect(mockedRemoveBlock).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'old-block-2',
+			'Existing Article',
 		);
 
-		// New blocks inserted under the properties block
-		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
+		// upsertBlockProperty for properties
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
 			{ port: 12315, token: 'test-token' },
-			'props-block',
-			newBlocks,
+			'page-uuid',
+			'tags',
+			'updated',
+		);
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'page-uuid',
+			'source',
+			'https://example.com/existing',
+		);
+		const clippedAtCall = mockedUpsertBlockProperty.mock.calls.find(c => c[2] === 'clipped-at');
+		expect(clippedAtCall).toBeDefined();
+
+		// ALL old blocks removed (not skipping first)
+		expect(mockedRemoveBlock).toHaveBeenCalledTimes(3);
+		expect(mockedRemoveBlock).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'block-1',
+		);
+		expect(mockedRemoveBlock).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'block-2',
+		);
+		expect(mockedRemoveBlock).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'block-3',
+		);
+
+		// New content inserted via appendBlockInPage
+		expect(mockedAppendBlockInPage).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'Existing Article',
+			'Updated content',
 		);
 
 		// Log entry created with replaces pointer
@@ -282,6 +385,38 @@ describe('updateExistingClip', () => {
 			},
 		);
 		expect(logInsertCall).toBeDefined();
+	});
+
+	test('empty tree from getPageBlocksTree — removeBlock not called, new content still inserted', async () => {
+		mockedGetPage.mockResolvedValue({ uuid: 'page-uuid', name: 'Empty Page' });
+		mockedGetPageBlocksTree.mockResolvedValue([]);
+		mockedMarkdownToBlocks.mockReturnValue([{ content: 'New content' }]);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'new-anchor', content: 'New content' });
+
+		await updateExistingClip(
+			'Empty Page',
+			'New content',
+			[],
+			'https://example.com/empty',
+		);
+
+		// No old blocks to remove
+		expect(mockedRemoveBlock).not.toHaveBeenCalled();
+
+		// New content still inserted
+		expect(mockedAppendBlockInPage).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'Empty Page',
+			'New content',
+		);
+	});
+
+	test('null page from getPage throws "Page not found"', async () => {
+		mockedGetPage.mockResolvedValue(null);
+
+		await expect(
+			updateExistingClip('Missing Page', 'content', [], 'https://example.com'),
+		).rejects.toThrow("Page 'Missing Page' not found");
 	});
 });
 
@@ -320,13 +455,16 @@ describe('clip log entry format', () => {
 	test('new clip log entry has source, clipped-at, content-hash properties', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([{ content: 'test' }]);
 		mockedCreatePage.mockResolvedValue({ name: 'My Page', uuid: 'p-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([{ uuid: 'fb-uuid', content: '' }]);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'anchor-uuid', content: '' });
 
 		await saveToLogseq('test', 'My Page', [], 'create', 'https://example.com');
 
-		// Find the insertBatchBlock call for the log entry (on 'log-block-uuid')
+		// Find the insertBatchBlock call for the log entry
 		const logInsertCall = mockedInsertBatchBlock.mock.calls.find(
-			(c) => c[1] === 'log-block-uuid',
+			(c) => {
+				const blocks = c[2] as any[];
+				return blocks.some((b: any) => b.content?.includes('source::'));
+			},
 		);
 		expect(logInsertCall).toBeDefined();
 		const propChildren = logInsertCall![2] as { content: string }[];
@@ -337,11 +475,12 @@ describe('clip log entry format', () => {
 	});
 
 	test('update log entry includes replaces property', async () => {
+		mockedGetPage.mockResolvedValue({ uuid: 'page-uuid', name: 'Old Page' });
 		mockedGetPageBlocksTree.mockResolvedValue([
-			{ uuid: 'props-block', content: 'properties' },
 			{ uuid: 'old-block', content: 'old' },
 		]);
 		mockedMarkdownToBlocks.mockReturnValue([{ content: 'new' }]);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'new-anchor', content: 'new' });
 
 		await updateExistingClip('Old Page', 'new content', [], 'https://example.com/old');
 
@@ -361,7 +500,6 @@ describe('clip log entry format', () => {
 	test('log entry content is wiki-link format [[Page Title]]', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([]);
 		mockedCreatePage.mockResolvedValue({ name: 'Wiki Test', uuid: 'p-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([]);
 
 		await saveToLogseq('', 'Wiki Test', [], 'create', 'https://example.com');
 
@@ -389,6 +527,15 @@ describe('syncSettings', () => {
 		expect(parsed.logseqApiPort).toBe(12315);
 	});
 
+	test('write with null from appendBlockInPage returns gracefully', async () => {
+		mockedAppendBlockInPage.mockResolvedValue(null as any);
+
+		// Should not throw
+		await syncSettings('write');
+
+		expect(mockedAppendBlockInPage).toHaveBeenCalled();
+	});
+
 	test('read parses settings from log page blocks and updates generalSettings', async () => {
 		const settingsPayload = JSON.stringify({ logseqApiPort: 9999 });
 		mockedGetPageBlocksTree.mockResolvedValue([
@@ -407,10 +554,9 @@ describe('syncSettings', () => {
 });
 
 describe('saveToLogseq edge cases', () => {
-	test('empty noteContent still creates page with properties', async () => {
+	test('empty noteContent still creates page with properties via upsertBlockProperty', async () => {
 		mockedMarkdownToBlocks.mockReturnValue([]);
 		mockedCreatePage.mockResolvedValue({ name: 'Empty Note', uuid: 'p-uuid' });
-		mockedGetPageBlocksTree.mockResolvedValue([]);
 
 		await saveToLogseq(
 			'',
@@ -421,13 +567,30 @@ describe('saveToLogseq edge cases', () => {
 		);
 
 		expect(mockedCreatePage).toHaveBeenCalledTimes(1);
-		const propsArg = mockedCreatePage.mock.calls[0][2] as Record<string, string>;
-		expect(propsArg['source']).toBe('https://example.com/empty');
-		expect(propsArg['tags']).toBe('empty');
-		// insertBatchBlock should NOT be called for content (no blocks, or empty tree)
+		// createPage called with empty {}
+		expect(mockedCreatePage.mock.calls[0][2]).toEqual({});
+
+		// Properties set via upsertBlockProperty
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'p-uuid',
+			'source',
+			'https://example.com/empty',
+		);
+		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
+			{ port: 12315, token: 'test-token' },
+			'p-uuid',
+			'tags',
+			'empty',
+		);
+
+		// insertBatchBlock should NOT be called for content (no blocks)
 		// but IS called for the log entry
 		const contentInsertCalls = mockedInsertBatchBlock.mock.calls.filter(
-			(c) => c[1] !== 'log-block-uuid',
+			(c) => {
+				const blocks = c[2] as any[];
+				return !blocks.some((b: any) => b.content?.includes('::'));
+			},
 		);
 		expect(contentInsertCalls).toHaveLength(0);
 	});
@@ -479,5 +642,26 @@ describe('checkDuplicate error handling', () => {
 
 		const result = await checkDuplicate('https://example.com/error');
 		expect(result).toEqual({ exists: false });
+	});
+});
+
+describe('appendToClipLog null guard', () => {
+	test('null anchor from appendBlockInPage returns gracefully, no crash', async () => {
+		mockedMarkdownToBlocks.mockReturnValue([]);
+		mockedCreatePage.mockResolvedValue({ name: 'Log Null Test', uuid: 'p-uuid' });
+		// First call for clip log returns null (simulating appendBlockInPage failure)
+		mockedAppendBlockInPage.mockResolvedValue(null as any);
+
+		// Should not throw — appendToClipLog handles null gracefully
+		await saveToLogseq('', 'Log Null Test', [], 'create', 'https://example.com/log-null');
+
+		// insertBatchBlock should NOT be called for log props since anchor was null
+		const logInsertCalls = mockedInsertBatchBlock.mock.calls.filter(
+			(c) => {
+				const blocks = c[2] as any[];
+				return blocks.some((b: any) => b.content?.includes('source::'));
+			},
+		);
+		expect(logInsertCalls).toHaveLength(0);
 	});
 });

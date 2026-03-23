@@ -179,4 +179,27 @@ describe('error handling', () => {
 			expect((err as LogseqApiError).message).toBe('Internal Server Error');
 		}
 	});
+
+	test('error-in-200: response with serialized Error object (string stack) throws LogseqApiError', async () => {
+		mockFetch.mockReturnValue(jsonResponse({
+			message: 'Invalid target: nil',
+			stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
+		}));
+
+		await expect(getPage(config, 'Test')).rejects.toThrow(LogseqApiError);
+		try {
+			await getPage(config, 'Test');
+		} catch (err) {
+			expect((err as LogseqApiError).status).toBe(200);
+			expect((err as LogseqApiError).message).toBe('Invalid target: nil');
+		}
+	});
+
+	test('false-positive guard: response with non-string stack passes through normally', async () => {
+		const data = { uuid: 'abc', stack: 42 };
+		mockFetch.mockReturnValue(jsonResponse(data));
+
+		const result = await getPage(config, 'Test');
+		expect(result).toEqual(data);
+	});
 });

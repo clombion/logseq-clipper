@@ -678,6 +678,9 @@
 	"saveBehaviorLabel": {
 		"message": "Save behavior"
 	},
+	"saveAsPage": {
+		"message": "Save as Logseq page"
+	},
 	"saveFile": {
 		"message": "Save file..."
 	},
