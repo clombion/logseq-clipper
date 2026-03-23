@@ -141,6 +141,23 @@ export async function queryByProperty(config: LogseqApiConfig, property: string,
 	return await logseqApi(config, 'logseq.DB.q', [query]);
 }
 
+export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<string> {
+	const today = new Date();
+	const journalDay = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+	const results = await logseqApi(config, 'logseq.DB.datascriptQuery', [
+		`[:find (pull ?p [:block/name :block/original-name]) :where [?p :block/journal-day ${journalDay}]]`,
+	]);
+	if (results && results.length > 0 && results[0].length > 0) {
+		const page = results[0][0];
+		return page['original-name'] || page.name;
+	}
+	// Fallback: use Logseq's default format (MMM do, yyyy)
+	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const day = today.getDate();
+	const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+	return `${months[today.getMonth()]} ${day}${suffix}, ${today.getFullYear()}`;
+}
+
 export async function removeBlock(config: LogseqApiConfig, blockUuid: string): Promise<void> {
 	await logseqApi(config, 'logseq.Editor.removeBlock', [blockUuid]);
 }

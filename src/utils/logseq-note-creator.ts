@@ -9,6 +9,7 @@ import {
 	getPageBlocksTree,
 	queryByProperty,
 	removeBlock,
+	getTodayJournalPageName as fetchTodayJournalPage,
 } from './logseq-api';
 import { markdownToBlocks } from './markdown-to-blocks';
 import { generalSettings } from './storage-utils';
@@ -94,13 +95,15 @@ export async function saveToLogseq(
 		case 'append-specific': {
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
-				const remaining = blocks.slice(1);
-				const children = blocks[0].children ?? [];
-				if (remaining.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-				}
-				if (children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, children);
+				if (anchor?.uuid) {
+					const remaining = blocks.slice(1);
+					const children = blocks[0].children ?? [];
+					if (remaining.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+					}
+					if (children.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, children);
+					}
 				}
 			} else {
 				await appendBlockInPage(config, noteName, noteContent);
@@ -108,16 +111,18 @@ export async function saveToLogseq(
 			break;
 		}
 		case 'append-daily': {
-			const journalPage = getTodayJournalPageName();
+			const journalPage = await fetchTodayJournalPage(config);
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, journalPage, blocks[0].content);
-				const remaining = blocks.slice(1);
-				const children = blocks[0].children ?? [];
-				if (remaining.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-				}
-				if (children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, children);
+				if (anchor?.uuid) {
+					const remaining = blocks.slice(1);
+					const children = blocks[0].children ?? [];
+					if (remaining.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+					}
+					if (children.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, children);
+					}
 				}
 			} else {
 				await appendBlockInPage(config, journalPage, noteContent);
@@ -127,13 +132,15 @@ export async function saveToLogseq(
 		case 'prepend-specific': {
 			if (blocks.length > 0) {
 				const anchor = await prependBlockInPage(config, noteName, blocks[0].content);
-				const remaining = blocks.slice(1);
-				const children = blocks[0].children ?? [];
-				if (remaining.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-				}
-				if (children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, children);
+				if (anchor?.uuid) {
+					const remaining = blocks.slice(1);
+					const children = blocks[0].children ?? [];
+					if (remaining.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+					}
+					if (children.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, children);
+					}
 				}
 			} else {
 				await prependBlockInPage(config, noteName, noteContent);
@@ -141,16 +148,18 @@ export async function saveToLogseq(
 			break;
 		}
 		case 'prepend-daily': {
-			const journalPage = getTodayJournalPageName();
+			const journalPage = await fetchTodayJournalPage(config);
 			if (blocks.length > 0) {
 				const anchor = await prependBlockInPage(config, journalPage, blocks[0].content);
-				const remaining = blocks.slice(1);
-				const children = blocks[0].children ?? [];
-				if (remaining.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
-				}
-				if (children.length > 0) {
-					await insertBatchBlock(config, anchor.uuid, children);
+				if (anchor?.uuid) {
+					const remaining = blocks.slice(1);
+					const children = blocks[0].children ?? [];
+					if (remaining.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+					}
+					if (children.length > 0) {
+						await insertBatchBlock(config, anchor.uuid, children);
+					}
 				}
 			} else {
 				await prependBlockInPage(config, journalPage, noteContent);

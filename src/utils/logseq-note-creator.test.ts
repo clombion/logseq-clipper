@@ -9,6 +9,7 @@ vi.mock('./logseq-api', () => ({
 	getPageBlocksTree: vi.fn(),
 	queryByProperty: vi.fn(),
 	removeBlock: vi.fn(),
+	getTodayJournalPageName: vi.fn().mockResolvedValue('Mar 23rd, 2026'),
 }));
 
 vi.mock('./markdown-to-blocks', () => ({
@@ -446,14 +447,15 @@ describe('saveToLogseq edge cases', () => {
 
 		expect(mockedPrependBlockInPage).toHaveBeenCalled();
 		const prependCall = mockedPrependBlockInPage.mock.calls[0];
-		// The page name should be today's journal in YYYY_MM_DD format
-		expect(prependCall[1]).toMatch(/^\d{4}_\d{2}_\d{2}$/);
+		// The page name comes from the mocked getTodayJournalPageName API
+		expect(prependCall[1]).toBe('Mar 23rd, 2026');
 		expect(prependCall[2]).toBe('Prepended daily content');
 	});
 
-	test('append-daily calls appendBlockInPage with journal page name', async () => {
+	test('append-daily calls appendBlockInPage with journal page name from API', async () => {
 		const blocks = [{ content: 'Daily content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'append-uuid', content: 'Daily content' });
 
 		await saveToLogseq(
 			'Daily content',
@@ -464,7 +466,7 @@ describe('saveToLogseq edge cases', () => {
 		);
 
 		const appendCall = mockedAppendBlockInPage.mock.calls.find(
-			(c) => (c[1] as string).match(/^\d{4}_\d{2}_\d{2}$/),
+			(c) => c[1] === 'Mar 23rd, 2026',
 		);
 		expect(appendCall).toBeDefined();
 		expect(appendCall![2]).toBe('Daily content');
