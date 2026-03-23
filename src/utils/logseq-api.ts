@@ -1,3 +1,5 @@
+import { debugLog } from './debug';
+
 export interface LogseqApiConfig {
 	port: number;
 	token: string;
@@ -49,6 +51,7 @@ export class LogseqApiError extends Error {
 }
 
 async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = []): Promise<any> {
+	debugLog('LogseqAPI', `${method}`, args);
 	let response: Response;
 	try {
 		response = await fetch(`http://127.0.0.1:${config.port}/api`, {
@@ -72,7 +75,17 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 		throw new LogseqApiError(response.status, text);
 	}
 
-	return await response.json();
+	const result = await response.json();
+	debugLog('LogseqAPI', `${method} →`, typeof result === 'object' ? Object.keys(result || {}) : result);
+
+	// HACK: Logseq server sends promise rejections as 200 with serialized Error objects.
+	// Discriminate by checking for 'stack' property (string type) — normal API responses
+	// never have stack traces. If Logseq changes error serialization, this may need updating.
+	if (result && typeof result === 'object' && typeof result.stack === 'string') {
+		throw new LogseqApiError(200, result.message || 'Unknown Logseq API error');
+	}
+
+	return result;
 }
 
 export async function checkConnection(config: LogseqApiConfig): Promise<boolean> {
@@ -160,4 +173,16 @@ export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<
 
 export async function removeBlock(config: LogseqApiConfig, blockUuid: string): Promise<void> {
 	await logseqApi(config, 'logseq.Editor.removeBlock', [blockUuid]);
+}
+
+// HACK: Assumes upsertBlockProperty works on page entities (page UUIDs),
+// not just block UUIDs. Logseq's <get-block resolves both, but this
+// hasn't been verified against a running instance. Test manually.
+export async function upsertBlockProperty(
+	config: LogseqApiConfig,
+	blockUuid: string,
+	key: string,
+	value: any,
+): Promise<void> {
+	await logseqApi(config, 'logseq.Editor.upsertBlockProperty', [blockUuid, key, value]);
 }

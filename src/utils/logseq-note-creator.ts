@@ -3,16 +3,19 @@ import {
 	type IBatchBlock,
 	type LogseqBlock,
 	createPage,
+	getPage,
 	appendBlockInPage,
 	prependBlockInPage,
 	insertBatchBlock,
 	getPageBlocksTree,
 	queryByProperty,
 	removeBlock,
+	upsertBlockProperty,
 	getTodayJournalPageName as fetchTodayJournalPage,
 } from './logseq-api';
 import { markdownToBlocks } from './markdown-to-blocks';
 import { generalSettings } from './storage-utils';
+import { debugLog } from './debug';
 import { type Property, type Template } from '../types/types';
 
 function getApiConfig(): LogseqApiConfig {
@@ -45,7 +48,8 @@ export async function checkDuplicate(url: string): Promise<{
 		}
 
 		return { exists: false };
-	} catch {
+	} catch (error) {
+		console.warn('Dedup check failed, proceeding without dedup:', error);
 		return { exists: false };
 	}
 }
@@ -58,6 +62,7 @@ export async function saveToLogseq(
 	sourceUrl: string,
 ): Promise<void> {
 	const config = getApiConfig();
+	const clipId = Date.now().toString(36);
 	const now = new Date().toISOString();
 
 	const propsObj: Record<string, string> = {};
@@ -70,24 +75,37 @@ export async function saveToLogseq(
 	const blocks = markdownToBlocks(noteContent);
 	const contentHash = await computeContentHash(noteContent);
 
+	debugLog('Save', `[${clipId}] behavior=${behavior} page='${noteName}' blocks=${blocks.length} props=${Object.keys(propsObj).length}`);
+
 	switch (behavior) {
 		case 'create': {
-			await createPage(config, noteName, propsObj, {
-				createFirstBlock: true,
-				redirect: false,
-			});
-			const tree = await getPageBlocksTree(config, noteName);
-			if (tree.length > 0 && blocks.length > 0) {
-				try {
-					await insertBatchBlock(config, tree[0].uuid, blocks);
-				} catch (error) {
-					// Rollback: try to delete the page we just created
-					try {
-						for (const block of tree) {
-							await removeBlock(config, block.uuid);
-						}
-					} catch { /* best effort cleanup */ }
-					throw error;
+			debugLog('Save', `[${clipId}] creating page '${noteName}'`);
+			const page = await createPage(config, noteName, {}, { redirect: false });
+			if (!page?.uuid) {
+				throw new Error(`Failed to create page '${noteName}'`);
+			}
+
+			// Apply properties via upsertBlockProperty (works for new AND existing pages)
+			debugLog('Save', `[${clipId}] setting ${Object.keys(propsObj).length} properties`);
+			for (const [key, value] of Object.entries(propsObj)) {
+				debugLog('Save', `[${clipId}] upsertBlockProperty: ${key}`);
+				await upsertBlockProperty(config, page.uuid, key, value);
+			}
+
+			// Insert content blocks
+			if (blocks.length > 0) {
+				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to create block on page '${noteName}'`);
+				}
+				debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}, inserting ${blocks.length} blocks`);
+				const children = blocks[0].children ?? [];
+				if (children.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, children);
+				}
+				const remaining = blocks.slice(1);
+				if (remaining.length > 0) {
+					await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
 				}
 			}
 			break;
@@ -178,18 +196,52 @@ export async function updateExistingClip(
 	sourceUrl: string,
 ): Promise<void> {
 	const config = getApiConfig();
+	const clipId = Date.now().toString(36);
+	const now = new Date().toISOString();
 
-	const tree = await getPageBlocksTree(config, pageTitle);
-	const blocks = markdownToBlocks(noteContent);
+	debugLog('Save', `[${clipId}] updating existing clip '${pageTitle}'`);
 
-	// Insert new content first, then delete old blocks (insert-before-delete)
-	if (tree.length > 0 && blocks.length > 0) {
-		await insertBatchBlock(config, tree[0].uuid, blocks);
+	const page = await getPage(config, pageTitle);
+	if (!page?.uuid) {
+		throw new Error(`Page '${pageTitle}' not found`);
 	}
 
-	// Only after successful insert, remove old content blocks (skip the first/properties block)
-	for (let i = 1; i < tree.length; i++) {
-		await removeBlock(config, tree[i].uuid);
+	// Update properties
+	const propsObj: Record<string, string> = {};
+	for (const prop of properties) {
+		propsObj[prop.name] = String(prop.value);
+	}
+	propsObj['source'] = sourceUrl;
+	propsObj['clipped-at'] = now;
+	debugLog('Save', `[${clipId}] updating ${Object.keys(propsObj).length} properties`);
+	for (const [key, value] of Object.entries(propsObj)) {
+		await upsertBlockProperty(config, page.uuid, key, value);
+	}
+
+	// Snapshot old content blocks BEFORE inserting new ones
+	const oldBlocks = await getPageBlocksTree(config, pageTitle) ?? [];
+	debugLog('Save', `[${clipId}] old blocks: ${oldBlocks.length}, inserting new content`);
+
+	// Insert new content
+	const blocks = markdownToBlocks(noteContent);
+	if (blocks.length > 0) {
+		const anchor = await appendBlockInPage(config, pageTitle, blocks[0].content);
+		if (anchor?.uuid) {
+			const children = blocks[0].children ?? [];
+			if (children.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, children);
+			}
+			const remaining = blocks.slice(1);
+			if (remaining.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+			}
+		}
+	}
+
+	// Delete ALL old blocks (properties are on page entity via upsertBlockProperty)
+	debugLog('Save', `[${clipId}] deleting ${oldBlocks.length} old blocks`);
+	for (const block of oldBlocks) {
+		await removeBlock(config, block.uuid);
 	}
 
 	const contentHash = await computeContentHash(noteContent);
@@ -203,7 +255,11 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 	if (direction === 'write') {
 		const settingsJson = JSON.stringify(generalSettings, null, 2);
 		const content = `## Settings\n\`\`\`json\n${settingsJson}\n\`\`\``;
-		await appendBlockInPage(config, logPage, content);
+		const result = await appendBlockInPage(config, logPage, content);
+		if (!result) {
+			debugLog('Settings', 'Failed to write settings to Logseq');
+			return;
+		}
 	} else {
 		const tree = await getPageBlocksTree(config, logPage);
 		for (const block of tree) {
@@ -282,6 +338,10 @@ async function appendToClipLog(
 	};
 
 	const anchor = await appendBlockInPage(config, logPage, logBlock.content);
+	if (!anchor?.uuid) {
+		debugLog('Save', 'Failed to create clip log entry — appendBlockInPage returned null');
+		return; // Don't crash the save flow for a log failure
+	}
 	if (logBlock.properties) {
 		// Properties are set by inserting a child block with property syntax
 		// or by using the block's properties directly via insertBatchBlock
