@@ -8,7 +8,7 @@ body:
 - type: checkboxes
   attributes:
     label: Troubleshooting
-    description: Please review [Troubleshooting instructions](https://help.obsidian.md/web-clipper/troubleshoot) before opening an issue.
+    description: Please review [Logseq Web Clipper README](https://github.com/clombion/logseq-clipper#readme) before opening an issue.
     options:
       - label: I have reviewed the troubleshooting instructions
         required: true
@@ -27,15 +27,15 @@ body:
 
 ---
 
-IMPORTANT: If your issue is related to missing content on page, please review the Troubleshooting instructions and open your issue on the Defuddle repo.
-https://help.obsidian.md/web-clipper/troubleshoot
+IMPORTANT: If your issue is related to missing content on page, please review the README and open your issue on the Defuddle repo.
+https://github.com/clombion/logseq-clipper#readme
 
 **Version (please complete the following information):**
 
 - OS: [e.g. Windows]
 - Browser [e.g. Chrome, Firefox]
-- Web Clipper version: [e.g. 0.9.5]
-- Obsidian version: [e.g. 1.7.5]
+- Web Clipper version: [e.g. 0.3.2]
+- Logseq version: [e.g. 0.10.9]
 
 **Describe the bug**
 

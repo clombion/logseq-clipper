@@ -8,12 +8,12 @@ First, add an OpenAI API key in `.env` at the root of the repo:
 OPENAI_API_KEY=sk-...
 ```
 
-Scripts can be run using npm in the root of the repo.
+Scripts can be run using pnpm in the root of the repo.
 
 #### Update locale
 
 ```
-npm run update-locales
+pnpm run update-locales
 ```
 
 - Checks the English locale file and automatically translates missing strings
@@ -22,7 +22,7 @@ npm run update-locales
 #### Add locale
 
 ```bash
-npm run add-locale fr
+pnpm run add-locale fr
 ```
 
 ### Version bump
@@ -31,9 +31,7 @@ npm run add-locale fr
 ./scripts/bump-version.sh 1.0.1
 ```
 
-- Updates `version` in `package.json`, all browser manifests, and `dev/manifest.json`
-- Updates `MARKETING_VERSION` in the Xcode project
-- Increments `CURRENT_PROJECT_VERSION` by 1
+- Updates `version` in `package.json` and all browser manifests
 
 ### Changelog
 

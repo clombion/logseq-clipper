@@ -26,6 +26,8 @@ jobs:
       - run: pnpm test -- --reporter=verbose
         continue-on-error: true  # pre-existing upstream test failure
 
+      - run: pnpm run lint
+
       - run: pnpm run build:chrome
       - run: pnpm run build:firefox
 
