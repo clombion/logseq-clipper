@@ -213,24 +213,34 @@ describe('saveToLogseq', () => {
 		);
 	});
 
-	test('append-specific calls appendBlockInPage', async () => {
+	test('append-specific creates metadata parent with properties, content as children', async () => {
 		const blocks = [{ content: 'Appended content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'appended-uuid', content: 'Appended content' });
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
 
 		await saveToLogseq(
 			'Appended content',
 			'Existing Page',
-			[],
+			[{ name: 'resource', value: 'Test Resource' }],
 			'append-specific',
 			'https://example.com/append',
 		);
 
-		// appendBlockInPage called (at least for content + log)
+		// Metadata block created with properties as content (skip separator block)
 		const appendCalls = mockedAppendBlockInPage.mock.calls;
-		const contentCall = appendCalls.find((c) => c[1] === 'Existing Page');
-		expect(contentCall).toBeDefined();
-		expect(contentCall![2]).toBe('Appended content');
+		const metaCall = appendCalls.find((c) => c[1] === 'Existing Page' && c[2] !== '');
+		expect(metaCall).toBeDefined();
+		expect(metaCall![2]).toContain('resource:: Test Resource');
+		expect(metaCall![2]).toContain('source:: https://example.com/append');
+		expect(metaCall![2]).toContain('clipped-at::');
+
+		// Content inserted as children via insertBatchBlock
+		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
+			expect.anything(),
+			'meta-uuid',
+			blocks,
+			{ sibling: false },
+		);
 	});
 
 	test('always calls appendToClipLog (log entry created)', async () => {
@@ -283,10 +293,10 @@ describe('saveToLogseq', () => {
 		expect(authorCall![3]).toBe('Alice');
 	});
 
-	test('prepend-specific calls prependBlockInPage', async () => {
+	test('prepend-specific creates metadata parent with properties, content as children', async () => {
 		const blocks = [{ content: 'Prepended content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'prepend-uuid', content: 'Prepended content' });
+		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
 
 		await saveToLogseq(
 			'Prepended content',
@@ -301,7 +311,14 @@ describe('saveToLogseq', () => {
 			(c) => c[1] === 'Prepend Page',
 		);
 		expect(prependCall).toBeDefined();
-		expect(prependCall![2]).toBe('Prepended content');
+		expect(prependCall![2]).toContain('source:: https://example.com/prepend');
+
+		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
+			expect.anything(),
+			'meta-uuid',
+			blocks,
+			{ sibling: false },
+		);
 	});
 });
 
@@ -581,10 +598,10 @@ describe('saveToLogseq edge cases', () => {
 		expect(contentInsertCalls).toHaveLength(0);
 	});
 
-	test('prepend-daily calls prependBlockInPage with journal page name', async () => {
+	test('prepend-daily creates metadata block on journal page with content as children', async () => {
 		const blocks = [{ content: 'Prepended daily content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'prepend-uuid', content: '' });
+		mockedPrependBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
 
 		await saveToLogseq(
 			'Prepended daily content',
@@ -596,15 +613,21 @@ describe('saveToLogseq edge cases', () => {
 
 		expect(mockedPrependBlockInPage).toHaveBeenCalled();
 		const prependCall = mockedPrependBlockInPage.mock.calls[0];
-		// The page name comes from the mocked getTodayJournalPageName API
 		expect(prependCall[1]).toBe('Mar 23rd, 2026');
-		expect(prependCall[2]).toBe('Prepended daily content');
+		expect(prependCall[2]).toContain('source:: https://example.com/prepend-daily');
+
+		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
+			expect.anything(),
+			'meta-uuid',
+			blocks,
+			{ sibling: false },
+		);
 	});
 
-	test('append-daily calls appendBlockInPage with journal page name from API', async () => {
+	test('append-daily creates metadata block on journal page with content as children', async () => {
 		const blocks = [{ content: 'Daily content' }];
 		mockedMarkdownToBlocks.mockReturnValue(blocks);
-		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'append-uuid', content: 'Daily content' });
+		mockedAppendBlockInPage.mockResolvedValue({ uuid: 'meta-uuid', content: '' });
 
 		await saveToLogseq(
 			'Daily content',
@@ -615,10 +638,17 @@ describe('saveToLogseq edge cases', () => {
 		);
 
 		const appendCall = mockedAppendBlockInPage.mock.calls.find(
-			(c) => c[1] === 'Mar 23rd, 2026',
+			(c) => c[1] === 'Mar 23rd, 2026' && c[2] !== '',
 		);
 		expect(appendCall).toBeDefined();
-		expect(appendCall![2]).toBe('Daily content');
+		expect(appendCall![2]).toContain('source:: https://example.com/daily');
+
+		expect(mockedInsertBatchBlock).toHaveBeenCalledWith(
+			expect.anything(),
+			'meta-uuid',
+			blocks,
+			{ sibling: false },
+		);
 	});
 });
 
