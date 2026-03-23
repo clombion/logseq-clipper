@@ -591,11 +591,18 @@ function logError(message: string, error?: any): void {
 
 async function waitForInterpreter(interpretBtn: HTMLButtonElement): Promise<void> {
 	return new Promise((resolve, reject) => {
+		const TIMEOUT_MS = 30000;
+		const timeout = setTimeout(() => {
+			reject(new Error('Interpreter timed out after 30 seconds'));
+		}, TIMEOUT_MS);
+
 		const checkProcessing = () => {
 			if (!interpretBtn.classList.contains('processing')) {
 				if (interpretBtn.classList.contains('done')) {
+					clearTimeout(timeout);
 					resolve();
 				} else if (interpretBtn.classList.contains('error')) {
+					clearTimeout(timeout);
 					reject(new Error(getMessage('failedToProcessInterpreter')));
 				} else {
 					setTimeout(checkProcessing, 100);

@@ -136,7 +136,8 @@ export async function getPageBlocksTree(config: LogseqApiConfig, pageTitle: stri
 }
 
 export async function queryByProperty(config: LogseqApiConfig, property: string, value: string): Promise<any[]> {
-	const query = `(property ${property} "${value}")`;
+	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+	const query = `(property ${property} "${escaped}")`;
 	return await logseqApi(config, 'logseq.DB.q', [query]);
 }
 

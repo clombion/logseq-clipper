@@ -40,7 +40,7 @@ let cachedPresetProviders: Record<string, PresetProvider> | null = null;
 async function fetchPresetProviders(): Promise<Record<string, PresetProvider>> {
 	debugLog('Providers', 'Fetching preset providers from URL:', PROVIDERS_URL);
 	try {
-		const response = await fetch(PROVIDERS_URL);
+		const response = await fetch(PROVIDERS_URL, { signal: AbortSignal.timeout(5000) });
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
@@ -90,7 +90,7 @@ async function shouldUpdatePresets(): Promise<boolean> {
 	try {
 		const localData = (await getLocalStorage(LOCAL_STORAGE_KEY)) as ProviderPresets | null;
 
-		const response = await fetch(PROVIDERS_URL);
+		const response = await fetch(PROVIDERS_URL, { signal: AbortSignal.timeout(5000) });
 		if (!response.ok) return false;
 
 		const remoteData = (await response.json()) as ProviderPresets;
