@@ -217,7 +217,7 @@ async function importTypesFromJson(jsonContent: string): Promise<void> {
 		}
 	} catch (error) {
 		console.error('Error parsing types.json:', error);
-		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
 	}
 }
 

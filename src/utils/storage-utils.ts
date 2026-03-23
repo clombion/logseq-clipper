@@ -171,7 +171,7 @@ export async function loadSettings(): Promise<Settings> {
 		interpreterEnabled: data.interpreter_settings?.interpreterEnabled ?? defaultSettings.interpreterEnabled,
 		interpreterAutoRun: data.interpreter_settings?.interpreterAutoRun ?? defaultSettings.interpreterAutoRun,
 		defaultPromptContext: data.interpreter_settings?.defaultPromptContext || defaultSettings.defaultPromptContext,
-		propertyTypes: data.property_types || defaultSettings.propertyTypes,
+		propertyTypes: data.property_types ?? defaultSettings.propertyTypes,
 		readerSettings: {
 			fontSize: data.reader_settings?.fontSize ?? defaultSettings.readerSettings.fontSize,
 			lineHeight: data.reader_settings?.lineHeight ?? defaultSettings.readerSettings.lineHeight,
@@ -184,9 +184,9 @@ export async function loadSettings(): Promise<Settings> {
 		logseqApiPort: effectiveLogseq?.apiPort ?? defaultSettings.logseqApiPort,
 		logseqApiToken: effectiveLogseq?.apiToken ?? defaultSettings.logseqApiToken,
 		logseqLogPage: effectiveLogseq?.logPage ?? defaultSettings.logseqLogPage,
-		stats: data.stats || defaultSettings.stats,
-		history: data.history || defaultSettings.history,
-		ratings: data.ratings || defaultSettings.ratings,
+		stats: data.stats ?? defaultSettings.stats,
+		history: data.history ?? defaultSettings.history,
+		ratings: data.ratings ?? defaultSettings.ratings,
 		saveBehavior: data.general_settings?.saveBehavior ?? defaultSettings.saveBehavior,
 	};
 

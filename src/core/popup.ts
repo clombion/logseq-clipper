@@ -929,8 +929,7 @@ async function fillTemplateFieldValues(
 		}
 	}
 
-	const replacedTemplate = await getReplacedTemplate(template, variables, currentTabId!, currentUrl);
-	debugLog('Variables', 'Current template with replaced variables:', JSON.stringify(replacedTemplate, null, 2));
+	debugLog('Variables', 'Template variables loaded:', Object.keys(variables).length);
 }
 
 function setupMetadataToggle() {
