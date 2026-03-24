@@ -11,7 +11,6 @@ import {
 	getTodayJournalPageName as fetchTodayJournalPage,
 	getPage,
 	getPageBlocksTree,
-	type IBatchBlock,
 	insertBatchBlock,
 	type LogseqApiConfig,
 	prependBlockInPage,
@@ -405,29 +404,20 @@ async function appendToClipLog(
 	}
 
 	const displayTitle = title || destinationPage;
-	const logBlock: IBatchBlock = {
-		content: `[[${displayTitle}]]`,
-		properties: logBlockProps,
-	};
-
-	const anchor = await appendBlockInPage(config, logPage, logBlock.content);
+	const anchor = await appendBlockInPage(config, logPage, `[[${displayTitle}]]`);
 	if (!anchor?.uuid) {
 		debugLog('Save', 'Failed to create clip log entry — appendBlockInPage returned null');
 		return; // Don't crash the save flow for a log failure
 	}
-	if (logBlock.properties) {
-		// Properties are set by inserting a child block with property syntax
-		// or by using the block's properties directly via insertBatchBlock
-		try {
-			const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(([key, value]) => ({
-				content: `${key}:: ${value}`,
-			}));
-			if (propChildren.length > 0) {
-				await insertBatchBlock(config, anchor.uuid, propChildren);
-			}
-		} catch (propError) {
-			debugLog('Save', 'Failed to set some clip log properties:', propError);
+	// Set properties directly on the anchor block via upsertBlockProperty.
+	// This ensures queryByProperty('source', url) matches the anchor block,
+	// which has [[PageTitle]] as content — required for dedup to work.
+	try {
+		for (const [key, value] of Object.entries(logBlockProps)) {
+			await upsertBlockProperty(config, anchor.uuid, key, value);
 		}
+	} catch (propError) {
+		debugLog('Save', 'Failed to set some clip log properties:', propError);
 	}
 }
 

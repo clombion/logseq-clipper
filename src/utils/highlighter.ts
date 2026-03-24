@@ -706,7 +706,10 @@ function getTextOffset(container: Element, targetNode: Node, targetOffset: numbe
 	let offset = 0;
 	const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
 
-	let node: Node | null = treeWalker.currentNode;
+	// Start with nextNode() — currentNode is the root element, not a text node.
+	// Starting with currentNode double-counts: the element's full textContent
+	// plus each child text node's content individually.
+	let node: Node | null = treeWalker.nextNode();
 	while (node) {
 		if (node === targetNode) {
 			return offset + targetOffset;
