@@ -1,80 +1,54 @@
 # Logseq Web Clipper
 
-A browser extension that clips web pages directly into [Logseq](https://logseq.com) via its HTTP API. Forked from [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) v1.2.1.
+A browser extension that clips web pages directly into [Logseq](https://logseq.com) via its HTTP API.
 
-## What changed from the upstream
+## Features
 
-**Replaced — Logseq integration via HTTP API:**
-- Saves clips as Logseq pages with `property:: value` metadata via `createPage`
-- Structures content as hierarchical blocks via `insertBatchBlock` (headings → parent blocks, paragraphs → children)
-- Dedup detection — queries existing clips by `source::` property before saving, warns if URL already clipped
-- Append-only clip log (`[[Web Clips Log]]`) with content hashes for dedup and history
-- "Update existing" flow — replaces content blocks on an existing page, appends new log entry with `replaces::` pointer
-- Settings sync — extension settings stored as JSON in the log page for cross-browser portability
-- First-run setup page guiding users through enabling Logseq's HTTP API
-
-**Removed:**
-- Obsidian vault concept (Logseq uses graphs)
-- `obsidian://` URI scheme integration
-- Safari/Xcode build target
-- Legacy mode, silent open, beta features toggles
-- Overwrite behavior (replaced by dedup/update mechanism)
-
-**Kept from upstream:**
-- Content extraction via [Defuddle](https://github.com/kepano/defuddle)
-- Template system with variables, filters, and logic
-- Highlighter (mark up web pages, save highlights)
-- Reader mode (distraction-free reading)
-- LLM interpreter (summarize pages via OpenAI, Anthropic, Gemini, Ollama, etc.)
-- 100+ filters for template processing
-- Side panel and embedded modes
+- **Clip web pages** — save any page to Logseq as a new page or append to your daily journal
+- **Batch clip** — clip all open tabs (or a tab group) in one operation with per-tab template selection
+- **Templates** — customizable templates with 100+ filters, variables, logic, and URL-based triggers
+- **Highlighter** — mark up web pages and save highlights to Logseq
+- **Reader mode** — distraction-free reading view
+- **LLM interpreter** — summarize or extract content via OpenAI, Anthropic, Gemini, Ollama, and others
+- **Dedup detection** — warns if a URL was already clipped, offers to update the existing clip
 
 ## Install
 
-The extension is not yet on browser stores. Install from source:
-
 ### Firefox
 
-1. Clone and build (see [Development](#development) below)
-2. Open `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on**
-4. Select any file inside `dist_firefox/`
-
-For permanent installation on Firefox Nightly/Developer Edition:
-1. Set `xpinstall.signatures.required` to `false` in `about:config`
-2. Go to `about:addons` → gear icon → **Install Add-on From File…**
-3. Select the `.zip` from `builds/`
+Download the latest `.xpi` from [Releases](https://github.com/clombion/logseq-clipper/releases) and open it in Firefox, or install from file via `about:addons` → gear icon → **Install Add-on From File**.
 
 ### Chrome / Chromium
 
-1. Clone and build
+1. Download and unzip `logseq-web-clipper-chrome.zip` from [Releases](https://github.com/clombion/logseq-clipper/releases)
 2. Open `chrome://extensions`, enable **Developer mode**
-3. Click **Load unpacked**, select `dist/`
+3. Click **Load unpacked**, select the unzipped folder
 
 ## Logseq setup
 
-The extension connects to Logseq's local HTTP API. On first install, a setup page guides you through these steps:
+The extension connects to Logseq's local HTTP API. On first install, a setup page guides you through:
 
-1. **Enable HTTP API**: In Logseq, go to **Settings → Features** → enable **HTTP APIs Server**
+1. **Enable HTTP API**: In Logseq → **Settings → Features** → enable **HTTP APIs Server**
 2. **Start the server**: Click the API icon in the toolbar → **Start Server**
-3. **Create a token**: In the API panel → **Authorization tokens** → **Add new token** → paste the value into the extension
+3. **Create a token**: In the API panel → **Authorization tokens** → **Add new token** → paste into the extension
 
-Optional: enable "Auto start server" in the API panel so it starts with Logseq.
+## Documentation
+
+- [Introduction](docs/Introduction%20to%20Logseq%20Web%20Clipper.md)
+- [Clip web pages](docs/Clip%20web%20pages.md)
+- [Batch clip web pages](docs/Batch%20clip%20web%20pages.md)
+- [Highlight web pages](docs/Highlight%20web%20pages.md)
+- [Interpret web pages](docs/Interpret%20web%20pages.md)
+- [Templates](docs/Templates.md)
+- [Variables](docs/Variables.md)
+- [Filters](docs/Filters.md)
+- [Logic](docs/Logic.md)
+- [Troubleshooting](docs/Troubleshoot%20Web%20Clipper.md)
 
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, build, test, and PR instructions.
 
-## Upstream sync
+## Origin
 
-A [monthly GitHub Action](.github/workflows/upstream-check.yml) compares this fork against the upstream Obsidian Web Clipper and opens an issue with categorized changes (security, dependencies, bug fixes) for manual review and cherry-picking.
-
-## Credits
-
-- Forked from [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) by [kepano](https://github.com/kepano)
-- [webextension-polyfill](https://github.com/mozilla/webextension-polyfill) for browser compatibility
-- [Defuddle](https://github.com/kepano/defuddle) for content extraction and Markdown conversion
-- [dayjs](https://github.com/iamkun/dayjs) for date parsing and formatting
-- [lz-string](https://github.com/pieroxy/lz-string) for template compression
-- [lucide](https://github.com/lucide-icons/lucide) for icons
-- [DOMPurify](https://github.com/cure53/DOMPurify) for HTML sanitization
+Forked from [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) v1.2.1 by [kepano](https://github.com/kepano). Replaced the Obsidian vault integration with Logseq HTTP API, added batch clipping, and removed Safari/legacy features. A [monthly GitHub Action](.github/workflows/upstream-check.yml) tracks upstream changes for cherry-picking.
