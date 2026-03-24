@@ -151,21 +151,18 @@ export async function saveToLogseq(
 				throw new Error(`Failed to create page '${noteName}'`);
 			}
 
-			// Apply properties via upsertBlockProperty on the page entity
-			debugLog('Save', `[${clipId}] setting ${Object.keys(propsObj).length} properties on page`);
-			const propErrors: string[] = [];
-			for (const [key, value] of Object.entries(propsObj)) {
-				try {
-					await upsertBlockProperty(config, page.uuid, key, value);
-				} catch {
-					propErrors.push(key);
+			// In Logseq, page properties must be on the first block as key:: value lines.
+			// upsertBlockProperty on a page UUID does not reliably set visible page properties.
+			if (metadataContent) {
+				const propsBlock = await appendBlockInPage(config, noteName, metadataContent);
+				if (!propsBlock?.uuid) {
+					debugLog('Save', `[${clipId}] failed to create properties block`);
+				} else {
+					debugLog('Save', `[${clipId}] properties block ${propsBlock.uuid} on '${noteName}'`);
 				}
 			}
-			if (propErrors.length > 0) {
-				debugLog('Save', `[${clipId}] failed to set properties: ${propErrors.join(', ')}`);
-			}
 
-			// Insert content blocks directly on the page
+			// Insert content blocks on the page
 			if (blocks.length > 0) {
 				const anchor = await appendBlockInPage(config, noteName, blocks[0]?.content ?? '');
 				if (!anchor?.uuid) {
@@ -278,16 +275,20 @@ export async function updateExistingClip(
 	for (const prop of properties) {
 		propsObj[prop.name] = String(prop.value);
 	}
-	debugLog('Save', `[${clipId}] updating ${Object.keys(propsObj).length} properties`);
-	for (const [key, value] of Object.entries(propsObj)) {
-		await upsertBlockProperty(config, page.uuid, key, value);
-	}
+	// Build metadata block content
+	const metadataContent = Object.entries(propsObj)
+		.filter(([, value]) => value.trim() !== '')
+		.map(([key, value]) => `${key}:: ${value}`)
+		.join('\n');
 
 	// Snapshot old content blocks BEFORE inserting new ones
 	const oldBlocks = (await getPageBlocksTree(config, pageTitle)) ?? [];
 	debugLog('Save', `[${clipId}] old blocks: ${oldBlocks.length}, inserting new content`);
 
-	// Insert new content
+	// Insert properties as first block, then content blocks
+	if (metadataContent) {
+		await appendBlockInPage(config, pageTitle, metadataContent);
+	}
 	const blocks = markdownToBlocks(noteContent);
 	if (blocks.length > 0) {
 		const anchor = await appendBlockInPage(config, pageTitle, blocks[0]?.content ?? '');
@@ -304,7 +305,7 @@ export async function updateExistingClip(
 		}
 	}
 
-	// Delete ALL old blocks (properties are on page entity via upsertBlockProperty)
+	// Delete ALL old blocks
 	debugLog('Save', `[${clipId}] deleting ${oldBlocks.length} old blocks`);
 	const deleteErrors: string[] = [];
 	for (const block of oldBlocks) {

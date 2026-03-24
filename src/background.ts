@@ -444,12 +444,20 @@ browser.runtime.onMessage.addListener(
 			if (typedRequest.action === 'sendMessageToTab') {
 				const { tabId, message } = typedRequest;
 				if (tabId && message) {
-					// Ensure content script is loaded before sending message
-					ensureContentScriptLoadedInBackground(tabId)
-						.then(() => {
+					// Ensure content script is loaded before sending message.
+					// Use a timeout to prevent the service worker from lingering
+					// if the content script never responds (avoids Zen/Firefox crash
+					// during service worker idle termination with dangling references).
+					const timeoutPromise = new Promise<never>((_, reject) =>
+						setTimeout(() => reject(new Error('Tab message timed out after 30s')), 30_000),
+					);
+					Promise.race([
+						ensureContentScriptLoadedInBackground(tabId).then(() => {
 							debugLog('Background', 'Sending message to tab:', message.action);
 							return browser.tabs.sendMessage(tabId, message);
-						})
+						}),
+						timeoutPromise,
+					])
 						.then((response) => {
 							const resp = response as { content?: unknown } | undefined;
 							debugLog('Background', 'Tab response:', resp ? `has content=${!!resp.content}` : response);

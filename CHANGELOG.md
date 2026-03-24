@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-03-24
+
+### Fixed
+- Page properties not visible in Logseq for create/update behaviors — `upsertBlockProperty` on page UUID doesn't render visible properties; now uses metadata block pattern (`key:: value` first block) matching append/prepend behaviors
+- Zen Browser crash mitigation — `sendMessageToTab` async chain could linger indefinitely, keeping the service worker alive; added 30s timeout so the chain always resolves, allowing clean service worker termination
+
 ## [0.3.3] - 2026-03-24
 
 ### Fixed
@@ -94,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Firefox extension signing via Mozilla AMO (unlisted)
 - Save-as-page dropdown with error handling
 
+[0.3.4]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.4
 [0.3.3]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.3
 [0.3.2]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.2
 [0.3.1]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.1
