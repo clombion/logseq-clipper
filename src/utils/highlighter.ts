@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { addBrowserClassToHtml, detectBrowser } from './browser-detection';
 import browser from './browser-polyfill';
 import { debugLog } from './debug';
@@ -522,7 +523,7 @@ export function handleTextSelection(selection: Selection, notes?: string[]) {
 		highlights = currentBatchHighlights; // Update global highlights with the final merged result
 
 		// Only add to history if something actually changed from the initial global state
-		if (highlights.length !== oldGlobalHighlights.length || highlights !== oldGlobalHighlights) {
+		if (highlights.length !== oldGlobalHighlights.length) {
 			addToHistory('add', oldGlobalHighlights, highlights);
 		}
 
@@ -688,62 +689,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 
 // Sanitize HTML content while preserving formatting
 function sanitizeAndPreserveFormatting(html: string): string {
-	// Use DOMParser for safer HTML parsing
-	const parser = new DOMParser();
-	const doc = parser.parseFromString(html, 'text/html');
-
-	// Remove any script tags
-	doc.querySelectorAll('script').forEach((el) => {
-		el.remove();
-	});
-
-	// Get the body content and serialize it back
-	const serializer = new XMLSerializer();
-	let result = '';
-
-	// Serialize all child nodes of the body
-	Array.from(doc.body.childNodes).forEach((node) => {
-		if (node.nodeType === Node.ELEMENT_NODE) {
-			result += serializer.serializeToString(node);
-		} else if (node.nodeType === Node.TEXT_NODE) {
-			result += node.textContent;
-		}
-	});
-
-	// Close any unclosed tags
-	return balanceTags(result);
-}
-
-// Balance HTML tags to ensure proper nesting
-function balanceTags(html: string): string {
-	const openingTags: string[] = [];
-	const regex = /<\/?([a-z]+)[^>]*>/gi;
-	let match: RegExpExecArray | null = regex.exec(html);
-
-	while (match !== null) {
-		if (match[0]?.startsWith('</')) {
-			// Closing tag
-			const lastOpenTag = openingTags.pop();
-			if (lastOpenTag !== match[1]?.toLowerCase()) {
-				// Mismatched tag, add it back
-				if (lastOpenTag) openingTags.push(lastOpenTag);
-			}
-		} else {
-			// Opening tag
-			const tagName = match[1]?.toLowerCase();
-			if (tagName) openingTags.push(tagName);
-		}
-		match = regex.exec(html);
-	}
-
-	// Close any remaining open tags
-	let balancedHtml = html;
-	while (openingTags.length > 0) {
-		const tag = openingTags.pop();
-		balancedHtml += `</${tag}>`;
-	}
-
-	return balancedHtml;
+	return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
 }
 
 // Find the nearest highlightable parent element
@@ -799,7 +745,7 @@ export function sortHighlights() {
 		}
 	}
 
-	highlights.sort((a, b) => {
+	highlights = highlights.toSorted((a, b) => {
 		const posA = positionCache.get(a.xpath);
 		const posB = positionCache.get(b.xpath);
 		if (posA && posB) {

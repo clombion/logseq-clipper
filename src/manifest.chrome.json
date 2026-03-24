@@ -52,7 +52,6 @@
 				"setup.html",
 				"setup.js"
 			],
-			"extension_ids": ["*"],
 			"matches": ["*://*/*"]
 		}
 	],
