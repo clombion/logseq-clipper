@@ -1,4 +1,8 @@
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
 import { debugLog } from './debug';
+
+dayjs.extend(advancedFormat);
 
 export interface LogseqApiConfig {
 	port: number;
@@ -15,6 +19,7 @@ export interface LogseqPage {
 	name: string;
 	uuid: string;
 	originalName?: string;
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq property values are untyped
 	properties?: Record<string, any>;
 }
 
@@ -22,6 +27,7 @@ export interface LogseqBlock {
 	uuid: string;
 	content: string;
 	children?: LogseqBlock[];
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq property values are untyped
 	properties?: Record<string, any>;
 }
 
@@ -49,6 +55,7 @@ export class LogseqApiError extends Error {
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic JSON-RPC wrapper returns untyped data
 async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = []): Promise<any> {
 	debugLog('LogseqAPI', `${method}`, args);
 	let response: Response;
@@ -57,9 +64,10 @@ async function logseqApi(config: LogseqApiConfig, method: string, args: any[] = 
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${config.token}`,
+				Authorization: `Bearer ${config.token}`,
 			},
 			body: JSON.stringify({ method, args }),
+			signal: AbortSignal.timeout(60_000),
 		});
 	} catch (err) {
 		throw new LogseqConnectionError(err);
@@ -116,8 +124,10 @@ export async function appendBlockInPage(
 	config: LogseqApiConfig,
 	page: string,
 	content: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq API opts are untyped
 	opts?: Record<string, any>,
 ): Promise<LogseqBlock> {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const args: any[] = [page, content];
 	if (opts) args.push(opts);
 	return await logseqApi(config, 'logseq.Editor.appendBlockInPage', args);
@@ -127,8 +137,10 @@ export async function prependBlockInPage(
 	config: LogseqApiConfig,
 	page: string,
 	content: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Logseq API opts are untyped
 	opts?: Record<string, any>,
 ): Promise<LogseqBlock> {
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	const args: any[] = [page, content];
 	if (opts) args.push(opts);
 	return await logseqApi(config, 'logseq.Editor.prependBlockInPage', args);
@@ -148,8 +160,14 @@ export async function getPageBlocksTree(config: LogseqApiConfig, pageTitle: stri
 	return await logseqApi(config, 'logseq.Editor.getPageBlocksTree', [pageTitle]);
 }
 
+const VALID_PROPERTY_NAME = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 export async function queryByProperty(config: LogseqApiConfig, property: string, value: string): Promise<any[]> {
-	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+	if (!VALID_PROPERTY_NAME.test(property)) {
+		throw new Error(`Invalid property name: "${property}" — must match /^[a-zA-Z][a-zA-Z0-9_-]*$/`);
+	}
+	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\)/g, '\\)');
 	const query = `(property ${property} "${escaped}")`;
 	return await logseqApi(config, 'logseq.DB.q', [query]);
 }
@@ -163,16 +181,13 @@ export async function getTodayJournalPageName(config: LogseqApiConfig): Promise<
 	if (results && results.length > 0) {
 		// Query may return [null] entries for blocks with journal-day — find the actual page
 		for (const row of results) {
-			if (row[0] && row[0].name) {
+			if (row[0]?.name) {
 				return row[0]['original-name'] || row[0].name;
 			}
 		}
 	}
 	// Fallback: use Logseq's default format (MMM do, yyyy)
-	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	const day = today.getDate();
-	const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
-	return `${months[today.getMonth()]} ${day}${suffix}, ${today.getFullYear()}`;
+	return dayjs(today).format('MMM Do, YYYY');
 }
 
 export async function removeBlock(config: LogseqApiConfig, blockUuid: string): Promise<void> {
@@ -186,6 +201,7 @@ export async function upsertBlockProperty(
 	config: LogseqApiConfig,
 	blockUuid: string,
 	key: string,
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 	value: any,
 ): Promise<void> {
 	await logseqApi(config, 'logseq.Editor.upsertBlockProperty', [blockUuid, key, value]);

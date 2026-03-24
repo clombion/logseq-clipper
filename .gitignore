@@ -22,5 +22,7 @@ assets/shared
 
 .cursorrules
 .env
+.vscode/
+.idea/
 context/
 local/

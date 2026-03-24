@@ -4,7 +4,7 @@ export const merge = (str: string, param?: string): string => {
 		return '[]';
 	}
 
-	let array;
+	let array: unknown;
 	try {
 		array = JSON.parse(str);
 	} catch (error) {
@@ -33,7 +33,7 @@ export const merge = (str: string, param?: string): string => {
 			return item.replace(/^(['"])([\s\S]*)\1$/, '$2');
 		});
 
-		return JSON.stringify([...array, ...processedItems]);
+		return JSON.stringify([...(Array.isArray(array) ? array : []), ...processedItems]);
 	} catch (error) {
 		console.error('Error processing parameters in merge filter:', error);
 		return JSON.stringify(array);

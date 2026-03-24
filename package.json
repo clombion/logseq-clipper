@@ -1,6 +1,6 @@
 {
 	"name": "logseq-clipper",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Web clipper for Logseq.",
 	"files": [
 		"dist"
@@ -50,6 +50,9 @@
 		"webpack": "^5.97.1",
 		"webpack-cli": "^5.1.4",
 		"zip-webpack-plugin": "^4.0.1"
+	},
+	"engines": {
+		"node": ">=18"
 	},
 	"dependencies": {
 		"dayjs": "^1.11.13",

@@ -3,9 +3,9 @@
 // storage-utils, browser globals). All browser-dependent behavior is injected
 // via parameters.
 
-import { sanitizeFileName, getDomain, escapeDoubleQuotes } from './string-utils';
-import { Property } from '../types/types';
 import dayjs from 'dayjs';
+import type { Property, SchemaOrgData } from '../types/types';
+import { escapeDoubleQuotes, getDomain, sanitizeFileName } from './string-utils';
 
 // ---------------------------------------------------------------------------
 // Variable building
@@ -28,7 +28,7 @@ export interface BuildVariablesParams {
 	selection?: string;
 	selectionHtml?: string;
 	highlights?: string;
-	schemaOrgData?: any;
+	schemaOrgData?: SchemaOrgData;
 	metaTags?: { name?: string | null; property?: string | null; content: string | null }[];
 	extractedContent?: Record<string, string>;
 }
@@ -57,7 +57,7 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 		'{{highlights}}': params.highlights || '',
 		'{{image}}': params.image || '',
 		'{{noteName}}': noteName.trim(),
-		'{{published}}': (params.published || '').split(',')[0].trim(),
+		'{{published}}': (params.published || '').split(',')[0]?.trim() ?? '',
 		'{{site}}': (params.site || '').trim(),
 		'{{title}}': (params.title || '').trim(),
 		'{{url}}': currentUrl.trim(),
@@ -97,20 +97,21 @@ export function buildVariables(params: BuildVariablesParams): Record<string, str
 // ---------------------------------------------------------------------------
 
 export function addSchemaOrgDataToVariables(
-	schemaData: any,
+	schemaData: SchemaOrgData | unknown,
 	variables: Record<string, string>,
 	prefix: string = '',
 ): void {
 	if (Array.isArray(schemaData)) {
-		schemaData.forEach((item, index) => {
+		schemaData.forEach((item: unknown, index: number) => {
 			if (!item || typeof item !== 'object') return;
-			if (item['@type']) {
-				if (Array.isArray(item['@type'])) {
-					item['@type'].forEach((type: string) => {
+			const record = item as Record<string, unknown>;
+			if (record['@type']) {
+				if (Array.isArray(record['@type'])) {
+					(record['@type'] as string[]).forEach((type: string) => {
 						addSchemaOrgDataToVariables(item, variables, `@${type}:`);
 					});
 				} else {
-					addSchemaOrgDataToVariables(item, variables, `@${item['@type']}:`);
+					addSchemaOrgDataToVariables(item, variables, `@${record['@type']}:`);
 				}
 			} else {
 				addSchemaOrgDataToVariables(item, variables, `[${index}]:`);
@@ -120,7 +121,7 @@ export function addSchemaOrgDataToVariables(
 		const objectKey = `{{schema:${prefix.replace(/\.$/, '')}}}`;
 		variables[objectKey] = JSON.stringify(schemaData);
 
-		Object.entries(schemaData).forEach(([key, value]) => {
+		Object.entries(schemaData as Record<string, unknown>).forEach(([key, value]) => {
 			if (key === '@type') return;
 
 			const variableKey = `{{schema:${prefix}${key}}}`;
@@ -128,7 +129,7 @@ export function addSchemaOrgDataToVariables(
 				variables[variableKey] = String(value);
 			} else if (Array.isArray(value)) {
 				variables[variableKey] = JSON.stringify(value);
-				value.forEach((item, index) => {
+				value.forEach((item: unknown, index: number) => {
 					addSchemaOrgDataToVariables(item, variables, `${prefix}${key}[${index}].`);
 				});
 			} else if (typeof value === 'object' && value !== null) {
@@ -151,7 +152,7 @@ export function generateFrontmatter(properties: Property[], propertyTypes: Recor
 	for (const property of properties) {
 		const trimmedName = property.name.trim();
 		const needsQuotes =
-			/[:\s\{\}\[\],&*#?|<>=!%@\\-]/.test(trimmedName) ||
+			/[:\s{}[\],&*#?|<>=!%@-]/.test(trimmedName) ||
 			/^\d/.test(trimmedName) ||
 			/^(true|false|null|yes|no|on|off)$/i.test(trimmedName);
 		const propertyKey = needsQuotes
@@ -168,12 +169,17 @@ export function generateFrontmatter(properties: Property[], propertyTypes: Recor
 				let items: string[];
 				if (property.value.trim().startsWith('["') && property.value.trim().endsWith('"]')) {
 					try {
-						items = JSON.parse(property.value);
+						const raw: unknown = JSON.parse(property.value);
+						if (Array.isArray(raw)) {
+							items = raw as string[];
+						} else {
+							items = property.value.split(',').map((item) => item.trim());
+						}
 					} catch {
 						items = property.value.split(',').map((item) => item.trim());
 					}
 				} else {
-					items = property.value.split(/,(?![^\[]*\]\])/).map((item) => item.trim());
+					items = property.value.split(/,(?![^[]*\]\])/).map((item) => item.trim());
 				}
 				items = items.filter((item) => item !== '');
 				if (items.length > 0) {
@@ -257,7 +263,7 @@ export function formatPropertyValue(value: string, type: string, templateValue: 
  * Works with any document-like object (browser Document, linkedom, etc.).
  */
 export function extractContentBySelector(
-	doc: { querySelectorAll: (selector: string) => any },
+	doc: { querySelectorAll: (selector: string) => NodeListOf<Element> },
 	selector: string,
 	attribute?: string,
 	extractHtml: boolean = false,
@@ -269,7 +275,7 @@ export function extractContentBySelector(
 			return '';
 		}
 
-		return Array.from(elements).map((el: any) => {
+		return Array.from(elements).map((el: Element) => {
 			if (attribute) {
 				return el.getAttribute(attribute) || '';
 			}

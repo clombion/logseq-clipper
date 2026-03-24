@@ -1,8 +1,9 @@
 import browser from 'webextension-polyfill';
+import { isBlankPage, isValidUrl, updateCurrentActiveTab } from './utils/active-tab-manager';
 import { detectBrowser } from './utils/browser-detection';
-import { updateCurrentActiveTab, isValidUrl, isBlankPage } from './utils/active-tab-manager';
-import { TextHighlightData } from './utils/highlighter';
 import { debounce } from './utils/debounce';
+import { debugLog } from './utils/debug';
+import type { TextHighlightData } from './utils/highlighter';
 
 const YOUTUBE_EMBED_RULE_ID = 9001;
 
@@ -33,18 +34,21 @@ async function enableYouTubeEmbedRule(tabId: number): Promise<void> {
 				id: YOUTUBE_EMBED_RULE_ID,
 				priority: 1,
 				action: {
-					type: 'modifyHeaders' as any,
+					// @ts-expect-error Chrome declarativeNetRequest type incomplete
+					type: 'modifyHeaders',
 					requestHeaders: [
 						{
 							header: 'Referer',
-							operation: 'set' as any,
+							// @ts-expect-error Chrome declarativeNetRequest type incomplete
+							operation: 'set',
 							value: 'https://logseq.com/',
 						},
 					],
 				},
 				condition: {
 					urlFilter: '||youtube.com/embed/',
-					resourceTypes: ['sub_frame' as any],
+					// @ts-expect-error Chrome declarativeNetRequest type incomplete
+					resourceTypes: ['sub_frame'],
 					tabIds: [tabId],
 				},
 			},
@@ -58,11 +62,11 @@ async function disableYouTubeEmbedRule(): Promise<void> {
 	});
 }
 
-let sidePanelOpenWindows: Set<number> = new Set();
-let highlighterModeState: { [tabId: number]: boolean } = {};
-let hasHighlights = false;
+const sidePanelOpenWindows: Set<number> = new Set();
+const highlighterModeState: { [tabId: number]: boolean } = {};
+let _hasHighlights = false;
 let isContextMenuCreating = false;
-let popupPorts: { [tabId: number]: browser.Runtime.Port } = {};
+const popupPorts: { [tabId: number]: browser.Runtime.Port } = {};
 
 async function ensureContentScriptLoadedInBackground(tabId: number): Promise<void> {
 	try {
@@ -71,13 +75,13 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 
 		// Check if the URL is valid before proceeding
 		if (!tab.url || !isValidUrl(tab.url)) {
-			console.log(`Skipping content script injection for invalid URL: ${tab.url}`);
+			debugLog('Background', `Skipping content script injection for invalid URL: ${tab.url}`);
 			throw new Error(`Cannot inject content script into invalid URL: ${tab.url}`);
 		}
 
 		// Attempt to send a message to the content script
 		await browser.tabs.sendMessage(tabId, { action: 'ping' });
-		console.log('[Logseq Clipper] Content script ping succeeded');
+		debugLog('Background', 'Content script ping succeeded');
 	} catch (error) {
 		// If the error is about invalid URL, re-throw it
 		if (error instanceof Error && error.message.includes('invalid URL')) {
@@ -85,23 +89,23 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 		}
 
 		// If the message fails, the content script is not loaded, so inject it
-		console.log('[Logseq Clipper] Ping failed, injecting content script...', error);
+		debugLog('Background', 'Ping failed, injecting content script...', error);
 		try {
 			// Try using the scripting API (Chrome)
 			if (browser.scripting) {
-				console.log('[Logseq Clipper] Using scripting API');
+				debugLog('Background', 'Using scripting API');
 				await browser.scripting.executeScript({
 					target: { tabId: tabId },
 					files: ['content.js'],
 				});
 			} else {
-				console.log('[Logseq Clipper] Using tabs.executeScript fallback');
+				debugLog('Background', 'Using tabs.executeScript fallback');
 				// Fallback to tabs.executeScript (Firefox)
 				await browser.tabs.executeScript(tabId, {
 					file: 'content.js',
 				});
 			}
-			console.log('[Logseq Clipper] Injection completed, waiting for init...');
+			debugLog('Background', 'Injection completed, waiting for init...');
 
 			// Poll until the content script responds, rather than a fixed delay
 			let ready = false;
@@ -118,7 +122,7 @@ async function ensureContentScriptLoadedInBackground(tabId: number): Promise<voi
 			if (!ready) {
 				throw new Error('Content script did not respond after injection');
 			}
-			console.log('[Logseq Clipper] Post-injection ping succeeded');
+			debugLog('Background', 'Post-injection ping succeeded');
 		} catch (injectError) {
 			console.error('[Logseq Clipper] Injection or post-injection ping failed:', injectError);
 			throw injectError;
@@ -142,7 +146,7 @@ async function initialize() {
 		// Initialize context menu
 		await debouncedUpdateContextMenu(-1);
 
-		console.log('Background script initialized successfully');
+		debugLog('Background', 'Background script initialized successfully');
 	} catch (error) {
 		console.error('Error initializing background script:', error);
 	}
@@ -150,7 +154,7 @@ async function initialize() {
 
 // Check if a popup is open for a given tab
 function isPopupOpen(tabId: number): boolean {
-	return popupPorts.hasOwnProperty(tabId);
+	return Object.hasOwn(popupPorts, tabId);
 }
 
 browser.runtime.onConnect.addListener((port) => {
@@ -165,10 +169,11 @@ browser.runtime.onConnect.addListener((port) => {
 	}
 });
 
+// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 async function sendMessageToPopup(tabId: number, message: any): Promise<void> {
 	if (isPopupOpen(tabId)) {
 		try {
-			await popupPorts[tabId].postMessage(message);
+			await popupPorts[tabId]?.postMessage(message);
 		} catch (error) {
 			console.warn(`Error sending message to popup for tab ${tabId}:`, error);
 		}
@@ -179,6 +184,7 @@ browser.runtime.onMessage.addListener(
 	(
 		request: unknown,
 		sender: browser.Runtime.MessageSender,
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
 		sendResponse: (response?: any) => void,
 	): true | undefined => {
 		if (typeof request === 'object' && request !== null) {
@@ -188,19 +194,21 @@ browser.runtime.onMessage.addListener(
 				hasHighlights?: boolean;
 				tabId?: number;
 				text?: string;
+				message?: { action: string; [key: string]: unknown };
 			};
 
 			if (typedRequest.action === 'copy-to-clipboard' && typedRequest.text) {
 				// Use content script to copy to clipboard
 				browser.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
 					const currentTab = tabs[0];
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						try {
 							const response = await browser.tabs.sendMessage(currentTab.id, {
 								action: 'copy-text-to-clipboard',
 								text: typedRequest.text,
 							});
-							if ((response as any) && (response as any).success) {
+							const result = response as { success?: boolean } | undefined;
+							if (result?.success) {
 								sendResponse({ success: true });
 							} else {
 								sendResponse({ success: false, error: 'Failed to copy from content script' });
@@ -266,14 +274,14 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'sidePanelOpened') {
-				if (sender.tab && sender.tab.windowId) {
+				if (sender.tab?.windowId) {
 					sidePanelOpenWindows.add(sender.tab.windowId);
 					updateCurrentActiveTab(sender.tab.windowId);
 				}
 			}
 
 			if (typedRequest.action === 'sidePanelClosed') {
-				if (sender.tab && sender.tab.windowId) {
+				if (sender.tab?.windowId) {
 					sidePanelOpenWindows.delete(sender.tab.windowId);
 				}
 			}
@@ -287,18 +295,18 @@ browser.runtime.onMessage.addListener(
 				}
 			}
 
-			if (typedRequest.action === 'highlightsCleared' && sender.tab) {
-				hasHighlights = false;
-				debouncedUpdateContextMenu(sender.tab.id!);
+			if (typedRequest.action === 'highlightsCleared' && sender.tab?.id != null) {
+				_hasHighlights = false;
+				debouncedUpdateContextMenu(sender.tab.id);
 			}
 
 			if (
 				typedRequest.action === 'updateHasHighlights' &&
-				sender.tab &&
+				sender.tab?.id != null &&
 				typedRequest.hasHighlights !== undefined
 			) {
-				hasHighlights = typedRequest.hasHighlights;
-				debouncedUpdateContextMenu(sender.tab.id!);
+				_hasHighlights = typedRequest.hasHighlights;
+				debouncedUpdateContextMenu(sender.tab.id);
 			}
 
 			if (typedRequest.action === 'getHighlighterMode') {
@@ -332,8 +340,9 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'toggleReaderMode' && typedRequest.tabId) {
-				injectReaderScript(typedRequest.tabId).then(() => {
-					browser.tabs.sendMessage(typedRequest.tabId!, { action: 'toggleReaderMode' }).then(sendResponse);
+				const readerTabId = typedRequest.tabId;
+				injectReaderScript(readerTabId).then(() => {
+					browser.tabs.sendMessage(readerTabId, { action: 'toggleReaderMode' }).then(sendResponse);
 				});
 				return true;
 			}
@@ -341,7 +350,7 @@ browser.runtime.onMessage.addListener(
 			if (typedRequest.action === 'getActiveTabAndToggleIframe') {
 				browser.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
 					const currentTab = tabs[0];
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						try {
 							// Check if the URL is valid before trying to inject content script
 							if (!currentTab.url || !isValidUrl(currentTab.url) || isBlankPage(currentTab.url)) {
@@ -382,7 +391,7 @@ browser.runtime.onMessage.addListener(
 									!tab.url.startsWith('moz-extension://'),
 							) || allActiveTabs[0];
 					}
-					if (currentTab && currentTab.id) {
+					if (currentTab?.id) {
 						sendResponse({ tabId: currentTab.id });
 					} else {
 						sendResponse({ error: 'No active tab found' });
@@ -433,20 +442,17 @@ browser.runtime.onMessage.addListener(
 			}
 
 			if (typedRequest.action === 'sendMessageToTab') {
-				const tabId = (typedRequest as any).tabId;
-				const message = (typedRequest as any).message;
+				const { tabId, message } = typedRequest;
 				if (tabId && message) {
 					// Ensure content script is loaded before sending message
 					ensureContentScriptLoadedInBackground(tabId)
 						.then(() => {
-							console.log('[Logseq Clipper] Sending message to tab:', message.action);
+							debugLog('Background', 'Sending message to tab:', message.action);
 							return browser.tabs.sendMessage(tabId, message);
 						})
 						.then((response) => {
-							console.log(
-								'[Logseq Clipper] Tab response:',
-								response ? 'has content=' + !!(response as any).content : response,
-							);
+							const resp = response as { content?: unknown } | undefined;
+							debugLog('Background', 'Tab response:', resp ? `has content=${!!resp.content}` : response);
 							sendResponse(response);
 						})
 						.catch((error) => {
@@ -520,7 +526,7 @@ const debouncedUpdateContextMenu = debounce(async (tabId: number) => {
 		if (currentTabId === -1) {
 			const tabs = await browser.tabs.query({ active: true, currentWindow: true });
 			if (tabs.length > 0) {
-				currentTabId = tabs[0].id!;
+				currentTabId = tabs[0]?.id ?? -1;
 			}
 		}
 
@@ -732,7 +738,7 @@ async function highlightSelection(tabId: number, info: browser.Menus.OnClickData
 		isActive: true,
 		highlightData,
 	});
-	hasHighlights = true;
+	_hasHighlights = true;
 	debouncedUpdateContextMenu(tabId);
 }
 
@@ -748,7 +754,7 @@ async function highlightElement(tabId: number, info: browser.Menus.OnClickData) 
 			pageUrl: info.pageUrl,
 		},
 	});
-	hasHighlights = true;
+	_hasHighlights = true;
 	debouncedUpdateContextMenu(tabId);
 }
 

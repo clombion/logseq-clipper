@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface Message {
 	message: string;
@@ -98,8 +98,8 @@ Example response:
 				if (response.status === 429) {
 					const retryAfter = response.headers.get('retry-after');
 					const waitTime = retryAfter
-						? parseInt(retryAfter) * 1000
-						: this.requestInterval * Math.pow(2, retryCount);
+						? parseInt(retryAfter, 10) * 1000
+						: this.requestInterval * 2 ** retryCount;
 					console.log(
 						`  ⏳ Rate limited, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
 					);
@@ -112,11 +112,13 @@ Example response:
 			// Reset the request interval on successful response
 			this.requestInterval = 2000; // Reset to base interval
 
-			const data = await response.json();
-			return data.choices[0].message.content;
+			const data: unknown = await response.json();
+			const record = data as Record<string, unknown>;
+			const choices = record.choices as { message: { content: string } }[];
+			return choices[0]!.message.content;
 		} catch (error) {
 			if (retryCount < this.maxRetries) {
-				const waitTime = this.requestInterval * Math.pow(2, retryCount);
+				const waitTime = this.requestInterval * 2 ** retryCount;
 				console.log(
 					`  ⏳ Request failed, waiting ${waitTime / 1000}s before retry ${retryCount + 1}/${this.maxRetries}...`,
 				);
@@ -149,19 +151,23 @@ Example response:
 		});
 
 		// Add batch to chat history
-		this.chatHistories[targetLanguage].push({
+		this.chatHistories[targetLanguage]?.push({
 			role: 'user',
 			content: `Translate these messages to ${targetLanguage}. Respond with a valid JSON object where keys match the input keys and values are the translations. Format the response as a single line without pretty-printing:\n\n${batchPrompt}`,
 		});
 
 		try {
-			const response = await this.makeRequestWithRetry(this.chatHistories[targetLanguage]);
+			const response = await this.makeRequestWithRetry(this.chatHistories[targetLanguage]!);
 
 			// Clean and parse the JSON response
 			let translations: { [key: string]: string };
 			try {
 				const cleanJson = response.replace(/```json\n?|\n?```/g, '').trim();
-				translations = JSON.parse(cleanJson);
+				const raw: unknown = JSON.parse(cleanJson);
+				if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+					throw new Error('Expected JSON object response');
+				}
+				translations = raw as { [key: string]: string };
 
 				const missingKeys = messages.filter(({ key }) => !translations[key]);
 				if (missingKeys.length > 0) {
@@ -170,11 +176,11 @@ Example response:
 			} catch (error) {
 				console.error(`\n  ❌ Failed to parse response as JSON:`, response);
 				console.error(`  Error details:`, error);
-				throw new Error('Invalid response format');
+				throw new Error('Invalid response format', { cause: error });
 			}
 
 			// Add response to chat history
-			this.chatHistories[targetLanguage].push({
+			this.chatHistories[targetLanguage]?.push({
 				role: 'assistant',
 				content: JSON.stringify(translations),
 			});
@@ -204,22 +210,22 @@ Example response:
 
 	// Sort messages alphabetically by key
 	private sortMessages(messages: Messages): Messages {
-		return Object.keys(messages)
-			.sort()
-			.reduce((acc: Messages, key) => {
-				acc[key] = messages[key];
-				return acc;
-			}, {});
+		return Object.fromEntries(
+			Object.keys(messages)
+				.sort()
+				.map((key) => [key, messages[key]!]),
+		);
 	}
 
 	// Process all locales
-	async processLocales(srcDir: string, targetLocale?: string): Promise<void> {
+	async processLocales(_srcDir: string, targetLocale?: string): Promise<void> {
 		console.log('\n🌍 Starting localization process...');
 
 		// Read source (English) messages
 		console.log(`📖 Reading source messages from ${this.sourceLocale}...`);
 		const sourceFile = path.join(this.localesDir, this.sourceLocale, 'messages.json');
-		const sourceMessages: Messages = JSON.parse(await fs.promises.readFile(sourceFile, 'utf-8'));
+		const rawSource: unknown = JSON.parse(await fs.promises.readFile(sourceFile, 'utf-8'));
+		const sourceMessages = rawSource as Messages;
 		console.log(`✓ Found ${Object.keys(sourceMessages).length} source messages`);
 
 		// Sort source messages
@@ -247,9 +253,10 @@ Example response:
 			let localeMessages: Messages = {};
 
 			try {
-				localeMessages = JSON.parse(await fs.promises.readFile(localeFile, 'utf-8'));
+				const rawLocale: unknown = JSON.parse(await fs.promises.readFile(localeFile, 'utf-8'));
+				localeMessages = rawLocale as Messages;
 				console.log(`  📂 Found existing translations for ${locale}`);
-			} catch (error) {
+			} catch (_error) {
 				console.log(`  ⚠️  No existing translations found for ${locale}, creating new file`);
 			}
 
@@ -262,7 +269,7 @@ Example response:
 				for (let i = 0; i < missingKeys.length; i += this.batchSize) {
 					const batch = missingKeys.slice(i, i + this.batchSize).map((key) => ({
 						key,
-						message: sortedSourceMessages[key].message,
+						message: sortedSourceMessages[key]?.message ?? '',
 					}));
 
 					// Try twice before falling back to source messages
@@ -273,14 +280,14 @@ Example response:
 							// Add translations to localeMessages
 							Object.entries(translations).forEach(([key, translation]) => {
 								localeMessages[key] = {
-									message: translation,
-									...(sortedSourceMessages[key].placeholders && {
-										placeholders: sortedSourceMessages[key].placeholders,
+									message: translation ?? '',
+									...(sortedSourceMessages[key]?.placeholders && {
+										placeholders: sortedSourceMessages[key]?.placeholders,
 									}),
 								};
 							});
 							break; // Success - exit retry loop
-						} catch (error) {
+						} catch (_error) {
 							if (attempt === 1) {
 								console.log(`  ⚠️ First attempt failed, retrying batch...`);
 								continue;
@@ -288,7 +295,7 @@ Example response:
 							console.error(`  ❌ Both translation attempts failed, using source messages as fallback`);
 							// Fall back to source messages after both attempts fail
 							batch.forEach(({ key }) => {
-								localeMessages[key] = sortedSourceMessages[key];
+								localeMessages[key] = sortedSourceMessages[key]!;
 							});
 						}
 					}

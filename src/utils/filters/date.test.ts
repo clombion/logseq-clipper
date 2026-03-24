@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { date } from './date';
 
 describe('date filter', () => {
@@ -30,5 +30,15 @@ describe('date filter', () => {
 	test('handles empty string', () => {
 		const result = date('');
 		expect(result).toBe('');
+	});
+
+	test('returns original for invalid date string', () => {
+		const result = date('not-a-date', 'YYYY-MM-DD');
+		expect(result).toBe('not-a-date');
+	});
+
+	test('returns original for garbage input with format', () => {
+		const result = date('xyz123', '("YYYY-MM-DD", "MM/DD/YYYY")');
+		expect(result).toBe('xyz123');
 	});
 });

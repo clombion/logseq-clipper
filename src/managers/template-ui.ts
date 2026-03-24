@@ -1,27 +1,29 @@
-import { Template, Property } from '../types/types';
+import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
+import type { PropertyTypeName, Template } from '../types/types';
+import { debugLog } from '../utils/debug';
+import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
+import { handleDragEnd, handleDragOver, handleDragStart, handleDrop } from '../utils/drag-and-drop';
+import { getMessage } from '../utils/i18n';
+import { parse, validateFilters, validateVariables } from '../utils/parser';
+import { updateUrl } from '../utils/routing';
+import { generalSettings } from '../utils/storage-utils';
+import { escapeValue, unescapeValue } from '../utils/string-utils';
+import { updatePromptContextVisibility } from './interpreter-settings';
+import { updatePropertyType } from './property-types-manager';
+import { showSettingsSection } from './settings-section-ui';
 import {
 	deleteTemplate,
-	templates,
 	editingTemplateIndex,
+	loadTemplates,
 	saveTemplateSettings,
 	setEditingTemplateIndex,
-	loadTemplates,
+	templates,
 } from './template-manager';
-import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
-import { escapeValue, unescapeValue } from '../utils/string-utils';
-import { generalSettings } from '../utils/storage-utils';
-import { updateUrl } from '../utils/routing';
-import { handleDragStart, handleDragOver, handleDrop, handleDragEnd } from '../utils/drag-and-drop';
-import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
-import { updatePromptContextVisibility } from './interpreter-settings';
-import { showSettingsSection } from './settings-section-ui';
-import { updatePropertyType } from './property-types-manager';
-import { getMessage } from '../utils/i18n';
-import { parse, validateVariables, validateFilters } from '../utils/parser';
-let hasUnsavedChanges = false;
+
+let _hasUnsavedChanges = false;
 
 export function resetUnsavedChanges(): void {
-	hasUnsavedChanges = false;
+	_hasUnsavedChanges = false;
 }
 
 export function updateTemplateList(loadedTemplates?: Template[]): void {
@@ -62,55 +64,14 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 		li.dataset.index = index.toString();
 		li.draggable = true;
 
-		let touchStartTime: number;
-		let touchStartY: number;
-
-		li.addEventListener('touchstart', (e) => {
-			touchStartTime = Date.now();
-			touchStartY = e.touches[0].clientY;
-		});
-
-		li.addEventListener('touchend', (e) => {
-			const touchEndY = e.changedTouches[0].clientY;
-			const touchDuration = Date.now() - touchStartTime;
-			const touchDistance = Math.abs(touchEndY - touchStartY);
-
-			if (touchDuration < 300 && touchDistance < 10) {
-				const target = e.target as HTMLElement;
-				if (!target.closest('.delete-template-btn')) {
-					e.preventDefault();
-					showTemplateEditor(template);
-					// Add these lines to close the sidebar and deactivate the hamburger menu
-					const settingsContainer = document.getElementById('settings');
-					const hamburgerMenu = document.getElementById('hamburger-menu');
-					if (settingsContainer) {
-						settingsContainer.classList.remove('sidebar-open');
-					}
-					if (hamburgerMenu) {
-						hamburgerMenu.classList.remove('is-active');
-					}
-				}
-			}
-		});
-
-		// Keep the click event for non-touch devices
-		li.addEventListener('click', (e) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest('.delete-template-btn')) {
-				showTemplateEditor(template);
-			}
-		});
-
-		deleteBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			deleteTemplateFromList(template.id);
-		});
-
 		if (index === editingTemplateIndex) {
 			li.classList.add('active');
 		}
 		templateList.appendChild(li);
 	});
+
+	// Event delegation: single set of listeners on the container
+	setupTemplateListDelegation(templateList, validTemplates);
 
 	// If any invalid templates were found and removed, save the changes
 	if (validTemplates.length !== templatesToUse.length) {
@@ -118,6 +79,68 @@ export function updateTemplateList(loadedTemplates?: Template[]): void {
 	}
 
 	initializeIcons(templateList);
+}
+
+let _delegationTouchStartTime = 0;
+let _delegationTouchStartY = 0;
+
+function setupTemplateListDelegation(templateList: HTMLElement, validTemplates: Template[]): void {
+	function findTemplateFromEvent(e: Event): Template | null {
+		const li = (e.target as HTMLElement).closest('li[data-id]') as HTMLElement | null;
+		if (!li?.dataset.id) return null;
+		return validTemplates.find((t) => t.id === li.dataset.id) ?? null;
+	}
+
+	templateList.addEventListener('touchstart', (e) => {
+		if (!(e.target as HTMLElement).closest('li[data-id]')) return;
+		_delegationTouchStartTime = Date.now();
+		_delegationTouchStartY = (e as TouchEvent).touches[0]?.clientY ?? 0;
+	});
+
+	templateList.addEventListener('touchend', (e) => {
+		const template = findTemplateFromEvent(e);
+		if (!template) return;
+
+		const touchEndY = (e as TouchEvent).changedTouches[0]?.clientY ?? 0;
+		const touchDuration = Date.now() - _delegationTouchStartTime;
+		const touchDistance = Math.abs(touchEndY - _delegationTouchStartY);
+
+		if (touchDuration < 300 && touchDistance < 10) {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.delete-template-btn')) {
+				e.preventDefault();
+				showTemplateEditor(template);
+				const settingsContainer = document.getElementById('settings');
+				const hamburgerMenu = document.getElementById('hamburger-menu');
+				if (settingsContainer) {
+					settingsContainer.classList.remove('sidebar-open');
+				}
+				if (hamburgerMenu) {
+					hamburgerMenu.classList.remove('is-active');
+				}
+			}
+		}
+	});
+
+	templateList.addEventListener('click', (e) => {
+		const target = e.target as HTMLElement;
+
+		// Handle delete button clicks
+		if (target.closest('.delete-template-btn')) {
+			e.stopPropagation();
+			const li = target.closest('li[data-id]') as HTMLElement | null;
+			if (li?.dataset.id) {
+				deleteTemplateFromList(li.dataset.id);
+			}
+			return;
+		}
+
+		// Handle template item clicks
+		const template = findTemplateFromEvent(e);
+		if (template) {
+			showTemplateEditor(template);
+		}
+	});
 }
 
 // Rename this function to make it clear it's for deleting from the list
@@ -134,7 +157,7 @@ async function deleteTemplateFromList(templateId: string): Promise<void> {
 			const updatedTemplates = await loadTemplates();
 			updateTemplateList(updatedTemplates);
 			if (updatedTemplates.length > 0) {
-				showTemplateEditor(updatedTemplates[0]);
+				showTemplateEditor(updatedTemplates[0]!);
 			} else {
 				showSettingsSection('general');
 			}
@@ -223,14 +246,13 @@ export function showTemplateEditor(template: Template | null): void {
 	refreshPropertyNameSuggestions();
 
 	if (editingTemplate && Array.isArray(editingTemplate.properties)) {
-		editingTemplate.properties.forEach((property) =>
-			addPropertyToEditor(property.name, property.value, property.id),
-		);
+		editingTemplate.properties.forEach((property) => {
+			addPropertyToEditor(property.name, property.value, property.id);
+		});
 	}
 
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
-	if (triggersTextarea)
-		triggersTextarea.value = editingTemplate && editingTemplate.triggers ? editingTemplate.triggers.join('\n') : '';
+	if (triggersTextarea) triggersTextarea.value = editingTemplate?.triggers ? editingTemplate.triggers.join('\n') : '';
 
 	showSettingsSection('templates', editingTemplate.id);
 
@@ -247,7 +269,7 @@ export function showTemplateEditor(template: Template | null): void {
 	if (templateName) {
 		templateName.addEventListener('input', () => {
 			if (editingTemplateIndex !== -1 && templates[editingTemplateIndex]) {
-				templates[editingTemplateIndex].name = templateName.value;
+				templates[editingTemplateIndex]!.name = templateName.value;
 				updateTemplateList();
 			}
 		});
@@ -408,9 +430,9 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 			const currentName = nameInput.value;
 
 			// Update the global property type
-			updatePropertyType(currentName, this.value)
+			updatePropertyType(currentName, this.value as PropertyTypeName)
 				.then(() => {
-					console.log(`Property type for ${currentName} updated to ${this.value}`);
+					debugLog('TemplateUI', `Property type for ${currentName} updated to ${this.value}`);
 				})
 				.catch((error) => {
 					console.error(`Failed to update property type for ${currentName}:`, error);
@@ -445,7 +467,7 @@ export function addPropertyToEditor(name: string = '', value: string = '', id: s
 			if (this.value.trim() !== '') {
 				updatePropertyType(this.value, selectedType.type)
 					.then(() => {
-						console.log(`Property type for ${this.value} updated to ${selectedType.type}`);
+						debugLog('TemplateUI', `Property type for ${this.value} updated to ${selectedType.type}`);
 					})
 					.catch((error) => {
 						console.error(`Failed to update property type for ${this.value}:`, error);
@@ -544,10 +566,10 @@ export function updateTemplateFromForm(): void {
 	const triggersTextarea = document.getElementById('url-patterns') as HTMLTextAreaElement;
 	if (triggersTextarea) template.triggers = triggersTextarea.value.split('\n').filter(Boolean);
 
-	hasUnsavedChanges = true;
+	_hasUnsavedChanges = true;
 }
 
-function clearTemplateEditor(): void {
+function _clearTemplateEditor(): void {
 	setEditingTemplateIndex(-1);
 	const templateEditorTitle = document.getElementById('template-editor-title');
 	const templateName = document.getElementById('template-name') as HTMLInputElement;

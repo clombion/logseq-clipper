@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { fragment_link } from './fragment_link';
 
 describe('fragment_link filter', () => {

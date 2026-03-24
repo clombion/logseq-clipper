@@ -1,12 +1,13 @@
 import Defuddle from 'defuddle/full';
-import browser from './browser-polyfill';
-import { detectBrowser } from './browser-detection';
-import { flattenShadowDom as flattenShadowDomUtil } from './flatten-shadow-dom';
-import { getLocalStorage, setLocalStorage } from './storage-utils';
 import hljs from 'highlight.js';
-import { getDomain } from './string-utils';
-import { applyHighlights } from './highlighter';
+import { detectBrowser } from './browser-detection';
+import browser from './browser-polyfill';
 import { copyToClipboard } from './clipboard-utils';
+import { debugLog } from './debug';
+import { flattenShadowDom as flattenShadowDomUtil } from './flatten-shadow-dom';
+import { applyHighlights } from './highlighter';
+import { getLocalStorage, setLocalStorage } from './storage-utils';
+import { getDomain } from './string-utils';
 
 // Mobile viewport settings
 const VIEWPORT = 'width=device-width, initial-scale=1, maximum-scale=1';
@@ -19,6 +20,7 @@ interface ReaderSettings {
 	themeMode: 'auto' | 'light' | 'dark';
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: Reader uses static methods for singleton pattern with stored state
 export class Reader {
 	private static originalHTML: string | null = null;
 	private static isActive: boolean = false;
@@ -74,7 +76,6 @@ export class Reader {
 
 		return svg;
 	}
-	private static settingsBar: HTMLElement | null = null;
 	private static colorSchemeMediaQuery: MediaQueryList | null = null;
 	private static readerStyles: HTMLLinkElement | null = null;
 	private static lightbox: HTMLElement | null = null;
@@ -91,15 +92,15 @@ export class Reader {
 	private static async loadSettings(): Promise<void> {
 		const savedSettings = await getLocalStorage('reader_settings');
 		if (savedSettings) {
-			this.settings = {
-				...this.settings,
+			Reader.settings = {
+				...Reader.settings,
 				...savedSettings,
 			};
 		}
 	}
 
 	private static async saveSettings(): Promise<void> {
-		await setLocalStorage('reader_settings', this.settings);
+		await setLocalStorage('reader_settings', Reader.settings);
 	}
 
 	private static injectSettingsBar(doc: Document) {
@@ -118,7 +119,7 @@ export class Reader {
 		decreaseFontBtn.className = 'logseq-reader-settings-button';
 		decreaseFontBtn.dataset.action = 'decrease-font';
 		decreaseFontBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -131,7 +132,7 @@ export class Reader {
 		increaseFontBtn.className = 'logseq-reader-settings-button';
 		increaseFontBtn.dataset.action = 'increase-font';
 		increaseFontBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -151,7 +152,7 @@ export class Reader {
 		decreaseWidthBtn.className = 'logseq-reader-settings-button';
 		decreaseWidthBtn.dataset.action = 'decrease-width';
 		decreaseWidthBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -163,7 +164,7 @@ export class Reader {
 		increaseWidthBtn.className = 'logseq-reader-settings-button';
 		increaseWidthBtn.dataset.action = 'increase-width';
 		increaseWidthBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -183,7 +184,7 @@ export class Reader {
 		decreaseLineHeightBtn.className = 'logseq-reader-settings-button';
 		decreaseLineHeightBtn.dataset.action = 'decrease-line-height';
 		decreaseLineHeightBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -195,7 +196,7 @@ export class Reader {
 		increaseLineHeightBtn.className = 'logseq-reader-settings-button';
 		increaseLineHeightBtn.dataset.action = 'increase-line-height';
 		increaseLineHeightBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -252,7 +253,7 @@ export class Reader {
 		highlighterBtn.className = 'logseq-reader-settings-button';
 		highlighterBtn.dataset.action = 'toggle-highlighter';
 		highlighterBtn.appendChild(
-			this.createSVG({
+			Reader.createSVG({
 				width: '20',
 				height: '20',
 				viewBox: '0 0 24 24',
@@ -273,18 +274,18 @@ export class Reader {
 		settingsBar.appendChild(controlsContainer);
 
 		doc.body.appendChild(settingsBar);
-		this.settingsBar = settingsBar;
+		(Reader as unknown as Record<string, unknown>).settingsBar = settingsBar;
 
 		// Initialize values from settings
-		this.updateFontSize(
+		Reader.updateFontSize(
 			doc,
-			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--logseq-reader-font-size')),
+			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--logseq-reader-font-size'), 10),
 		);
-		this.updateWidth(
+		Reader.updateWidth(
 			doc,
-			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--logseq-reader-line-width')),
+			parseInt(getComputedStyle(doc.documentElement).getPropertyValue('--logseq-reader-line-width'), 10),
 		);
-		this.updateLineHeight(
+		Reader.updateLineHeight(
 			doc,
 			parseFloat(getComputedStyle(doc.documentElement).getPropertyValue('--logseq-reader-line-height')),
 		);
@@ -300,25 +301,25 @@ export class Reader {
 
 			switch (action) {
 				case 'decrease-font':
-					this.updateFontSize(doc, parseInt(style.getPropertyValue('--logseq-reader-font-size')) - 1);
+					Reader.updateFontSize(doc, parseInt(style.getPropertyValue('--logseq-reader-font-size'), 10) - 1);
 					break;
 				case 'increase-font':
-					this.updateFontSize(doc, parseInt(style.getPropertyValue('--logseq-reader-font-size')) + 1);
+					Reader.updateFontSize(doc, parseInt(style.getPropertyValue('--logseq-reader-font-size'), 10) + 1);
 					break;
 				case 'decrease-width':
-					this.updateWidth(doc, parseInt(style.getPropertyValue('--logseq-reader-line-width')) - 1);
+					Reader.updateWidth(doc, parseInt(style.getPropertyValue('--logseq-reader-line-width'), 10) - 1);
 					break;
 				case 'increase-width':
-					this.updateWidth(doc, parseInt(style.getPropertyValue('--logseq-reader-line-width')) + 1);
+					Reader.updateWidth(doc, parseInt(style.getPropertyValue('--logseq-reader-line-width'), 10) + 1);
 					break;
 				case 'decrease-line-height':
-					this.updateLineHeight(
+					Reader.updateLineHeight(
 						doc,
 						parseFloat(style.getPropertyValue('--logseq-reader-line-height')) - 0.1,
 					);
 					break;
 				case 'increase-line-height':
-					this.updateLineHeight(
+					Reader.updateLineHeight(
 						doc,
 						parseFloat(style.getPropertyValue('--logseq-reader-line-height')) + 0.1,
 					);
@@ -327,15 +328,15 @@ export class Reader {
 		});
 
 		// Add theme select event listener
-		themeSelect.value = this.settings.theme;
+		themeSelect.value = Reader.settings.theme;
 		themeSelect.addEventListener('change', () => {
-			this.updateTheme(doc, themeSelect.value as 'default' | 'flexoki');
+			Reader.updateTheme(doc, themeSelect.value as 'default' | 'flexoki');
 		});
 
 		// Add theme mode select event listener
-		themeModeSelect.value = this.settings.themeMode;
+		themeModeSelect.value = Reader.settings.themeMode;
 		themeModeSelect.addEventListener('change', () => {
-			this.updateThemeMode(doc, themeModeSelect.value as 'auto' | 'light' | 'dark');
+			Reader.updateThemeMode(doc, themeModeSelect.value as 'auto' | 'light' | 'dark');
 		});
 
 		// Notify content script to listen for highlighter button
@@ -345,28 +346,28 @@ export class Reader {
 	private static updateFontSize(doc: Document, size: number) {
 		size = Math.max(12, Math.min(24, size));
 		doc.documentElement.style.setProperty('--logseq-reader-font-size', `${size}px`);
-		this.settings.fontSize = size;
-		this.saveSettings();
+		Reader.settings.fontSize = size;
+		Reader.saveSettings();
 	}
 
 	private static updateWidth(doc: Document, width: number) {
 		width = Math.max(30, Math.min(60, width));
 		doc.documentElement.style.setProperty('--logseq-reader-line-width', `${width}em`);
-		this.settings.maxWidth = width;
-		this.saveSettings();
+		Reader.settings.maxWidth = width;
+		Reader.saveSettings();
 	}
 
 	private static updateLineHeight(doc: Document, height: number) {
 		height = Math.max(1.2, Math.min(2, Math.round(height * 10) / 10));
 		doc.documentElement.style.setProperty('--logseq-reader-line-height', height.toString());
-		this.settings.lineHeight = height;
-		this.saveSettings();
+		Reader.settings.lineHeight = height;
+		Reader.saveSettings();
 	}
 
 	private static updateTheme(doc: Document, theme: 'default' | 'flexoki'): void {
 		doc.documentElement.setAttribute('data-reader-theme', theme);
-		this.settings.theme = theme;
-		this.saveSettings();
+		Reader.settings.theme = theme;
+		Reader.saveSettings();
 	}
 
 	private static updateThemeMode(doc: Document, mode: 'auto' | 'light' | 'dark'): void {
@@ -380,12 +381,12 @@ export class Reader {
 			html.classList.add(`theme-${mode}`);
 		}
 
-		this.settings.themeMode = mode;
-		this.saveSettings();
+		Reader.settings.themeMode = mode;
+		Reader.saveSettings();
 	}
 
 	private static handleColorSchemeChange(e: MediaQueryListEvent, doc: Document): void {
-		if (this.settings.themeMode === 'auto') {
+		if (Reader.settings.themeMode === 'auto') {
 			doc.documentElement.classList.remove('theme-light', 'theme-dark');
 			doc.documentElement.classList.add(e.matches ? 'theme-dark' : 'theme-light');
 		}
@@ -443,13 +444,14 @@ export class Reader {
 
 		// Create outline items and store references
 		const outlineItems = new WeakMap<Element, HTMLElement>();
+		const outlineItemTargets = new WeakMap<Element, Element>();
 		const outlineHeadings: Element[] = [];
 
 		// Keep track of the last heading at each level and their depths
 		const lastHeadingAtLevel: { [key: number]: { element: Element; depth: number } } = {};
 
 		headings.forEach((heading) => {
-			const level = parseInt(heading.tagName[1]);
+			const level = parseInt(heading.tagName[1]!, 10);
 			const currentRect = heading.getBoundingClientRect();
 
 			// Calculate depth based on parent headings
@@ -482,18 +484,9 @@ export class Reader {
 			item.setAttribute('data-depth', depth.toString());
 			item.textContent = heading.textContent;
 
-			item.addEventListener('click', () => {
-				const rect = heading.getBoundingClientRect();
-				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
-				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
-				window.scrollTo({
-					top: targetY,
-					behavior: 'smooth',
-				});
-			});
-
 			outline.appendChild(item);
 			outlineItems.set(heading, item);
+			outlineItemTargets.set(item, heading);
 			outlineHeadings.push(heading);
 
 			// Update tracking variables
@@ -513,14 +506,13 @@ export class Reader {
 					}
 					item?.classList.add('active');
 
-					// Update faint state for all items
-					const currentHeadingRect = heading.getBoundingClientRect();
-					for (const h of outlineHeadings) {
-						const outlineItem = outlineItems.get(h);
+					// Update faint state for all items using index position
+					const currentIndex = outlineHeadings.indexOf(heading);
+					for (let i = 0; i < outlineHeadings.length; i++) {
+						const outlineItem = outlineItems.get(outlineHeadings[i]!);
 						if (!outlineItem) continue;
-						const headingRect = h.getBoundingClientRect();
 
-						if (headingRect.top < currentHeadingRect.top) {
+						if (i < currentIndex) {
 							outlineItem.classList.add('faint');
 						} else {
 							outlineItem.classList.remove('faint');
@@ -547,20 +539,28 @@ export class Reader {
 			item.setAttribute('data-depth', '0');
 			item.textContent = 'Footnotes';
 
-			item.addEventListener('click', () => {
-				const rect = footnotes.getBoundingClientRect();
-				const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
-				const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
-				window.scrollTo({
-					top: targetY,
-					behavior: 'smooth',
-				});
-			});
-
 			outline.appendChild(item);
 			outlineItems.set(footnotes, item);
+			outlineItemTargets.set(item, footnotes);
 			observer.observe(footnotes);
 		}
+
+		// Event delegation for outline item clicks
+		outline.addEventListener('click', (e) => {
+			const item = (e.target as Element).closest('.logseq-reader-outline-item');
+			if (!item) return;
+
+			const target = outlineItemTargets.get(item);
+			if (!target) return;
+
+			const rect = target.getBoundingClientRect();
+			const scrollTop = window.pageYOffset || doc.documentElement.scrollTop;
+			const targetY = scrollTop + rect.top - window.innerHeight * 0.05;
+			window.scrollTo({
+				top: targetY,
+				behavior: 'smooth',
+			});
+		});
 
 		return observer;
 	}
@@ -618,7 +618,7 @@ export class Reader {
 
 			// Close active popover if clicking outside
 			if (!footnoteLink && !target.closest('.footnote-popover')) {
-				this.hideFootnotePopover();
+				Reader.hideFootnotePopover();
 				return;
 			}
 
@@ -626,8 +626,8 @@ export class Reader {
 				e.preventDefault();
 
 				// Toggle if clicking the same footnote
-				if (this.activeFootnoteLink === footnoteLink) {
-					this.hideFootnotePopover();
+				if (Reader.activeFootnoteLink === footnoteLink) {
+					Reader.hideFootnotePopover();
 					return;
 				}
 
@@ -649,44 +649,44 @@ export class Reader {
 					popover.textContent = '';
 					const clonedContent = content.cloneNode(true) as HTMLElement;
 					popover.appendChild(clonedContent);
-					this.showFootnotePopover(popover, footnoteLink);
+					Reader.showFootnotePopover(popover, footnoteLink);
 
 					// Update active states
-					if (this.activeFootnoteLink) {
-						this.activeFootnoteLink.classList.remove('active');
+					if (Reader.activeFootnoteLink) {
+						Reader.activeFootnoteLink.classList.remove('active');
 					}
 					footnoteLink.classList.add('active');
-					this.activeFootnoteLink = footnoteLink;
+					Reader.activeFootnoteLink = footnoteLink;
 				}
 			}
 		});
 
 		// Handle scroll and resize events
 		const updatePopoverPosition = () => {
-			if (this.activeFootnoteLink && this.activePopover) {
-				this.positionPopover(this.activePopover, this.activeFootnoteLink);
+			if (Reader.activeFootnoteLink && Reader.activePopover) {
+				Reader.positionPopover(Reader.activePopover, Reader.activeFootnoteLink);
 			}
 		};
 
 		doc.addEventListener('scroll', updatePopoverPosition, { passive: true });
-		window.addEventListener('resize', updatePopoverPosition);
+		window.addEventListener('resize', updatePopoverPosition, { passive: true });
 	}
 
 	private static showFootnotePopover(popover: HTMLElement, link: HTMLAnchorElement) {
-		this.activePopover = popover;
-		this.positionPopover(popover, link);
+		Reader.activePopover = popover;
+		Reader.positionPopover(popover, link);
 		popover.classList.add('active');
 	}
 
 	private static hideFootnotePopover() {
-		if (this.activePopover) {
-			this.activePopover.classList.remove('active');
+		if (Reader.activePopover) {
+			Reader.activePopover.classList.remove('active');
 		}
-		if (this.activeFootnoteLink) {
-			this.activeFootnoteLink.classList.remove('active');
+		if (Reader.activeFootnoteLink) {
+			Reader.activeFootnoteLink.classList.remove('active');
 		}
-		this.activePopover = null;
-		this.activeFootnoteLink = null;
+		Reader.activePopover = null;
+		Reader.activeFootnoteLink = null;
 	}
 
 	private static positionPopover(popover: HTMLElement, link: HTMLAnchorElement) {
@@ -709,7 +709,7 @@ export class Reader {
 		const showBelow = spaceBelow >= popoverRect.height || spaceBelow >= spaceAbove;
 
 		// Calculate vertical position
-		let top = showBelow
+		const top = showBelow
 			? linkRect.bottom + ARROW_HEIGHT + VERTICAL_SPACING
 			: linkRect.top - popoverRect.height - ARROW_HEIGHT - VERTICAL_SPACING;
 
@@ -765,14 +765,16 @@ export class Reader {
 						nativeClearInterval(id);
 					} catch (e) {
 						// Ignore errors from clearing individual timeouts
-						console.log('Reader', 'Error clearing timeout/interval:', e);
+						debugLog('Reader', 'Error clearing timeout/interval:', e);
 					}
 				}
 			}
 
 			// Remove all script elements except JSON-LD
 			const scripts = doc.querySelectorAll('script:not([type="application/ld+json"])');
-			scripts.forEach((el) => el.remove());
+			scripts.forEach((el) => {
+				el.remove();
+			});
 
 			// Replace body with a clone to remove all event listeners
 			const newBody = doc.body.cloneNode(true);
@@ -784,7 +786,7 @@ export class Reader {
 			meta.content = "script-src 'none'; object-src 'none';";
 			doc.head.appendChild(meta);
 		} catch (e) {
-			console.log('Reader', 'Error during script cleanup:', e);
+			debugLog('Reader', 'Error during script cleanup:', e);
 			// Continue with reader mode even if script cleanup fails
 		}
 	}
@@ -802,14 +804,14 @@ export class Reader {
 				try {
 					hljs.highlightElement(block as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting code block:', e);
+					debugLog('Reader', 'Error highlighting code block:', e);
 				}
 			} else {
 				// If no language specified, try autodetection
 				try {
 					hljs.highlightElement(block as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting code block:', e);
+					debugLog('Reader', 'Error highlighting code block:', e);
 				}
 			}
 		});
@@ -823,7 +825,7 @@ export class Reader {
 				try {
 					hljs.highlightElement(code as HTMLElement);
 				} catch (e) {
-					console.log('Reader', 'Error highlighting inline code:', e);
+					debugLog('Reader', 'Error highlighting inline code:', e);
 				}
 			}
 		});
@@ -839,7 +841,7 @@ export class Reader {
 			button.className = 'copy-button';
 
 			// Create copy SVG
-			const svg = this.createSVG({
+			const svg = Reader.createSVG({
 				width: '16',
 				height: '16',
 				viewBox: '0 0 24 24',
@@ -861,7 +863,7 @@ export class Reader {
 						button.textContent = '';
 
 						// Create check icon
-						const checkSvg = this.createSVG({
+						const checkSvg = Reader.createSVG({
 							width: '16',
 							height: '16',
 							viewBox: '0 0 24 24',
@@ -877,10 +879,10 @@ export class Reader {
 							button.appendChild(svg); // Re-add original SVG
 						}, 2000);
 					} else {
-						console.log('Reader', 'Error copying code: clipboard operation failed');
+						debugLog('Reader', 'Error copying code: clipboard operation failed');
 					}
 				} catch (err) {
-					console.log('Reader', 'Error copying code:', err);
+					debugLog('Reader', 'Error copying code:', err);
 				}
 			});
 			pre.appendChild(button);
@@ -889,17 +891,17 @@ export class Reader {
 
 	private static initializeLightbox(doc: Document) {
 		// Create lightbox container
-		this.lightbox = doc.createElement('div');
-		this.lightbox.className = 'logseq-reader-lightbox theme-dark';
-		this.lightbox.setAttribute('role', 'dialog');
-		this.lightbox.setAttribute('aria-modal', 'true');
+		Reader.lightbox = doc.createElement('div');
+		Reader.lightbox.className = 'logseq-reader-lightbox theme-dark';
+		Reader.lightbox.setAttribute('role', 'dialog');
+		Reader.lightbox.setAttribute('aria-modal', 'true');
 		// Create lightbox
 		const closeButton = doc.createElement('button');
 		closeButton.className = 'lightbox-close';
 		closeButton.setAttribute('aria-label', 'Close image viewer');
 
 		// Create close button SVG
-		const closeSvg = this.createSVG({
+		const closeSvg = Reader.createSVG({
 			width: '20',
 			height: '20',
 			viewBox: '0 0 24 24',
@@ -920,9 +922,9 @@ export class Reader {
 		lightboxContent.appendChild(imageContainer);
 		lightboxContent.appendChild(captionContainer);
 
-		this.lightbox.appendChild(closeButton);
-		this.lightbox.appendChild(lightboxContent);
-		doc.body.appendChild(this.lightbox);
+		Reader.lightbox.appendChild(closeButton);
+		Reader.lightbox.appendChild(lightboxContent);
+		doc.body.appendChild(Reader.lightbox);
 
 		// Get all images in the article
 		const article = doc.querySelector('article');
@@ -953,16 +955,16 @@ export class Reader {
 				const images = Array.from(figure.querySelectorAll('img')) as HTMLImageElement[];
 				return images.map((img) => {
 					// Store figure reference on the image for caption lookup
-					(img as any).figureElement = figure;
+					(img as unknown as { figureElement: HTMLElement }).figureElement = figure;
 					return img;
 				});
 			});
 
-			this.images = [...standaloneImages, ...linkedImages, ...figureImages];
+			Reader.images = [...standaloneImages, ...linkedImages, ...figureImages];
 
 			// Add click handlers
-			this.images.forEach((img, index) => {
-				const figure = (img as any).figureElement;
+			Reader.images.forEach((img, index) => {
+				const figure = (img as unknown as { figureElement?: HTMLElement }).figureElement;
 				const parentLink = img.closest('a');
 
 				if (figure) {
@@ -984,7 +986,7 @@ export class Reader {
 					expandButton.setAttribute('aria-label', 'View full size');
 
 					// Create expand SVG
-					const expandSvg = this.createSVG({
+					const expandSvg = Reader.createSVG({
 						width: '16',
 						height: '16',
 						viewBox: '0 0 24 24',
@@ -997,7 +999,7 @@ export class Reader {
 					expandButton.addEventListener('click', (e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						this.showLightbox(index);
+						Reader.showLightbox(index);
 					});
 				} else if (parentLink) {
 					// Handle linked images as before
@@ -1011,7 +1013,7 @@ export class Reader {
 					expandButton.setAttribute('aria-label', 'View full size');
 
 					// Create expand SVG
-					const expandSvg = this.createSVG({
+					const expandSvg = Reader.createSVG({
 						width: '16',
 						height: '16',
 						viewBox: '0 0 24 24',
@@ -1023,52 +1025,52 @@ export class Reader {
 					expandButton.addEventListener('click', (e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						this.showLightbox(index);
+						Reader.showLightbox(index);
 					});
 				} else {
 					// For standalone images, just add the click handler
 					img.addEventListener('click', (e) => {
 						e.preventDefault();
-						this.showLightbox(index);
+						Reader.showLightbox(index);
 					});
 				}
 			});
 		}
 
 		// Close button handler - use the closeButton we already created
-		closeButton.addEventListener('click', () => this.closeLightbox());
+		closeButton.addEventListener('click', () => Reader.closeLightbox());
 
 		// Click outside to close
-		this.lightbox.addEventListener('click', (e) => {
-			if (e.target === this.lightbox) {
-				this.closeLightbox();
+		Reader.lightbox.addEventListener('click', (e) => {
+			if (e.target === Reader.lightbox) {
+				Reader.closeLightbox();
 			}
 		});
 
 		// Keyboard navigation
 		doc.addEventListener('keydown', (e) => {
-			if (!this.lightbox?.classList.contains('active')) return;
+			if (!Reader.lightbox?.classList.contains('active')) return;
 
 			switch (e.key) {
 				case 'Escape':
-					this.closeLightbox();
+					Reader.closeLightbox();
 					break;
 				case 'ArrowLeft':
-					this.showPreviousImage();
+					Reader.showPreviousImage();
 					break;
 				case 'ArrowRight':
-					this.showNextImage();
+					Reader.showNextImage();
 					break;
 			}
 		});
 	}
 
 	private static showLightbox(index: number) {
-		if (!this.lightbox || !this.images[index]) return;
+		if (!Reader.lightbox || !Reader.images[index]) return;
 
-		this.currentImageIndex = index;
-		const container = this.lightbox.querySelector('.lightbox-image-container');
-		const captionContainer = this.lightbox.querySelector('.lightbox-caption');
+		Reader.currentImageIndex = index;
+		const container = Reader.lightbox.querySelector('.lightbox-image-container');
+		const captionContainer = Reader.lightbox.querySelector('.lightbox-caption');
 
 		if (container && captionContainer) {
 			// Clear previous content
@@ -1076,11 +1078,12 @@ export class Reader {
 			captionContainer.textContent = '';
 
 			// Clone the original image to preserve loaded state
-			const img = this.images[index].cloneNode(true) as HTMLImageElement;
+			const img = Reader.images[index].cloneNode(true) as HTMLImageElement;
 			container.appendChild(img);
 
 			// Handle caption if image is part of a figure
-			const figure = (this.images[index] as any).figureElement as HTMLElement;
+			const figure = (Reader.images[index] as unknown as { figureElement?: HTMLElement })
+				.figureElement as HTMLElement;
 			if (figure) {
 				const figcaption = figure.querySelector('figcaption');
 				if (figcaption) {
@@ -1090,43 +1093,43 @@ export class Reader {
 			}
 		}
 
-		this.lightbox.classList.add('active');
+		Reader.lightbox.classList.add('active');
 		document.body.style.overflow = 'hidden';
 	}
 
 	private static closeLightbox() {
-		if (!this.lightbox) return;
-		this.lightbox.classList.remove('active');
+		if (!Reader.lightbox) return;
+		Reader.lightbox.classList.remove('active');
 		document.body.style.overflow = '';
-		this.currentImageIndex = -1;
+		Reader.currentImageIndex = -1;
 	}
 
 	private static showPreviousImage() {
-		if (this.images.length <= 1) return;
+		if (Reader.images.length <= 1) return;
 
-		const newIndex = this.currentImageIndex > 0 ? this.currentImageIndex - 1 : this.images.length - 1;
+		const newIndex = Reader.currentImageIndex > 0 ? Reader.currentImageIndex - 1 : Reader.images.length - 1;
 
-		this.showLightbox(newIndex);
+		Reader.showLightbox(newIndex);
 	}
 
 	private static showNextImage() {
-		if (this.images.length <= 1) return;
+		if (Reader.images.length <= 1) return;
 
-		const newIndex = this.currentImageIndex < this.images.length - 1 ? this.currentImageIndex + 1 : 0;
+		const newIndex = Reader.currentImageIndex < Reader.images.length - 1 ? Reader.currentImageIndex + 1 : 0;
 
-		this.showLightbox(newIndex);
+		Reader.showLightbox(newIndex);
 	}
 
 	static async apply(doc: Document) {
 		try {
 			// Store original HTML for restoration
-			this.originalHTML = doc.documentElement.outerHTML;
+			Reader.originalHTML = doc.documentElement.outerHTML;
 
 			// Clipper iframe container
 			const clipperIframeContainer = doc.getElementById('logseq-clipper-container');
 
 			// Load saved settings
-			await this.loadSettings();
+			await Reader.loadSettings();
 
 			// Capture YouTube video state before cleanup destroys the player
 			let videoTimestamp = 0;
@@ -1145,11 +1148,12 @@ export class Reader {
 			await flattenShadowDomUtil(doc);
 
 			// Remove page scripts and their effects
-			this.cleanupScripts(doc);
+			Reader.cleanupScripts(doc);
 
 			// Clear body attributes
 			while (doc.body.attributes.length > 0) {
-				doc.body.removeAttribute(doc.body.attributes[0].name);
+				const attrName = doc.body.attributes[0]?.name;
+				if (attrName) doc.body.removeAttribute(attrName);
 			}
 
 			// Clean the html element but preserve lang and dir attributes
@@ -1166,14 +1170,16 @@ export class Reader {
 			// Preserve the URL for Defuddle's extractors
 			Object.defineProperty(docClone, 'URL', { value: doc.URL, configurable: true });
 			// Start content extraction on the clone (don't await yet)
-			const contentPromise = this.extractContent(docClone);
+			const contentPromise = Reader.extractContent(docClone);
 
 			// Clean up head - remove unwanted elements but keep meta tags and non-stylesheet links
 			const head = doc.head;
 
 			// Remove base tags
 			const baseTags = head.querySelectorAll('base');
-			baseTags.forEach((el) => el.remove());
+			baseTags.forEach((el) => {
+				el.remove();
+			});
 
 			// Remove stylesheet links and style tags, except reader styles
 			const styleElements = head.querySelectorAll('link[rel="stylesheet"], link[as="style"], style');
@@ -1254,18 +1260,18 @@ export class Reader {
 
 			// Add reader classes and attributes
 			doc.documentElement.classList.add('logseq-reader-active');
-			doc.documentElement.setAttribute('data-reader-theme', this.settings.theme);
+			doc.documentElement.setAttribute('data-reader-theme', Reader.settings.theme);
 
 			// Apply theme mode
-			this.updateThemeMode(doc, this.settings.themeMode);
+			Reader.updateThemeMode(doc, Reader.settings.themeMode);
 
 			// Initialize settings from local storage
-			doc.documentElement.style.setProperty('--logseq-reader-font-size', `${this.settings.fontSize}px`);
-			doc.documentElement.style.setProperty('--logseq-reader-line-height', this.settings.lineHeight.toString());
-			doc.documentElement.style.setProperty('--logseq-reader-line-width', `${this.settings.maxWidth}em`);
+			doc.documentElement.style.setProperty('--logseq-reader-font-size', `${Reader.settings.fontSize}px`);
+			doc.documentElement.style.setProperty('--logseq-reader-line-height', Reader.settings.lineHeight.toString());
+			doc.documentElement.style.setProperty('--logseq-reader-line-width', `${Reader.settings.maxWidth}em`);
 
 			// Add settings bar
-			this.injectSettingsBar(doc);
+			Reader.injectSettingsBar(doc);
 
 			// Re-attach the clipper iframe container if it exists
 			if (clipperIframeContainer) {
@@ -1273,23 +1279,23 @@ export class Reader {
 			}
 
 			// Set up color scheme media query listener
-			this.colorSchemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-			this.colorSchemeMediaQuery.addEventListener('change', (e) => this.handleColorSchemeChange(e, doc));
+			Reader.colorSchemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+			Reader.colorSchemeMediaQuery.addEventListener('change', (e) => Reader.handleColorSchemeChange(e, doc));
 
-			this.isActive = true;
+			Reader.isActive = true;
 
 			// Now await content extraction and populate the page
 			const { content, title, author, published, domain, extractorType, wordCount, parseTime } =
 				await contentPromise;
 
 			// If reader was toggled off while waiting, abort
-			if (!this.isActive) return;
+			if (!Reader.isActive) return;
 
 			// Remove loading spinner
 			spinner.remove();
 
 			if (!content) {
-				console.log('Reader', 'Failed to extract content');
+				debugLog('Reader', 'Failed to extract content');
 				article.textContent = 'Failed to extract content.';
 				return;
 			}
@@ -1305,8 +1311,8 @@ export class Reader {
 			let formattedDate = '';
 			if (published) {
 				try {
-					const date = new Date(published.split(',')[0].trim());
-					if (!isNaN(date.getTime())) {
+					const date = new Date(published.split(',')[0]?.trim() ?? '');
+					if (!Number.isNaN(date.getTime())) {
 						formattedDate = new Intl.DateTimeFormat(undefined, {
 							year: 'numeric',
 							month: 'long',
@@ -1318,7 +1324,7 @@ export class Reader {
 					}
 				} catch (e) {
 					formattedDate = published;
-					console.log('Reader', 'Error formatting date:', e);
+					debugLog('Reader', 'Error formatting date:', e);
 				}
 			}
 
@@ -1374,7 +1380,7 @@ export class Reader {
 						const watchUrl =
 							'https://www.youtube.com/watch?v=' +
 							videoId +
-							(videoTimestamp > 0 ? '&t=' + videoTimestamp : '');
+							(videoTimestamp > 0 ? `&t=${videoTimestamp}` : '');
 						const thumbnail = doc.createElement('a');
 						thumbnail.href = watchUrl;
 						thumbnail.target = '_blank';
@@ -1382,15 +1388,21 @@ export class Reader {
 						thumbnail.style.cssText =
 							'display:block;position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:8px;overflow:hidden;';
 						const img = doc.createElement('img');
-						img.src = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+						img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 						img.style.cssText = 'width:100%;height:100%;object-fit:cover;mix-blend-mode:normal!important;';
 						thumbnail.appendChild(img);
 
 						const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-						svg.setAttribute('style', 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;');
+						svg.setAttribute(
+							'style',
+							'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:48px;mix-blend-mode:normal!important;',
+						);
 						svg.setAttribute('viewBox', '0 0 68 48');
 						const bgPath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-						bgPath.setAttribute('d', 'M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z');
+						bgPath.setAttribute(
+							'd',
+							'M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z',
+						);
 						bgPath.setAttribute('fill', 'red');
 						const playPath = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
 						playPath.setAttribute('d', 'M45 24L27 14v20');
@@ -1433,18 +1445,18 @@ export class Reader {
 			// Show footer with stats
 			const footerItems = [
 				'Logseq Reader',
-				wordCount ? new Intl.NumberFormat().format(wordCount) + ' words' : '',
-				parseTime ? 'parsed in ' + new Intl.NumberFormat().format(parseTime) + ' ms' : '',
+				wordCount ? `${new Intl.NumberFormat().format(wordCount)} words` : '',
+				parseTime ? `parsed in ${new Intl.NumberFormat().format(parseTime)} ms` : '',
 			].filter(Boolean);
 			footer.textContent = footerItems.join(' · ');
 			footer.style.display = '';
 
 			// Initialize content-dependent features
-			this.observer = this.generateOutline(doc);
-			this.initializeFootnotes(doc);
-			this.initializeCodeHighlighting(doc);
-			this.initializeCopyButtons(doc);
-			this.initializeLightbox(doc);
+			Reader.observer = Reader.generateOutline(doc);
+			Reader.initializeFootnotes(doc);
+			Reader.initializeCodeHighlighting(doc);
+			Reader.initializeCopyButtons(doc);
+			Reader.initializeLightbox(doc);
 
 			applyHighlights();
 		} catch (e) {
@@ -1453,21 +1465,23 @@ export class Reader {
 	}
 
 	static restore(doc: Document) {
-		if (this.originalHTML) {
+		if (Reader.originalHTML) {
 			// Disconnect the observer if it exists
-			if (this.observer) {
-				this.observer.disconnect();
-				this.observer = null;
+			if (Reader.observer) {
+				Reader.observer.disconnect();
+				Reader.observer = null;
 			}
 
 			// Remove color scheme media query listener
-			if (this.colorSchemeMediaQuery) {
-				this.colorSchemeMediaQuery.removeEventListener('change', (e) => this.handleColorSchemeChange(e, doc));
-				this.colorSchemeMediaQuery = null;
+			if (Reader.colorSchemeMediaQuery) {
+				Reader.colorSchemeMediaQuery.removeEventListener('change', (e) =>
+					Reader.handleColorSchemeChange(e, doc),
+				);
+				Reader.colorSchemeMediaQuery = null;
 			}
 
 			// Hide any active footnote popover
-			this.hideFootnotePopover();
+			Reader.hideFootnotePopover();
 
 			// Clean up YouTube embed referer rule if it was enabled
 			const host = doc.URL ? new URL(doc.URL).hostname : '';
@@ -1476,42 +1490,42 @@ export class Reader {
 			}
 
 			// Remove lightbox
-			if (this.lightbox) {
-				this.lightbox.remove();
-				this.lightbox = null;
+			if (Reader.lightbox) {
+				Reader.lightbox.remove();
+				Reader.lightbox = null;
 			}
 
 			// Remove reader styles
-			if (this.readerStyles) {
-				this.readerStyles.remove();
-				this.readerStyles = null;
+			if (Reader.readerStyles) {
+				Reader.readerStyles.remove();
+				Reader.readerStyles = null;
 			}
 
 			const parser = new DOMParser();
-			const newDoc = parser.parseFromString(this.originalHTML, 'text/html');
+			const newDoc = parser.parseFromString(Reader.originalHTML, 'text/html');
 			doc.replaceChild(newDoc.documentElement, doc.documentElement);
 
-			this.originalHTML = null;
-			this.settingsBar = null;
+			Reader.originalHTML = null;
+			(Reader as unknown as Record<string, unknown>).settingsBar = null;
 			const outline = doc.querySelector('.logseq-reader-outline');
 			if (outline) {
 				outline.remove();
 			}
-			this.isActive = false;
+			Reader.isActive = false;
 
 			// Reapply highlights after restoring original content
-			if (typeof window !== 'undefined' && window.hasOwnProperty('applyHighlights')) {
-				(window as any).applyHighlights();
+			if (typeof window !== 'undefined' && Object.hasOwn(window, 'applyHighlights')) {
+				(window as unknown as { applyHighlights?: () => void }).applyHighlights?.();
 			}
 		}
 	}
 
 	static async toggle(doc: Document): Promise<boolean> {
-		if (this.isActive) {
-			this.restore(doc);
+		if (Reader.isActive) {
+			Reader.restore(doc);
 			return false;
 		} else {
-			await this.apply(doc);
+			await Reader.apply(doc);
 			return true;
 		}
 	}

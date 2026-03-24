@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest';
-import { render, renderTemplate, RenderContext } from './renderer';
+import { describe, expect, test } from 'vitest';
+import { type RenderContext, render, renderTemplate } from './renderer';
 
 // Simple filter implementation for testing (direct invocation)
 function testApplyFilterDirect(
@@ -119,7 +119,7 @@ describe('Renderer', () => {
 
 		test('unquoted identifier filter arg uses variable value when defined', async () => {
 			const ctx = createContext({ title: 'test', fmt: 'custom-format' });
-			ctx.variables['fmt'] = 'custom-format';
+			ctx.variables.fmt = 'custom-format';
 			const result = await render('{{title|echo_param:fmt}}', ctx);
 			expect(result.errors).toHaveLength(0);
 			expect(result.output).toBe('custom-format');

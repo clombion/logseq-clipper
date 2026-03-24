@@ -8,17 +8,17 @@ export const reverse = (str: string): string => {
 		const value = JSON.parse(str);
 		if (Array.isArray(value)) {
 			// Handle arrays
-			return JSON.stringify(value.reverse());
+			return JSON.stringify(value.toReversed());
 		} else if (typeof value === 'object' && value !== null) {
 			// Handle objects by reversing key-value pairs
 			const entries = Object.entries(value);
-			const reversedEntries = entries.reverse();
+			const reversedEntries = entries.toReversed();
 			const reversedObject = Object.fromEntries(reversedEntries);
 			return JSON.stringify(reversedObject);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If not valid JSON, treat as string
-		return str.split('').reverse().join('');
+		return str.split('').toReversed().join('');
 	}
 
 	return str;

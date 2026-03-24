@@ -3,13 +3,14 @@
 // Variables are stored with {{name}} as the key (e.g., variables["{{title}}"])
 // This module provides consistent lookup across all template processing
 
+import type { TemplateValue } from '../types/types';
 import browser from './browser-polyfill';
 
 /**
  * Context for variable resolution, including optional tabId for selector support
  */
 export interface ResolverContext {
-	variables: { [key: string]: any };
+	variables: { [key: string]: TemplateValue };
 	tabId?: number;
 }
 
@@ -23,7 +24,7 @@ export interface ResolverContext {
  * - Array access: "items[0]" → variables.items[0]
  * - Literals: "string", 123, true/false, null
  */
-export function resolveVariable(name: string, variables: { [key: string]: any }): any {
+export function resolveVariable(name: string, variables: { [key: string]: TemplateValue }): TemplateValue {
 	const trimmed = name.trim();
 
 	// String literal (single or double quotes)
@@ -69,7 +70,7 @@ export function resolveVariable(name: string, variables: { [key: string]: any })
  * Async version of resolveVariable that supports selector variables.
  * Use this in contexts where selectors need to be evaluated (set, for, if).
  */
-export async function resolveVariableAsync(name: string, context: ResolverContext): Promise<any> {
+export async function resolveVariableAsync(name: string, context: ResolverContext): Promise<TemplateValue> {
 	const trimmed = name.trim();
 
 	// Selector variable: selector:CSS or selectorHtml:CSS
@@ -84,7 +85,7 @@ export async function resolveVariableAsync(name: string, context: ResolverContex
 /**
  * Resolve a selector variable by querying the content script
  */
-async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Promise<any> {
+async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Promise<TemplateValue> {
 	if (!tabId) {
 		console.error('Cannot resolve selector without tabId:', selectorExpr);
 		return undefined;
@@ -102,7 +103,7 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 	try {
 		const response = (await browser.tabs.sendMessage(tabId, {
 			action: 'extractContent',
-			selector: selector.replace(/\\"/g, '"'),
+			selector: selector?.replace(/\\"/g, '"'),
 			attribute: attribute,
 			extractHtml: extractHtml,
 		})) as { content: string | string[] };
@@ -117,9 +118,9 @@ async function resolveSelectorVariable(selectorExpr: string, tabId?: number): Pr
 /**
  * Resolve a schema variable (schema:key format)
  */
-function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: any }): any {
+function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: TemplateValue }): TemplateValue {
 	// Try direct lookup: {{schema:@type}}
-	let value = variables[`{{${schemaKey}}}`];
+	const value = variables[`{{${schemaKey}}}`];
 	if (value !== undefined) {
 		return value;
 	}
@@ -144,47 +145,47 @@ function resolveSchemaVariable(schemaKey: string, variables: { [key: string]: an
  * - "items[0]" → obj.items[0]
  * - "items[0].title" → obj.items[0].title
  */
-export function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: TemplateValue, path: string): TemplateValue {
 	if (!path || !obj) return undefined;
 
 	const keys = path.split('.');
-	return keys.reduce((value, key) => {
+	return keys.reduce<TemplateValue>((value, key) => {
 		if (value === undefined || value === null) return undefined;
+		if (typeof value !== 'object') return undefined;
+
+		if (Array.isArray(value)) {
+			// Handle bracket notation on arrays
+			if (key.includes('[') && key.includes(']')) {
+				const match = key.match(/^([^[]*)\[([^\]]+)\]/);
+				if (match) {
+					const [, , indexStr] = match;
+					const index = parseInt(indexStr!, 10);
+					return value[index] as TemplateValue;
+				}
+			}
+			return undefined;
+		}
+
+		const record = value as Record<string, TemplateValue>;
 
 		// Handle bracket notation for array access: items[0]
 		if (key.includes('[') && key.includes(']')) {
-			const match = key.match(/^([^\[]*)\[([^\]]+)\]/);
+			const match = key.match(/^([^[]*)\[([^\]]+)\]/);
 			if (match) {
 				const [, arrayKey, indexStr] = match;
-				const baseValue = arrayKey ? value[arrayKey] : value;
+				const baseValue = arrayKey ? record[arrayKey] : value;
 				if (Array.isArray(baseValue)) {
-					const index = parseInt(indexStr, 10);
-					return baseValue[index];
+					const index = parseInt(indexStr!, 10);
+					return baseValue[index] as TemplateValue;
 				}
 				// Also handle object bracket notation: obj["key"]
-				if (baseValue && typeof baseValue === 'object') {
-					return baseValue[indexStr.replace(/^["']|["']$/g, '')];
+				if (baseValue && typeof baseValue === 'object' && !Array.isArray(baseValue)) {
+					return (baseValue as Record<string, TemplateValue>)[indexStr?.replace(/^["']|["']$/g, '') ?? ''];
 				}
 				return undefined;
 			}
 		}
 
-		return value[key];
+		return record[key];
 	}, obj);
-}
-
-/**
- * Convert any value to a string for template output.
- * - undefined/null → ''
- * - objects → JSON.stringify
- * - everything else → String()
- */
-export function valueToString(value: any): string {
-	if (value === undefined || value === null) {
-		return '';
-	}
-	if (typeof value === 'object') {
-		return JSON.stringify(value);
-	}
-	return String(value);
 }

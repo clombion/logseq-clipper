@@ -7,8 +7,8 @@
 // - Logic tags: if/elseif/else/endif, for/endfor, set
 // - Expressions with operators and literals
 
-import { Token, TokenType, tokenize, TokenizerResult } from './tokenizer';
 import { filterMetadata, validFilterNames } from './filters';
+import { type Token, type TokenType, tokenize } from './tokenizer';
 
 // ============================================================================
 // AST Node Types
@@ -733,8 +733,8 @@ function parseFilterArgument(state: ParserState): Expression | null {
 
 		if (check(state, 'arrow')) {
 			// This is an arrow function - consume everything until | or }}
-			let value = idToken.value + ' ';
-			value += advance(state).value + ' '; // consume '=>'
+			let value = `${idToken.value} `;
+			value += `${advance(state).value} `; // consume '=>'
 
 			// Consume everything until pipe or variable_end, tracking brace/paren depth
 			let braceDepth = 0;
@@ -791,7 +791,7 @@ function parseFilterArgument(state: ParserState): Expression | null {
 	// e.g., replace:"old":"new" should be one arg "old":"new", not two args
 	if (first.type === 'literal' && startToken.type === 'string') {
 		// Format string with quotes preserved
-		const formatString = (val: any) => `"${val}"`;
+		const formatString = (val: unknown) => `"${val}"`;
 		let combined = formatString(first.value);
 
 		// Check if followed by :string pattern - chain them together
@@ -802,7 +802,7 @@ function parseFilterArgument(state: ParserState): Expression | null {
 			if (check(state, 'string')) {
 				const next = parsePrimaryExpression(state);
 				if (next && next.type === 'literal') {
-					combined += ':' + formatString(next.value);
+					combined += `:${formatString(next.value)}`;
 				}
 			} else {
 				// Not a string after colon, restore position
@@ -920,13 +920,13 @@ function parseFilterExpression(state: ParserState): Expression | null {
 					// Chain string:string pairs into a single arg
 					// e.g., replace:("old":"new","foo":"bar") → two args: "old":"new" and "foo":"bar"
 					if (arg.type === 'literal' && typeof arg.value === 'string' && check(state, 'colon')) {
-						const formatStr = (val: any) => `"${val}"`;
+						const formatStr = (val: unknown) => `"${val}"`;
 						let combined = formatStr(arg.value);
 						while (check(state, 'colon')) {
 							advance(state); // consume ':'
 							const next = parseOrExpression(state);
 							if (next && next.type === 'literal' && typeof next.value === 'string') {
-								combined += ':' + formatStr(next.value);
+								combined += `:${formatStr(next.value)}`;
 							} else {
 								break;
 							}
@@ -1065,7 +1065,7 @@ function parseNotExpression(state: ParserState): Expression | null {
 
 // Comparison: ==, !=, >, <, >=, <=, contains
 function parseComparisonExpression(state: ParserState): Expression | null {
-	let left = parsePostfixExpression(state);
+	const left = parsePostfixExpression(state);
 	if (!left) return null;
 
 	const comparisonOps: TokenType[] = ['op_eq', 'op_neq', 'op_gt', 'op_lt', 'op_gte', 'op_lte', 'op_contains'];
@@ -1236,7 +1236,7 @@ function parsePrimaryExpression(state: ParserState): Expression | null {
 		// Handle special prefixes that use colons: selector:, schema:, selectorHtml:
 		if (check(state, 'colon')) {
 			// Look ahead to see if this is a special prefix
-			const colonToken = peek(state);
+			const _colonToken = peek(state);
 			advance(state); // consume ':'
 
 			// Build the full identifier including the prefix
@@ -1254,7 +1254,7 @@ function parsePrimaryExpression(state: ParserState): Expression | null {
 			) {
 				rest += advance(state).value;
 			}
-			name = name + ':' + rest;
+			name = `${name}:${rest}`;
 		}
 
 		return {
@@ -1300,7 +1300,7 @@ function checkTagKeyword(state: ParserState, ...keywords: TokenType[]): boolean 
 	const nextPos = state.pos + 1;
 	if (nextPos >= state.tokens.length) return false;
 
-	const nextToken = state.tokens[nextPos];
+	const nextToken = state.tokens[nextPos]!;
 	return keywords.includes(nextToken.type);
 }
 
@@ -1415,9 +1415,9 @@ function formatExpression(expr: Expression, indent: number): string {
 			);
 
 		case 'unary':
-			return `${pad}Unary: ${expr.operator}\n` + formatExpression(expr.argument, indent + 1);
+			return `${pad}Unary: ${expr.operator}\n${formatExpression(expr.argument, indent + 1)}`;
 
-		case 'filter':
+		case 'filter': {
 			let result = `${pad}Filter: ${expr.name}\n`;
 			result += `${pad}  Value:\n`;
 			result += formatExpression(expr.value, indent + 2);
@@ -1428,9 +1428,10 @@ function formatExpression(expr: Expression, indent: number): string {
 				}
 			}
 			return result;
+		}
 
 		case 'group':
-			return `${pad}Group:\n` + formatExpression(expr.expression, indent + 1);
+			return `${pad}Group:\n${formatExpression(expr.expression, indent + 1)}`;
 
 		default:
 			return `${pad}Unknown expression\n`;
@@ -1489,20 +1490,24 @@ function levenshteinDistance(a: string, b: string): number {
 		matrix[i] = [i];
 	}
 	for (let j = 0; j <= a.length; j++) {
-		matrix[0][j] = j;
+		matrix[0]![j] = j;
 	}
 
 	for (let i = 1; i <= b.length; i++) {
 		for (let j = 1; j <= a.length; j++) {
 			if (b.charAt(i - 1) === a.charAt(j - 1)) {
-				matrix[i][j] = matrix[i - 1][j - 1];
+				matrix[i]![j] = matrix[i - 1]?.[j - 1] ?? 0;
 			} else {
-				matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+				matrix[i]![j] = Math.min(
+					(matrix[i - 1]?.[j - 1] ?? 0) + 1,
+					(matrix[i]?.[j - 1] ?? 0) + 1,
+					(matrix[i - 1]?.[j] ?? 0) + 1,
+				);
 			}
 		}
 	}
 
-	return matrix[b.length][a.length];
+	return matrix[b.length]?.[a.length] ?? 0;
 }
 
 /**
@@ -1551,7 +1556,7 @@ function isValidVariable(name: string, definedVariables: Set<string>): boolean {
 	}
 
 	// Check for nested property access on known variables (e.g., loop.index)
-	const baseName = name.split('.')[0].split('[')[0];
+	const baseName = name.split('.')[0]?.split('[')[0] ?? '';
 	if (PRESET_VARIABLES.has(baseName) || definedVariables.has(baseName) || baseName === 'loop') {
 		return true;
 	}
@@ -1621,7 +1626,7 @@ function collectVariables(nodes: ASTNode[], definedVariables: Set<string>, refer
 					collectVariables(node.alternate, definedVariables, references);
 				}
 				break;
-			case 'for':
+			case 'for': {
 				// The iterator is defined within the loop
 				const loopVariables = new Set(definedVariables);
 				loopVariables.add(node.iterator);
@@ -1629,6 +1634,7 @@ function collectVariables(nodes: ASTNode[], definedVariables: Set<string>, refer
 				collectExpression(node.iterable, definedVariables, references);
 				collectVariables(node.body, loopVariables, references);
 				break;
+			}
 		}
 	}
 }
@@ -1738,10 +1744,11 @@ function expressionToString(expr: Expression): string {
 			return String(expr.value);
 		case 'identifier':
 			return expr.name;
-		case 'filter':
+		case 'filter': {
 			const base = expressionToString(expr.value);
 			const filterArgs = expr.args.map(expressionToString).join(':');
 			return filterArgs ? `${base}|${expr.name}:${filterArgs}` : `${base}|${expr.name}`;
+		}
 		case 'binary':
 			return `${expressionToString(expr.left)} ${expr.operator} ${expressionToString(expr.right)}`;
 		case 'unary':

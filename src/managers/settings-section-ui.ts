@@ -1,5 +1,4 @@
 import { updateUrl } from '../utils/routing';
-import { generalSettings } from '../utils/storage-utils';
 import { updatePromptContextVisibility } from './interpreter-settings';
 import { initializePropertyTypesManager } from './property-types-manager';
 
@@ -9,8 +8,13 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	const sections = document.querySelectorAll('.settings-section');
 	const sidebarItems = document.querySelectorAll('#sidebar li[data-section]');
 
-	sections.forEach((s) => s.classList.remove('active'));
-	sidebarItems.forEach((item) => item.classList.remove('active'));
+	sections.forEach((s) => {
+		s.classList.remove('active');
+	});
+	sidebarItems.forEach((item) => {
+		item.classList.remove('active');
+		item.setAttribute('aria-selected', 'false');
+	});
 
 	const selectedSection = document.getElementById(`${section}-section`);
 	const selectedSidebarItem = document.querySelector(`#sidebar li[data-section="${section}"]`);
@@ -20,6 +24,7 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	}
 	if (selectedSidebarItem) {
 		selectedSidebarItem.classList.add('active');
+		selectedSidebarItem.setAttribute('aria-selected', 'true');
 	}
 
 	updateUrl(section, templateId);
@@ -38,13 +43,15 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	updatePromptContextVisibility();
 }
 
-function updateSidebarActiveState(activeSection: string): void {
-	document.querySelectorAll('#sidebar li').forEach((item) => item.classList.remove('active'));
+function _updateSidebarActiveState(activeSection: string): void {
+	document.querySelectorAll('#sidebar li').forEach((item) => {
+		item.classList.remove('active');
+	});
 	const activeItem = document.querySelector(`#sidebar li[data-section="${activeSection}"]`);
 	if (activeItem) activeItem.classList.add('active');
 }
 
-function updateTemplateListActiveState(templateId: string): void {
+function _updateTemplateListActiveState(templateId: string): void {
 	const templateListItems = document.querySelectorAll('#template-list li');
 	templateListItems.forEach((item) => {
 		item.classList.remove('active');
@@ -61,8 +68,7 @@ export function initializeSidebar(): void {
 	const hamburgerMenu = document.getElementById('hamburger-menu');
 
 	if (sidebar) {
-		sidebar.addEventListener('click', (event) => {
-			const target = event.target as HTMLElement;
+		const activateSidebarItem = (target: HTMLElement) => {
 			if (
 				target.dataset.section === 'general' ||
 				target.dataset.section === 'properties' ||
@@ -80,6 +86,37 @@ export function initializeSidebar(): void {
 			if (hamburgerMenu) {
 				hamburgerMenu.classList.remove('is-active');
 			}
+		};
+
+		sidebar.addEventListener('click', (event) => {
+			activateSidebarItem(event.target as HTMLElement);
+		});
+
+		sidebar.addEventListener('keydown', (event) => {
+			const target = event.target as HTMLElement;
+			const key = (event as KeyboardEvent).key;
+
+			if (key === 'Enter' || key === ' ') {
+				event.preventDefault();
+				activateSidebarItem(target);
+				return;
+			}
+
+			if (key === 'ArrowDown' || key === 'ArrowUp') {
+				event.preventDefault();
+				const items = Array.from(sidebar.querySelectorAll<HTMLElement>('li[data-section]'));
+				const visibleItems = items.filter((item) => item.style.display !== 'none');
+				const currentIndex = visibleItems.indexOf(target);
+				if (currentIndex === -1) return;
+
+				let nextIndex: number;
+				if (key === 'ArrowDown') {
+					nextIndex = (currentIndex + 1) % visibleItems.length;
+				} else {
+					nextIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+				}
+				visibleItems[nextIndex]?.focus();
+			}
 		});
 	}
 
@@ -87,7 +124,7 @@ export function initializeSidebar(): void {
 		templateList.addEventListener('click', (event) => {
 			const target = event.target as HTMLElement;
 			const listItem = target.closest('li') as HTMLElement;
-			if (listItem && listItem.dataset.id) {
+			if (listItem?.dataset.id) {
 				showSettingsSection('templates', listItem.dataset.id);
 				if (settingsContainer) {
 					settingsContainer.classList.remove('sidebar-open');
@@ -103,6 +140,7 @@ export function initializeSidebar(): void {
 		hamburgerMenu.addEventListener('click', () => {
 			settingsContainer.classList.toggle('sidebar-open');
 			hamburgerMenu.classList.toggle('is-active');
+			hamburgerMenu.setAttribute('aria-expanded', String(settingsContainer.classList.contains('sidebar-open')));
 		});
 	}
 }

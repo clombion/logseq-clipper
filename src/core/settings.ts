@@ -1,41 +1,41 @@
+import { createIcons } from 'lucide';
+import { icons } from '../icons/icons';
+import { initializeGeneralSettings } from '../managers/general-settings';
+import { initializeInterpreterSettings } from '../managers/interpreter-settings';
+import { addMenuItemListener, initializeMenu } from '../managers/menu';
+import { initializeReaderSettings } from '../managers/reader-settings';
+import { initializeSidebar, showSettingsSection } from '../managers/settings-section-ui';
 import {
+	cleanupTemplateStorage,
 	deleteTemplate,
 	duplicateTemplate,
 	findTemplateById,
 	getEditingTemplateIndex,
 	loadTemplates,
+	rebuildTemplateList,
 	saveTemplateSettings,
 	templates,
-	cleanupTemplateStorage,
-	rebuildTemplateList,
 } from '../managers/template-manager';
 import {
-	updateTemplateList,
-	showTemplateEditor,
 	initializeAddPropertyButton,
 	initializeTemplateValidation,
+	showTemplateEditor,
+	updateTemplateList,
 } from '../managers/template-ui';
-import { initializeGeneralSettings } from '../managers/general-settings';
-import { initializeInterpreterSettings } from '../managers/interpreter-settings';
-import { showSettingsSection, initializeSidebar } from '../managers/settings-section-ui';
-import { initializeReaderSettings } from '../managers/reader-settings';
+import type { Template } from '../types/types';
 import { initializeAutoSave } from '../utils/auto-save';
-import { handleTemplateDrag, initializeDragAndDrop } from '../utils/drag-and-drop';
-import { exportTemplate, showTemplateImportModal, copyTemplateToClipboard } from '../utils/import-export';
-import { createIcons } from 'lucide';
-import { icons } from '../icons/icons';
-import { updateUrl, getUrlParameters } from '../utils/routing';
 import { addBrowserClassToHtml } from '../utils/browser-detection';
-import { initializeMenu } from '../managers/menu';
-import { addMenuItemListener } from '../managers/menu';
+import { handleTemplateDrag, initializeDragAndDrop } from '../utils/drag-and-drop';
 import {
-	translatePage,
-	getCurrentLanguage,
-	setLanguage,
 	getAvailableLanguages,
+	getCurrentLanguage,
 	getMessage,
+	setLanguage,
 	setupLanguageAndDirection,
+	translatePage,
 } from '../utils/i18n';
+import { copyTemplateToClipboard, exportTemplate, showTemplateImportModal } from '../utils/import-export';
+import { getUrlParameters, updateUrl } from '../utils/routing';
 
 declare global {
 	interface Window {
@@ -65,10 +65,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 
 			// Load templates with error handling
-			let loadedTemplates;
+			let loadedTemplates: unknown;
 			try {
 				loadedTemplates = await loadTemplates();
-				updateTemplateList(loadedTemplates);
+				updateTemplateList(loadedTemplates as Template[] | undefined);
 			} catch (error) {
 				console.error('Error loading templates:', error);
 				// Continue with empty template list
@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
 			const currentTemplate = templates[editingTemplateIndex];
+			if (!currentTemplate) return;
 			const newTemplate = duplicateTemplate(currentTemplate.id);
 			saveTemplateSettings()
 				.then(() => {
@@ -191,6 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
 			const currentTemplate = templates[editingTemplateIndex];
+			if (!currentTemplate) return;
 			if (confirm(getMessage('confirmDeleteTemplate', [currentTemplate.name]))) {
 				const success = await deleteTemplate(currentTemplate.id);
 				if (success) {
@@ -198,7 +200,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 					await loadTemplates();
 					updateTemplateList();
 					if (templates.length > 0) {
-						showTemplateEditor(templates[0]);
+						const firstTemplate = templates[0];
+						if (firstTemplate) showTemplateEditor(firstTemplate);
 					} else {
 						showSettingsSection('general');
 					}
@@ -237,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const editingTemplateIndex = getEditingTemplateIndex();
 		if (editingTemplateIndex !== -1) {
 			const currentTemplate = templates[editingTemplateIndex];
-			copyTemplateToClipboard(currentTemplate);
+			if (currentTemplate) copyTemplateToClipboard(currentTemplate);
 		}
 	}
 

@@ -1,10 +1,10 @@
-import { initializeToggles, initializeSettingToggle } from '../utils/ui-utils';
-import { ModelConfig, Provider } from '../types/types';
-import { generalSettings, loadSettings, saveSettings, getLocalStorage, setLocalStorage } from '../utils/storage-utils';
 import { initializeIcons } from '../icons/icons';
-import { showModal, hideModal } from '../utils/modal-utils';
-import { getMessage, translatePage } from '../utils/i18n';
+import type { ModelConfig, Provider } from '../types/types';
 import { debugLog } from '../utils/debug';
+import { getMessage, translatePage } from '../utils/i18n';
+import { hideModal, showModal } from '../utils/modal-utils';
+import { generalSettings, getLocalStorage, loadSettings, saveSettings, setLocalStorage } from '../utils/storage-utils';
+import { initializeSettingToggle, initializeToggles } from '../utils/ui-utils';
 
 export interface PresetProvider {
 	id: string;
@@ -46,12 +46,16 @@ async function fetchPresetProviders(): Promise<Record<string, PresetProvider>> {
 		}
 		const data = (await response.json()) as ProviderPresets;
 
+		if (!data || typeof data !== 'object') {
+			throw new Error('Invalid provider presets response');
+		}
+
 		await setLocalStorage(LOCAL_STORAGE_KEY, data);
 		debugLog('Providers', 'Stored providers in local storage:', data);
 
 		const providers: Record<string, PresetProvider> = {};
 		for (const key in data) {
-			if (key !== 'version' && Object.prototype.hasOwnProperty.call(data, key)) {
+			if (key !== 'version' && Object.hasOwn(data, key)) {
 				const provider = data[key] as PresetProvider;
 				provider.id = key;
 				providers[key] = provider;
@@ -73,7 +77,7 @@ async function getLocalPresets(): Promise<Record<string, PresetProvider> | null>
 
 		const providers: Record<string, PresetProvider> = {};
 		for (const key in data) {
-			if (key !== 'version' && Object.prototype.hasOwnProperty.call(data, key)) {
+			if (key !== 'version' && Object.hasOwn(data, key)) {
 				const provider = data[key] as PresetProvider;
 				provider.id = key;
 				providers[key] = provider;
@@ -269,7 +273,7 @@ function initializeProviderList() {
 
 	// Clear existing providers
 	providerList.textContent = '';
-	sortedProviders.forEach((provider, index) => {
+	sortedProviders.forEach((provider, _index) => {
 		const originalIndex = generalSettings.providers.findIndex((p) => p.id === provider.id);
 		const providerItem = createProviderListItem(provider, originalIndex);
 		providerList.appendChild(providerItem);
@@ -403,11 +407,13 @@ function addProviderToList(event: Event) {
 
 function editProvider(index: number) {
 	const providerToEdit = generalSettings.providers[index];
+	if (!providerToEdit) return;
 	showProviderModal(providerToEdit, index);
 }
 
-function duplicateProvider(index: number) {
+function _duplicateProvider(index: number) {
 	const providerToDuplicate = generalSettings.providers[index];
+	if (!providerToDuplicate) return;
 	const duplicatedProvider: Provider = {
 		...providerToDuplicate,
 		id: Date.now().toString(),
@@ -425,6 +431,7 @@ function duplicateProvider(index: number) {
 
 function deleteProvider(index: number): void {
 	const providerToDelete = generalSettings.providers[index];
+	if (!providerToDelete) return;
 
 	const modelsUsingProvider = generalSettings.models.filter((m) => m.providerId === providerToDelete.id);
 	if (modelsUsingProvider.length > 0) {
@@ -531,7 +538,7 @@ async function showProviderModal(provider: Provider, index?: number) {
 
 		const updateVisibility = () => {
 			const selectedPresetId = presetSelect.value;
-			const selectedPreset = selectedPresetId ? (cachedPresetProviders || {})[selectedPresetId] : null;
+			const selectedPreset = selectedPresetId ? cachedPresetProviders?.[selectedPresetId] : null;
 
 			nameContainer.style.display = selectedPreset ? 'none' : 'block';
 
@@ -546,10 +553,15 @@ async function showProviderModal(provider: Provider, index?: number) {
 
 				if (selectedPreset.apiKeyRequired !== false && selectedPreset.apiKeyUrl) {
 					const message = getMessage('getApiKeyHere').replace('$1', selectedPreset.name);
-					apiKeyDescription.textContent = getMessage('providerApiKeyDescription') + ' ';
+					apiKeyDescription.textContent = `${getMessage('providerApiKeyDescription')} `;
 					const linkElement = document.createElement('a');
-					if (selectedPreset.apiKeyUrl?.startsWith('https://')) {
-						linkElement.href = selectedPreset.apiKeyUrl;
+					try {
+						const parsed = new URL(selectedPreset.apiKeyUrl ?? '');
+						if (parsed.protocol === 'https:') {
+							linkElement.href = parsed.href;
+						}
+					} catch {
+						// Invalid URL — leave href unset
 					}
 					linkElement.target = '_blank';
 					linkElement.textContent = message;
@@ -611,7 +623,7 @@ async function showProviderModal(provider: Provider, index?: number) {
 			return;
 		}
 
-		if (presetId && cachedPresetProviders && cachedPresetProviders[presetId]) {
+		if (presetId && cachedPresetProviders?.[presetId]) {
 			const providerPreset = cachedPresetProviders[presetId];
 
 			updatedProvider.name = providerPreset.name;
@@ -704,7 +716,7 @@ function createModelListItem(model: ModelConfig, index: number): HTMLElement {
 		const alertIcon = document.createElement('i');
 		alertIcon.setAttribute('data-lucide', 'alert-triangle');
 		modelProviderDiv.appendChild(alertIcon);
-		modelProviderDiv.appendChild(document.createTextNode(' ' + getMessage('unknownProvider')));
+		modelProviderDiv.appendChild(document.createTextNode(` ${getMessage('unknownProvider')}`));
 	}
 
 	modelListItemInfo.appendChild(modelNameDiv);
@@ -766,7 +778,7 @@ function createModelListItem(model: ModelConfig, index: number): HTMLElement {
 	checkbox.addEventListener('change', () => {
 		const modelIndex = generalSettings.models.findIndex((m) => m.id === model.id);
 		if (modelIndex !== -1) {
-			generalSettings.models[modelIndex].enabled = checkbox.checked;
+			generalSettings.models[modelIndex]!.enabled = checkbox.checked;
 			saveSettings();
 		}
 	});
@@ -819,7 +831,7 @@ function addModelToList(event: Event) {
 }
 
 function editModel(index: number) {
-	const modelToEdit = generalSettings.models[index];
+	const modelToEdit = generalSettings.models[index]!;
 	showModelModal(modelToEdit, index);
 }
 
@@ -911,7 +923,7 @@ async function showModelModal(model: ModelConfig, index?: number) {
 				);
 
 				if (presetProvider?.modelsList) {
-					modelIdDescriptionContainer.textContent = getMessage('providerModelIdDescription') + ' ';
+					modelIdDescriptionContainer.textContent = `${getMessage('providerModelIdDescription')} `;
 					const linkElement = document.createElement('a');
 					linkElement.href = presetProvider.modelsList;
 					linkElement.target = '_blank';
@@ -1060,7 +1072,7 @@ async function showModelModal(model: ModelConfig, index?: number) {
 			const formData = new FormData(form);
 			const selectedProviderId = formData.get('providerId') as string;
 
-			let updatedModel: ModelConfig = {
+			const updatedModel: ModelConfig = {
 				id: model.id,
 				providerId: selectedProviderId,
 				providerModelId: '',
@@ -1136,16 +1148,16 @@ function saveInterpreterSettingsFromForm(): void {
 	}
 }
 
-function debounce(func: Function, delay: number): (...args: any[]) => void {
+function debounce(func: (...args: unknown[]) => unknown, delay: number): (...args: unknown[]) => void {
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
-	return (...args: any[]) => {
+	return (...args: unknown[]) => {
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(() => func(...args), delay);
 	};
 }
 
 function duplicateModel(index: number) {
-	const modelToDuplicate = generalSettings.models[index];
+	const modelToDuplicate = generalSettings.models[index]!;
 	const duplicatedModel: ModelConfig = {
 		...modelToDuplicate,
 		id: Date.now().toString(),

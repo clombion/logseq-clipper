@@ -6,10 +6,13 @@ export function showModal(modal: HTMLElement | null): void {
 
 		modal.style.display = 'flex';
 
+		// Store click handler so removeEventListener can reference the same function
+		const bgClickHandler = () => hideModal(modal);
 		const modalBg = modal.querySelector('.modal-bg');
 		if (modalBg) {
-			modalBg.addEventListener('click', () => hideModal(modal));
+			modalBg.addEventListener('click', bgClickHandler);
 		}
+		(modal as unknown as Record<string, unknown>).bgClickHandler = bgClickHandler;
 
 		// Add escape key listener when showing modal
 		const handleEscape = (e: KeyboardEvent) => {
@@ -21,11 +24,11 @@ export function showModal(modal: HTMLElement | null): void {
 
 		// Store the escape handler on the modal element for cleanup
 		modal.dataset.escapeHandler = 'true';
-		(modal as any).escapeHandler = handleEscape;
+		(modal as unknown as Record<string, unknown>).escapeHandler = handleEscape;
 
 		// Focus the first focusable element in the modal
 		const focusable = modal.querySelector<HTMLElement>(
-			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
 		);
 		if (focusable) {
 			focusable.focus();
@@ -37,18 +40,22 @@ export function hideModal(modal: HTMLElement | null): void {
 	if (modal) {
 		modal.style.display = 'none';
 
-		// Remove the event listener when hiding the modal
+		// Remove the click listener using the stored handler reference
 		const modalBg = modal.querySelector('.modal-bg');
-		if (modalBg) {
-			modalBg.removeEventListener('click', () => hideModal(modal));
+		const bgClickHandler = (modal as unknown as Record<string, unknown>).bgClickHandler as (() => void) | undefined;
+		if (modalBg && bgClickHandler) {
+			modalBg.removeEventListener('click', bgClickHandler);
+			delete (modal as unknown as Record<string, unknown>).bgClickHandler;
 		}
 
 		// Remove escape key handler if it exists
 		if (modal.dataset.escapeHandler === 'true') {
-			const handler = (modal as any).escapeHandler;
+			const handler = (modal as unknown as Record<string, unknown>).escapeHandler as
+				| ((e: KeyboardEvent) => void)
+				| undefined;
 			if (handler) {
 				document.removeEventListener('keydown', handler);
-				delete (modal as any).escapeHandler;
+				delete (modal as unknown as Record<string, unknown>).escapeHandler;
 			}
 			delete modal.dataset.escapeHandler;
 		}

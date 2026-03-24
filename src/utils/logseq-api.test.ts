@@ -1,16 +1,17 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+	appendBlockInPage,
 	checkConnection,
 	createPage,
 	getPage,
-	appendBlockInPage,
 	insertBatchBlock,
+	type LogseqApiConfig,
+	LogseqApiError,
+	LogseqAuthError,
+	LogseqConnectionError,
 	queryByProperty,
 	removeBlock,
-	LogseqConnectionError,
-	LogseqAuthError,
-	LogseqApiError,
-	LogseqApiConfig,
+	upsertBlockProperty,
 } from './logseq-api';
 
 const config: LogseqApiConfig = { port: 12315, token: 'test-token' };
@@ -68,14 +69,17 @@ describe('createPage', () => {
 		const result = await createPage(config, 'Test Page');
 
 		expect(result).toEqual(page);
-		const [url, opts] = mockFetch.mock.calls[0];
-		expect(url).toBe('http://127.0.0.1:12315/api');
-		expect(opts.headers['Authorization']).toBe('Bearer test-token');
-		const body = JSON.parse(opts.body);
-		expect(body.method).toBe('logseq.Editor.createPage');
-		expect(body.args[0]).toBe('Test Page');
-		expect(body.args[1]).toEqual({}); // properties always empty — use upsertBlockProperty instead
-		expect(body.args[2]).toEqual({ redirect: false });
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				method: 'POST',
+				headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+				body: JSON.stringify({
+					method: 'logseq.Editor.createPage',
+					args: ['Test Page', {}, { redirect: false }],
+				}),
+			}),
+		);
 	});
 });
 
@@ -95,9 +99,15 @@ describe('appendBlockInPage', () => {
 		const result = await appendBlockInPage(config, 'My Page', 'Hello');
 
 		expect(result).toEqual(block);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.appendBlockInPage');
-		expect(body.args).toEqual(['My Page', 'Hello']);
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.appendBlockInPage',
+					args: ['My Page', 'Hello'],
+				}),
+			}),
+		);
 	});
 });
 
@@ -115,11 +125,15 @@ describe('insertBatchBlock', () => {
 		const result = await insertBatchBlock(config, 'target-uuid', blocks);
 
 		expect(result).toEqual(resultBlocks);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.insertBatchBlock');
-		expect(body.args[0]).toBe('target-uuid');
-		expect(body.args[1]).toEqual(blocks);
-		expect(body.args[2]).toEqual({ sibling: false });
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.insertBatchBlock',
+					args: ['target-uuid', blocks, { sibling: false }],
+				}),
+			}),
+		);
 	});
 });
 
@@ -130,9 +144,15 @@ describe('queryByProperty', () => {
 		const result = await queryByProperty(config, 'url', 'https://example.com');
 
 		expect(result).toEqual([{ uuid: 'r1' }]);
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.DB.q');
-		expect(body.args[0]).toBe('(property url "https://example.com")');
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.DB.q',
+					args: ['(property url "https://example.com")'],
+				}),
+			}),
+		);
 	});
 });
 
@@ -142,9 +162,46 @@ describe('removeBlock', () => {
 
 		await removeBlock(config, 'block-uuid');
 
-		const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-		expect(body.method).toBe('logseq.Editor.removeBlock');
-		expect(body.args).toEqual(['block-uuid']);
+		expect(mockFetch).toHaveBeenCalledWith(
+			'http://127.0.0.1:12315/api',
+			expect.objectContaining({
+				body: JSON.stringify({
+					method: 'logseq.Editor.removeBlock',
+					args: ['block-uuid'],
+				}),
+			}),
+		);
+	});
+});
+
+describe('queryByProperty', () => {
+	test('rejects invalid property names', async () => {
+		await expect(queryByProperty(config, 'source"; DROP TABLE', 'value')).rejects.toThrow('Invalid property name');
+	});
+
+	test('rejects property names starting with number', async () => {
+		await expect(queryByProperty(config, '123bad', 'value')).rejects.toThrow('Invalid property name');
+	});
+
+	test('accepts valid property names with hyphens and underscores', async () => {
+		mockFetch.mockReturnValue(jsonResponse([]));
+		await expect(queryByProperty(config, 'destination-page', 'value')).resolves.not.toThrow();
+
+		mockFetch.mockReturnValue(jsonResponse([]));
+		await expect(queryByProperty(config, 'content_hash', 'value')).resolves.not.toThrow();
+	});
+});
+
+describe('timeout', () => {
+	test('fetch is called with AbortSignal.timeout', async () => {
+		mockFetch.mockReturnValue(jsonResponse({ name: 'graph' }));
+		await checkConnection(config);
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({
+				signal: expect.anything(),
+			}),
+		);
 	});
 });
 
@@ -172,10 +229,12 @@ describe('error handling', () => {
 	});
 
 	test('error-in-200: response with serialized Error object (string stack) throws LogseqApiError', async () => {
-		mockFetch.mockReturnValue(jsonResponse({
-			message: 'Invalid target: nil',
-			stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
-		}));
+		mockFetch.mockReturnValue(
+			jsonResponse({
+				message: 'Invalid target: nil',
+				stack: 'Error: Invalid target: nil\n  at Object.invoke (core.cljs:123)',
+			}),
+		);
 
 		await expect(getPage(config, 'Test')).rejects.toThrow(LogseqApiError);
 		try {
@@ -192,5 +251,37 @@ describe('error handling', () => {
 
 		const result = await getPage(config, 'Test');
 		expect(result).toEqual(data);
+	});
+
+	test('removeBlock throws LogseqConnectionError on connection failure', async () => {
+		mockFetch.mockRejectedValue(new TypeError('fetch failed'));
+		await expect(removeBlock(config, 'block-uuid')).rejects.toThrow(LogseqConnectionError);
+	});
+
+	test('removeBlock throws LogseqAuthError on 401', async () => {
+		mockFetch.mockReturnValue(errorResponse(401, 'Unauthorized'));
+		await expect(removeBlock(config, 'block-uuid')).rejects.toThrow(LogseqAuthError);
+	});
+
+	test('insertBatchBlock throws LogseqApiError on 500', async () => {
+		mockFetch.mockReturnValue(errorResponse(500, 'Internal Server Error'));
+		await expect(insertBatchBlock(config, 'target-uuid', [{ content: 'test' }])).rejects.toThrow(LogseqApiError);
+	});
+
+	test('insertBatchBlock throws LogseqConnectionError on connection failure', async () => {
+		mockFetch.mockRejectedValue(new TypeError('fetch failed'));
+		await expect(insertBatchBlock(config, 'target-uuid', [{ content: 'test' }])).rejects.toThrow(
+			LogseqConnectionError,
+		);
+	});
+
+	test('upsertBlockProperty throws LogseqAuthError on 401', async () => {
+		mockFetch.mockReturnValue(errorResponse(401, 'Unauthorized'));
+		await expect(upsertBlockProperty(config, 'block-uuid', 'key', 'value')).rejects.toThrow(LogseqAuthError);
+	});
+
+	test('upsertBlockProperty throws LogseqApiError on 500', async () => {
+		mockFetch.mockReturnValue(errorResponse(500, 'Internal Server Error'));
+		await expect(upsertBlockProperty(config, 'block-uuid', 'key', 'value')).rejects.toThrow(LogseqApiError);
 	});
 });

@@ -36,7 +36,7 @@ export const replace_tags = (html: string, params: string = ''): string => {
 
 		// Replace opening and closing tags
 		result = result
-			.replace(openingPattern, (match, attributes) => {
+			.replace(openingPattern, (_match, attributes) => {
 				return target ? `<${target}${attributes || ''}>` : '';
 			})
 			.replace(closingPattern, target ? `</${target}>` : '');

@@ -24,7 +24,7 @@ export const unique = (input: string): string => {
 
 		// For objects, remove duplicate values while keeping the last occurrence's key
 		if (typeof parsed === 'object' && parsed !== null) {
-			const reverseEntries = Object.entries(parsed).reverse();
+			const reverseEntries = Object.entries(parsed).toReversed();
 			const seen = new Set();
 			const uniqueEntries = reverseEntries
 				.filter(([_, value]) => {
@@ -35,7 +35,7 @@ export const unique = (input: string): string => {
 					seen.add(stringified);
 					return true;
 				})
-				.reverse();
+				.toReversed();
 
 			return JSON.stringify(Object.fromEntries(uniqueEntries));
 		}

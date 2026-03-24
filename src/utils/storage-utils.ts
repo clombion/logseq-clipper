@@ -1,9 +1,8 @@
+import type { HistoryEntry, ModelConfig, PropertyType, Provider, Rating, Settings } from '../types/types';
 import browser from './browser-polyfill';
-import { Settings, ModelConfig, PropertyType, HistoryEntry, Provider, Rating } from '../types/types';
 import { debugLog } from './debug';
-import { copyToClipboard } from 'core/popup';
 
-export type { Settings, ModelConfig, PropertyType, HistoryEntry, Provider, Rating };
+export type { HistoryEntry, ModelConfig, PropertyType, Provider, Rating, Settings };
 
 export let generalSettings: Settings = {
 	openBehavior: 'popup',
@@ -39,12 +38,12 @@ export let generalSettings: Settings = {
 	saveBehavior: 'addToLogseq',
 };
 
-export function setLocalStorage(key: string, value: any): Promise<void> {
+export function setLocalStorage(key: string, value: unknown): Promise<void> {
 	return browser.storage.local.set({ [key]: value });
 }
 
-export function getLocalStorage(key: string): Promise<any> {
-	return browser.storage.local.get(key).then((result: { [key: string]: any }) => result[key]);
+export function getLocalStorage(key: string): Promise<unknown> {
+	return browser.storage.local.get(key).then((result: Record<string, unknown>) => result[key]);
 }
 
 interface StorageData {
@@ -171,7 +170,7 @@ export async function loadSettings(): Promise<Settings> {
 		interpreterEnabled: data.interpreter_settings?.interpreterEnabled ?? defaultSettings.interpreterEnabled,
 		interpreterAutoRun: data.interpreter_settings?.interpreterAutoRun ?? defaultSettings.interpreterAutoRun,
 		defaultPromptContext: data.interpreter_settings?.defaultPromptContext || defaultSettings.defaultPromptContext,
-		propertyTypes: data.property_types || defaultSettings.propertyTypes,
+		propertyTypes: data.property_types ?? defaultSettings.propertyTypes,
 		readerSettings: {
 			fontSize: data.reader_settings?.fontSize ?? defaultSettings.readerSettings.fontSize,
 			lineHeight: data.reader_settings?.lineHeight ?? defaultSettings.readerSettings.lineHeight,
@@ -184,9 +183,9 @@ export async function loadSettings(): Promise<Settings> {
 		logseqApiPort: effectiveLogseq?.apiPort ?? defaultSettings.logseqApiPort,
 		logseqApiToken: effectiveLogseq?.apiToken ?? defaultSettings.logseqApiToken,
 		logseqLogPage: effectiveLogseq?.logPage ?? defaultSettings.logseqLogPage,
-		stats: data.stats || defaultSettings.stats,
-		history: data.history || defaultSettings.history,
-		ratings: data.ratings || defaultSettings.ratings,
+		stats: data.stats ?? defaultSettings.stats,
+		history: data.history ?? defaultSettings.history,
+		ratings: data.ratings ?? defaultSettings.ratings,
 		saveBehavior: data.general_settings?.saveBehavior ?? defaultSettings.saveBehavior,
 	};
 
@@ -198,11 +197,20 @@ export async function loadSettings(): Promise<Settings> {
 		const { providers: _removed, ...rest } = data.interpreter_settings;
 		await browser.storage.sync.set({ interpreter_settings: rest });
 		debugLog('Settings', 'Migrated providers from sync to local storage');
+	} else if (data.interpreter_settings?.providers) {
+		// Safety: if providers still exist in sync after a previous partial migration, clean up
+		const { providers: _removed, ...rest } = data.interpreter_settings;
+		await browser.storage.sync.set({ interpreter_settings: rest });
+		debugLog('Settings', 'Cleaned up stale providers from sync storage');
 	}
 	if (!localLogseq && data.logseq_settings) {
 		await browser.storage.local.set({ logseq_settings: data.logseq_settings });
 		await browser.storage.sync.remove('logseq_settings');
 		debugLog('Settings', 'Migrated logseq_settings from sync to local storage');
+	} else if (data.logseq_settings) {
+		// Safety: clean up stale logseq_settings from sync after partial migration
+		await browser.storage.sync.remove('logseq_settings');
+		debugLog('Settings', 'Cleaned up stale logseq_settings from sync storage');
 	}
 
 	debugLog('Settings', 'Loaded settings:', generalSettings);
@@ -254,6 +262,9 @@ export async function saveSettings(settings?: Partial<Settings>): Promise<void> 
 	});
 }
 
+// HACK: load-then-save is non-atomic — concurrent calls can lose an increment.
+// Acceptable because incrementStat is only called from single UI actions (click handlers)
+// and the stats are cosmetic counters, not critical data.
 export async function incrementStat(
 	action: keyof Settings['stats'],
 	path?: string,
@@ -314,12 +325,12 @@ if (typeof window !== 'undefined') {
 	window.debugStorage = (key?: string) => {
 		if (key) {
 			return browser.storage.sync.get(key).then((data) => {
-				console.log(`Sync storage contents for key "${key}":`, data);
+				debugLog('Storage', `Sync storage contents for key "${key}":`, data);
 				return data;
 			});
 		}
 		return browser.storage.sync.get(null).then((data) => {
-			console.log('Sync storage contents:', data);
+			debugLog('Storage', 'Sync storage contents:', data);
 			return data;
 		});
 	};

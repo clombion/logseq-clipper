@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
-import { HistoryEntry } from '../types/types';
+import type { HistoryEntry } from '../types/types';
 import { getMessage } from '../utils/i18n';
+import { throttle } from '../utils/throttle';
 
 interface WeeklyUsage {
 	period: string;
@@ -36,7 +37,7 @@ interface ChartPoint {
 export async function createUsageChart(container: HTMLElement, data: WeeklyUsage[]): Promise<void> {
 	// Calculate total clips for the period
 	const totalClips =
-		data[0].totalCount !== undefined ? data[0].totalCount : data.reduce((sum, d) => sum + d.count, 0);
+		data[0]?.totalCount !== undefined ? data[0]?.totalCount : data.reduce((sum, d) => sum + d.count, 0);
 
 	// Hide chart container if less than 20 items
 	const usageContainer = document.getElementById('usage-chart-container');
@@ -98,7 +99,7 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	const pathData = points.reduce((acc, point, i, arr) => {
 		if (i === 0) return `M ${point.x},${point.y}`;
 
-		const prev = arr[i - 1];
+		const prev = arr[i - 1]!;
 		const tension = 0.2;
 		const dx = point.x - prev.x;
 
@@ -120,12 +121,12 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 
 	const startLabel = document.createElement('div');
 	startLabel.className = 'chart-date-label';
-	startLabel.textContent = data[0].period;
+	startLabel.textContent = data[0]?.period ?? '';
 	labelsContainer.appendChild(startLabel);
 
 	const endLabel = document.createElement('div');
 	endLabel.className = 'chart-date-label';
-	endLabel.textContent = data[data.length - 1].period;
+	endLabel.textContent = data[data.length - 1]?.period ?? '';
 	labelsContainer.appendChild(endLabel);
 
 	lineContainer.appendChild(labelsContainer);
@@ -140,47 +141,63 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	const overlay = document.createElement('div');
 	overlay.className = 'chart-overlay';
 
-	// Handle mouse movement
-	overlay.addEventListener('mousemove', (e) => {
-		const rect = overlay.getBoundingClientRect();
-		const x = e.clientX - rect.left;
-		const relativeX = (x / rect.width) * viewBoxWidth;
+	// Cache bounding rect, invalidate on resize
+	let cachedRect: DOMRect | null = null;
+	window.addEventListener(
+		'resize',
+		() => {
+			cachedRect = null;
+		},
+		{ passive: true },
+	);
 
-		// Find closest point
-		const closestPoint = points.reduce((prev, curr) => {
-			const prevDist = Math.abs(prev.x - relativeX);
-			const currDist = Math.abs(curr.x - relativeX);
-			return currDist < prevDist ? curr : prev;
-		});
+	// Handle mouse movement (throttled)
+	overlay.addEventListener(
+		'mousemove',
+		throttle((e: MouseEvent) => {
+			if (!cachedRect) {
+				cachedRect = overlay.getBoundingClientRect();
+			}
+			const rect = cachedRect;
+			const x = e.clientX - rect.left;
+			const relativeX = (x / rect.width) * viewBoxWidth;
 
-		tooltip.textContent = '';
+			// Find closest point
+			const closestPoint = points.reduce((prev, curr) => {
+				const prevDist = Math.abs(prev.x - relativeX);
+				const currDist = Math.abs(curr.x - relativeX);
+				return currDist < prevDist ? curr : prev;
+			});
 
-		const dateDiv = document.createElement('div');
-		dateDiv.className = 'tooltip-date';
-		dateDiv.textContent = closestPoint.date;
-		tooltip.appendChild(dateDiv);
+			tooltip.textContent = '';
 
-		const countDiv = document.createElement('div');
-		countDiv.className = 'tooltip-count';
-		countDiv.textContent = closestPoint.count.toString();
-		tooltip.appendChild(countDiv);
-		tooltip.style.display = 'flex';
+			const dateDiv = document.createElement('div');
+			dateDiv.className = 'tooltip-date';
+			dateDiv.textContent = closestPoint.date;
+			tooltip.appendChild(dateDiv);
 
-		// Calculate smooth transform offset based on position
-		const position = x / rect.width; // 0 to 1
-		const minOffset = 10; // leftmost offset (%)
-		const maxOffset = -110; // rightmost offset (%)
-		const offset = minOffset + (maxOffset - minOffset) * position;
+			const countDiv = document.createElement('div');
+			countDiv.className = 'tooltip-count';
+			countDiv.textContent = closestPoint.count.toString();
+			tooltip.appendChild(countDiv);
+			tooltip.style.display = 'flex';
 
-		tooltip.style.transform = `translate(${offset}%, 0)`;
-		tooltip.style.left = `${x}px`;
-		tooltip.style.top = `${e.clientY - rect.top - 30}px`;
+			// Calculate smooth transform offset based on position
+			const position = x / rect.width; // 0 to 1
+			const minOffset = 10; // leftmost offset (%)
+			const maxOffset = -110; // rightmost offset (%)
+			const offset = minOffset + (maxOffset - minOffset) * position;
 
-		// Update vertical line position
-		verticalLine.setAttribute('x1', relativeX.toString());
-		verticalLine.setAttribute('x2', relativeX.toString());
-		verticalLine.style.display = 'block';
-	});
+			tooltip.style.transform = `translate(${offset}%, 0)`;
+			tooltip.style.left = `${x}px`;
+			tooltip.style.top = `${e.clientY - rect.top - 30}px`;
+
+			// Update vertical line position
+			verticalLine.setAttribute('x1', relativeX.toString());
+			verticalLine.setAttribute('x2', relativeX.toString());
+			verticalLine.style.display = 'block';
+		}, 16),
+	);
 
 	overlay.addEventListener('mouseleave', () => {
 		tooltip.style.display = 'none';
@@ -212,7 +229,7 @@ export function aggregateUsageData(history: HistoryEntry[], options: ChartOption
 
 	if (options.timeRange === 'all') {
 		// For "all time", start from the earliest entry
-		const earliest = dayjs(sortedHistory[0].datetime);
+		const earliest = dayjs(sortedHistory[0]?.datetime);
 		displayStartDate = earliest.startOf(options.aggregation);
 		displayPeriods = today.diff(displayStartDate, options.aggregation) + 1;
 	} else {

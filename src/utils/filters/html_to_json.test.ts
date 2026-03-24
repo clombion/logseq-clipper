@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { html_to_json } from './html_to_json';
 
 describe('html_to_json filter', () => {
@@ -24,6 +24,17 @@ describe('html_to_json filter', () => {
 	test('handles simple div', () => {
 		const result = html_to_json('<div class="test">content</div>');
 		// In browser this would return JSON, in Node it returns original
+		expect(typeof result).toBe('string');
+	});
+
+	test('returns input for null/undefined coerced to string', () => {
+		// Verifies graceful handling when input is not valid HTML
+		const result = html_to_json('null');
+		expect(typeof result).toBe('string');
+	});
+
+	test('handles unclosed tags gracefully', () => {
+		const result = html_to_json('<p>unclosed paragraph<div>mixed');
 		expect(typeof result).toBe('string');
 	});
 });

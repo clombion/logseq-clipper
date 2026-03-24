@@ -1,13 +1,13 @@
-import { ExtractedContent } from '../types/types';
+import dayjs from 'dayjs';
 import { createMarkdownContent } from 'defuddle/full';
-import { sanitizeFileName } from './string-utils';
-import { buildVariables, addSchemaOrgDataToVariables } from './shared';
+import type { ExtractedContent, SchemaOrgData } from '../types/types';
 import browser from './browser-polyfill';
 import { debugLog } from './debug';
-import dayjs from 'dayjs';
-import { AnyHighlightData, TextHighlightData, HighlightData } from './highlighter';
-import { generalSettings } from './storage-utils';
 import { getElementByXPath, wrapElementWithMark, wrapTextWithMark } from './dom-utils';
+import type { AnyHighlightData, HighlightData, TextHighlightData } from './highlighter';
+import { buildVariables } from './shared';
+import { generalSettings } from './storage-utils';
+import { sanitizeFileName } from './string-utils';
 
 // Define ElementHighlightData type inline since it's not exported from highlighter.ts
 interface ElementHighlightData extends HighlightData {
@@ -37,7 +37,7 @@ interface ContentResponse {
 	content: string;
 	selectedHtml: string;
 	extractedContent: ExtractedContent;
-	schemaOrgData: any;
+	schemaOrgData: SchemaOrgData;
 	fullHtml: string;
 	highlights: AnyHighlightData[];
 	title: string;
@@ -66,7 +66,7 @@ async function sendExtractRequest(tabId: number): Promise<ContentResponse> {
 		throw new Error(response.error);
 	}
 
-	if (response && response.content) {
+	if (response?.content) {
 		// Ensure highlights are of the correct type
 		if (response.highlights && Array.isArray(response.highlights)) {
 			response.highlights = response.highlights.map((highlight: string | AnyHighlightData) => {
@@ -75,7 +75,7 @@ async function sendExtractRequest(tabId: number): Promise<ContentResponse> {
 						type: 'text',
 						id: Date.now().toString(),
 						xpath: '',
-						content: `<div>` + highlight + `</div>`,
+						content: `<div>${highlight}</div>`,
 						startOffset: 0,
 						endOffset: highlight.length,
 					};
@@ -98,7 +98,7 @@ export async function extractPageContent(tabId: number): Promise<ContentResponse
 		// First attempt failed — this commonly happens on Safari after an
 		// extension update when the old content script context is invalidated.
 		// Retry once; the background script will re-inject if needed.
-		console.log('[Logseq Clipper] First extraction attempt failed, retrying...', firstError);
+		debugLog('ContentExtractor', 'First extraction attempt failed, retrying...', firstError);
 		try {
 			return await sendExtractRequest(tabId);
 		} catch (retryError) {
@@ -113,7 +113,7 @@ export async function initializePageContent(
 	selectedHtml: string,
 	extractedContent: ExtractedContent,
 	currentUrl: string,
-	schemaOrgData: any,
+	schemaOrgData: SchemaOrgData,
 	fullHtml: string,
 	highlights: AnyHighlightData[],
 	title: string,
@@ -156,7 +156,7 @@ export async function initializePageContent(
 				notes?: string[];
 			} = {
 				text: createMarkdownContent(highlight.content, currentUrl),
-				timestamp: dayjs(parseInt(highlight.id)).toISOString(),
+				timestamp: dayjs(parseInt(highlight.id, 10)).toISOString(),
 			};
 
 			if (highlight.notes && highlight.notes.length > 0) {
@@ -201,7 +201,7 @@ export async function initializePageContent(
 		if (error instanceof Error) {
 			throw new Error(`Unable to initialize page content: ${error.message}`, { cause: error });
 		} else {
-			throw new Error('Unable to initialize page content: Unknown error');
+			throw new Error('Unable to initialize page content: Unknown error', { cause: error });
 		}
 	}
 }
@@ -364,8 +364,8 @@ function processInlineContent(content: string, tempDiv: HTMLDivElement) {
 
 	const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
 
-	let node;
-	while ((node = walker.nextNode() as Text)) {
+	let node: Text | null = walker.nextNode() as Text | null;
+	while (node) {
 		const nodeText = node.textContent || '';
 		const index = nodeText.indexOf(searchText);
 
@@ -384,5 +384,6 @@ function processInlineContent(content: string, tempDiv: HTMLDivElement) {
 			debugLog('Highlights', 'Created mark element:', mark.outerHTML);
 			break;
 		}
+		node = walker.nextNode() as Text | null;
 	}
 }

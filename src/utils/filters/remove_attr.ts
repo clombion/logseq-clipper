@@ -19,7 +19,7 @@ export const remove_attr = (html: string, removeAttributes: string = ''): string
 		return html;
 	}
 
-	return html.replace(/<(\w+)\s+([^>]*?)>/g, (match: string, tag: string, attributesString: string): string => {
+	return html.replace(/<(\w+)\s+([^>]*?)>/g, (_match: string, tag: string, attributesString: string): string => {
 		// Regex to match either a full HTML attribute (name, optional value with different quoting)
 		// or a self-closing slash at the end of the attribute string.
 		// Group 1: Full attribute text (if an attribute is matched)
@@ -54,7 +54,7 @@ export const remove_attr = (html: string, removeAttributes: string = ''): string
 					// However, to be safe, if name extraction fails but it was an attributePart, keep it.
 					elementsToKeep.push(attributePart);
 				}
-			} else if (slashPart && fullMatchedText && fullMatchedText.includes('/')) {
+			} else if (slashPart && fullMatchedText?.includes('/')) {
 				// This match is a self-closing slash (e.g., " /" or "/")
 				// Ensure it's genuinely a slash for self-closing, not an empty string from regex matching end-of-string part of slash regex.
 				elementsToKeep.push(fullMatchedText.trim()); // Keep the slash, trimmed

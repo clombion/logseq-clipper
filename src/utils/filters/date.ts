@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-import advancedFormat from 'dayjs/plugin/advancedFormat';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isoWeek);
@@ -33,7 +33,7 @@ export const date = (str: string, param?: string): string => {
 
 	const [outputFormat, inputFormat] = params;
 
-	let date;
+	let date: ReturnType<typeof dayjs> | undefined;
 	if (inputFormat) {
 		// If inputFormat is provided, use it to parse the date
 		date = dayjs(inputDate, inputFormat, true);

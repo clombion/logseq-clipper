@@ -1,7 +1,5 @@
-import { FilterFunction } from '../types/types';
+import type { FilterFunction } from '../types/types';
 import { debugLog } from './debug';
-import { createParserState, processCharacter } from './parser-utils';
-
 import { blockquote } from './filters/blockquote';
 import { calc, validateCalcParams } from './filters/calc';
 import { callout } from './filters/callout';
@@ -10,6 +8,7 @@ import { capitalize } from './filters/capitalize';
 import { date } from './filters/date';
 import { date_modify, validateDateModifyParams } from './filters/date_modify';
 import { decode_uri } from './filters/decode_uri';
+import { duration } from './filters/duration';
 import { first } from './filters/first';
 import { footnote } from './filters/footnote';
 import { fragment_link } from './filters/fragment_link';
@@ -18,9 +17,9 @@ import { image } from './filters/image';
 import { join } from './filters/join';
 import { kebab } from './filters/kebab';
 import { last } from './filters/last';
-import { list, validateListParams } from './filters/list';
-import { link } from './filters/link';
 import { length } from './filters/length';
+import { link } from './filters/link';
+import { list, validateListParams } from './filters/list';
 import { lower } from './filters/lower';
 import { map, validateMapParams } from './filters/map';
 import { markdown } from './filters/markdown';
@@ -29,12 +28,12 @@ import { nth, validateNthParams } from './filters/nth';
 import { number_format } from './filters/number_format';
 import { object, validateObjectParams } from './filters/object';
 import { pascal } from './filters/pascal';
-import { reverse } from './filters/reverse';
 import { remove_attr } from './filters/remove_attr';
 import { remove_html } from './filters/remove_html';
 import { remove_tags } from './filters/remove_tags';
 import { replace, validateReplaceParams } from './filters/replace';
 import { replace_tags } from './filters/replace_tags';
+import { reverse } from './filters/reverse';
 import { round, validateRoundParams } from './filters/round';
 import { safe_name, validateSafeNameParams } from './filters/safe_name';
 import { slice, validateSliceParams } from './filters/slice';
@@ -48,11 +47,11 @@ import { template, validateTemplateParams } from './filters/template';
 import { title } from './filters/title';
 import { trim } from './filters/trim';
 import { uncamel } from './filters/uncamel';
-import { unescape } from './filters/unescape';
+import { unescapeString } from './filters/unescape';
 import { unique } from './filters/unique';
 import { upper } from './filters/upper';
 import { wikilink } from './filters/wikilink';
-import { duration } from './filters/duration';
+import { createParserState, processCharacter } from './parser-utils';
 
 // ============================================================================
 // Filter Metadata for Validation
@@ -77,6 +76,7 @@ export const filterMetadata: Record<string, FilterMetadata> = {
 	map: { example: 'map:x => x.name', validateParams: validateMapParams },
 	replace: { example: 'replace:"old":"new"', validateParams: validateReplaceParams },
 	slice: { example: 'slice:0,5', validateParams: validateSliceParams },
+	// biome-ignore lint/suspicious/noTemplateCurlyInString: template syntax example, not a template literal
 	template: { example: 'template:"${name}"', validateParams: validateTemplateParams },
 
 	// Filters with optional parameters (examples for documentation)
@@ -179,7 +179,7 @@ export const filters: { [key: string]: FilterFunction } = {
 	title,
 	trim,
 	uncamel,
-	unescape,
+	unescape: unescapeString,
 	unique,
 	upper,
 	wikilink,
@@ -203,7 +203,7 @@ function splitFilterString(filterString: string): string[] {
 			state.current = '';
 		} else {
 			// For any other character, add it to the current filter
-			processCharacter(char, state);
+			processCharacter(char!, state);
 		}
 	}
 
@@ -227,7 +227,7 @@ function parseFilterString(filterString: string): string[] {
 			parts.push(state.current.trim());
 			state.current = '';
 		} else {
-			processCharacter(char, state);
+			processCharacter(char!, state);
 		}
 	}
 
@@ -250,7 +250,7 @@ function parseFilterString(filterString: string): string[] {
  * @returns The filtered value as a string
  */
 export function applyFilterDirect(
-	value: string | any[],
+	value: string | unknown[],
 	filterName: string,
 	paramString: string | undefined,
 	currentUrl?: string,
@@ -303,7 +303,7 @@ export function applyFilterDirect(
  * Used when filters are specified as a string like "filter1:arg|filter2".
  * For the optimized path with pre-parsed filters, use applyFilterDirect.
  */
-export function applyFilters(value: string | any[], filterString: string, currentUrl?: string): string {
+export function applyFilters(value: string | unknown[], filterString: string, currentUrl?: string): string {
 	debugLog('Filters', 'applyFilters called with:', { value, filterString, currentUrl });
 
 	if (!filterString) {
@@ -311,7 +311,7 @@ export function applyFilters(value: string | any[], filterString: string, curren
 		return typeof value === 'string' ? value : JSON.stringify(value);
 	}
 
-	let processedValue = value;
+	const processedValue = value;
 
 	// Split the filter string into individual filter names, accounting for escaped pipes and quotes
 	const filterNames = splitFilterString(filterString);
@@ -324,7 +324,7 @@ export function applyFilters(value: string | any[], filterString: string, curren
 		debugLog('Filters', `Parsed filter: ${name}, Params:`, params);
 
 		// Get the filter function from the filters object
-		const filter = filters[name];
+		const filter = filters[name!];
 		if (filter) {
 			// Convert the input to a string if it's not already
 			const stringInput = typeof result === 'string' ? result : JSON.stringify(result);

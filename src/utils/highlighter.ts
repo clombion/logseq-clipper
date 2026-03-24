@@ -1,17 +1,29 @@
+import DOMPurify from 'dompurify';
+import { addBrowserClassToHtml, detectBrowser } from './browser-detection';
 import browser from './browser-polyfill';
-import { getElementXPath, getElementByXPath } from './dom-utils';
+import { debugLog } from './debug';
+import { getElementByXPath, getElementXPath } from './dom-utils';
 import {
-	handleMouseUp,
 	handleMouseMove,
-	removeHoverOverlay,
-	updateHighlightListeners,
+	handleMouseUp,
+	handleTouchMove,
+	handleTouchStart,
 	planHighlightOverlayRects,
 	removeExistingHighlights,
-	handleTouchStart,
-	handleTouchMove,
+	removeHoverOverlay,
+	updateHighlightListeners,
 } from './highlighter-overlays';
-import { detectBrowser, addBrowserClassToHtml } from './browser-detection';
 import { generalSettings, loadSettings } from './storage-utils';
+
+// Throttle mousemove via requestAnimationFrame to avoid firing on every pixel
+let rafId: number | null = null;
+function throttledMouseMove(e: MouseEvent) {
+	if (rafId !== null) return;
+	rafId = requestAnimationFrame(() => {
+		handleMouseMove(e);
+		rafId = null;
+	});
+}
 
 /**
  * Helper function to create SVG elements
@@ -68,7 +80,7 @@ export type AnyHighlightData = TextHighlightData | ElementHighlightData | Comple
 export let highlights: AnyHighlightData[] = [];
 export let isApplyingHighlights = false;
 let lastAppliedHighlights: string = '';
-let originalLinkClickHandlers: WeakMap<HTMLElement, (event: MouseEvent) => void> = new WeakMap();
+const originalLinkClickHandlers: WeakMap<HTMLElement, (event: MouseEvent) => void> = new WeakMap();
 
 interface HistoryAction {
 	type: 'add' | 'remove';
@@ -76,7 +88,7 @@ interface HistoryAction {
 	newHighlights: AnyHighlightData[];
 }
 
-let highlightHistory: HistoryAction[] = [];
+const highlightHistory: HistoryAction[] = [];
 let redoHistory: HistoryAction[] = [];
 const MAX_HISTORY_LENGTH = 30;
 
@@ -157,7 +169,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 	document.body.classList.toggle('logseq-highlighter-active', isActive);
 	if (isActive) {
 		document.addEventListener('mouseup', handleMouseUp);
-		document.addEventListener('mousemove', handleMouseMove);
+		document.addEventListener('mousemove', throttledMouseMove);
 		document.addEventListener('touchstart', handleTouchStart);
 		document.addEventListener('touchmove', handleTouchMove, { passive: true });
 		document.addEventListener('touchend', handleMouseUp);
@@ -169,7 +181,7 @@ export function toggleHighlighterMenu(isActive: boolean) {
 		applyHighlights();
 	} else {
 		document.removeEventListener('mouseup', handleMouseUp);
-		document.removeEventListener('mousemove', handleMouseMove);
+		document.removeEventListener('mousemove', throttledMouseMove);
 		document.removeEventListener('touchstart', handleTouchStart);
 		document.removeEventListener('touchmove', handleTouchMove);
 		document.removeEventListener('touchend', handleMouseUp);
@@ -288,7 +300,7 @@ export function createHighlighterMenu() {
 		// Add clear highlights button
 		const clearButton = document.createElement('button');
 		clearButton.id = 'logseq-clear-highlights';
-		clearButton.textContent = highlightText + ' ';
+		clearButton.textContent = `${highlightText} `;
 
 		// Add trash icon
 		const trashSvg = createSVG({
@@ -451,7 +463,11 @@ export function highlightElement(element: Element, notes?: string[]) {
 			targetElement = parentTable;
 		} else {
 			// If a cell/row is not within a table, do not highlight.
-			console.log('Table cell/row targeted, but no parent table found. Not highlighting:', originalTagName);
+			debugLog(
+				'Highlighter',
+				'Table cell/row targeted, but no parent table found. Not highlighting:',
+				originalTagName,
+			);
 			return;
 		}
 	}
@@ -467,7 +483,7 @@ export function highlightElement(element: Element, notes?: string[]) {
 		) {
 			targetElement = targetElement.parentElement;
 		} else {
-			console.log('Element type not allowed for highlighting:', finalTagName);
+			debugLog('Highlighter', 'Element type not allowed for highlighting:', finalTagName);
 			return;
 		}
 	}
@@ -507,7 +523,11 @@ export function handleTextSelection(selection: Selection, notes?: string[]) {
 		highlights = currentBatchHighlights; // Update global highlights with the final merged result
 
 		// Only add to history if something actually changed from the initial global state
-		if (JSON.stringify(oldGlobalHighlights) !== JSON.stringify(highlights)) {
+		if (
+			highlights.length !== oldGlobalHighlights.length ||
+			highlights[0]?.id !== oldGlobalHighlights[0]?.id ||
+			highlights[highlights.length - 1]?.id !== oldGlobalHighlights[oldGlobalHighlights.length - 1]?.id
+		) {
 			addToHistory('add', oldGlobalHighlights, highlights);
 		}
 
@@ -533,12 +553,13 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 		},
 	});
 
-	let currentTextNode;
-	while ((currentTextNode = textNodeIterator.nextNode())) {
+	let currentTextNode: Node | null = textNodeIterator.nextNode();
+	while (currentTextNode) {
 		const block = getClosestAllowedBlock(currentTextNode);
 		if (block) {
 			uniqueParentBlocks.add(block);
 		}
+		currentTextNode = textNodeIterator.nextNode();
 	}
 
 	// Sort the blocks in document order to process them correctly
@@ -550,7 +571,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 	});
 
 	for (let i = 0; i < sortedBlocks.length; i++) {
-		const blockElement = sortedBlocks[i];
+		const blockElement = sortedBlocks[i]!;
 		const currentBlockSelectionRange = document.createRange();
 
 		// Determine the portion of the selection that is within this blockElement
@@ -609,7 +630,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 					xpath: getElementXPath(blockElement),
 					content: selectedTextContent,
 					type: 'text',
-					id: Date.now().toString() + '_' + i, // Unique ID for the batch
+					id: `${Date.now().toString()}_${i}`, // Unique ID for the batch
 					startOffset: getTextOffset(
 						blockElement,
 						currentBlockSelectionRange.startContainer,
@@ -659,7 +680,8 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 				});
 			}
 		} else {
-			console.log(
+			debugLog(
+				'Highlighter',
 				"Fallback highlight's parent is not in ALLOWED_HIGHLIGHT_TAGS, skipping highlight:",
 				parentElement.tagName,
 			);
@@ -671,58 +693,7 @@ function getHighlightRanges(range: Range): TextHighlightData[] {
 
 // Sanitize HTML content while preserving formatting
 function sanitizeAndPreserveFormatting(html: string): string {
-	// Use DOMParser for safer HTML parsing
-	const parser = new DOMParser();
-	const doc = parser.parseFromString(html, 'text/html');
-
-	// Remove any script tags
-	doc.querySelectorAll('script').forEach((el) => el.remove());
-
-	// Get the body content and serialize it back
-	const serializer = new XMLSerializer();
-	let result = '';
-
-	// Serialize all child nodes of the body
-	Array.from(doc.body.childNodes).forEach((node) => {
-		if (node.nodeType === Node.ELEMENT_NODE) {
-			result += serializer.serializeToString(node);
-		} else if (node.nodeType === Node.TEXT_NODE) {
-			result += node.textContent;
-		}
-	});
-
-	// Close any unclosed tags
-	return balanceTags(result);
-}
-
-// Balance HTML tags to ensure proper nesting
-function balanceTags(html: string): string {
-	const openingTags: string[] = [];
-	const regex = /<\/?([a-z]+)[^>]*>/gi;
-	let match;
-
-	while ((match = regex.exec(html)) !== null) {
-		if (match[0].startsWith('</')) {
-			// Closing tag
-			const lastOpenTag = openingTags.pop();
-			if (lastOpenTag !== match[1].toLowerCase()) {
-				// Mismatched tag, add it back
-				if (lastOpenTag) openingTags.push(lastOpenTag);
-			}
-		} else {
-			// Opening tag
-			openingTags.push(match[1].toLowerCase());
-		}
-	}
-
-	// Close any remaining open tags
-	let balancedHtml = html;
-	while (openingTags.length > 0) {
-		const tag = openingTags.pop();
-		balancedHtml += `</${tag}>`;
-	}
-
-	return balancedHtml;
+	return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
 }
 
 // Find the nearest highlightable parent element
@@ -739,7 +710,10 @@ function getTextOffset(container: Element, targetNode: Node, targetOffset: numbe
 	let offset = 0;
 	const treeWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
 
-	let node: Node | null = treeWalker.currentNode;
+	// Start with nextNode() — currentNode is the root element, not a text node.
+	// Starting with currentNode double-counts: the element's full textContent
+	// plus each child text node's content individually.
+	let node: Node | null = treeWalker.nextNode();
 	while (node) {
 		if (node === targetNode) {
 			return offset + targetOffset;
@@ -766,11 +740,23 @@ function addHighlight(highlight: AnyHighlightData, notes?: string[]) {
 
 // Sort highlights based on their vertical position
 export function sortHighlights() {
-	highlights.sort((a, b) => {
-		const elementA = getElementByXPath(a.xpath);
-		const elementB = getElementByXPath(b.xpath);
-		if (elementA && elementB) {
-			const verticalDiff = getElementVerticalPosition(elementA) - getElementVerticalPosition(elementB);
+	// Pre-compute positions to avoid O(n log n) reflows inside the comparator
+	const positionCache = new Map<string, { top: number; left: number }>();
+	for (const h of highlights) {
+		if (!positionCache.has(h.xpath)) {
+			const el = getElementByXPath(h.xpath);
+			if (el) {
+				const rect = el.getBoundingClientRect();
+				positionCache.set(h.xpath, { top: rect.top + window.scrollY, left: rect.left });
+			}
+		}
+	}
+
+	highlights = highlights.toSorted((a, b) => {
+		const posA = positionCache.get(a.xpath);
+		const posB = positionCache.get(b.xpath);
+		if (posA && posB) {
+			const verticalDiff = posA.top - posB.top;
 
 			// If elements are at the same vertical position (same paragraph)
 			if (verticalDiff === 0) {
@@ -779,7 +765,7 @@ export function sortHighlights() {
 					return a.startOffset - b.startOffset;
 				}
 				// Otherwise, sort by horizontal position
-				return elementA.getBoundingClientRect().left - elementB.getBoundingClientRect().left;
+				return posA.left - posB.left;
 			}
 
 			return verticalDiff;
@@ -789,7 +775,7 @@ export function sortHighlights() {
 }
 
 // Get the vertical position of an element
-function getElementVerticalPosition(element: Element): number {
+function _getElementVerticalPosition(element: Element): number {
 	return element.getBoundingClientRect().top + window.scrollY;
 }
 
@@ -826,7 +812,7 @@ function mergeOverlappingHighlights(
 	existingHighlights: AnyHighlightData[],
 	newHighlight: AnyHighlightData,
 ): AnyHighlightData[] {
-	let mergedHighlights: AnyHighlightData[] = [];
+	const mergedHighlights: AnyHighlightData[] = [];
 	let merged = false;
 
 	for (const existing of existingHighlights) {
@@ -836,7 +822,7 @@ function mergeOverlappingHighlights(
 				merged = true;
 			} else {
 				mergedHighlights[mergedHighlights.length - 1] = mergeHighlights(
-					mergedHighlights[mergedHighlights.length - 1],
+					mergedHighlights[mergedHighlights.length - 1]!,
 					existing,
 				);
 			}
@@ -946,17 +932,19 @@ function getParents(element: Element): Element[] {
 }
 
 // Save highlights to browser storage
+// Captures a snapshot of highlights at call time to avoid stale reads
+// if another save fires before this one's storage.get resolves.
 export function saveHighlights() {
 	const url = window.location.href;
-	if (highlights.length > 0) {
-		const data: StoredData = { highlights, url };
+	const snapshot = [...highlights];
+	if (snapshot.length > 0) {
+		const data: StoredData = { highlights: snapshot, url };
 		browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 			const allHighlights: HighlightsStorage = result.highlights || {};
 			allHighlights[url] = data;
 			browser.storage.local.set({ highlights: allHighlights });
 		});
 	} else {
-		// Remove the entry if there are no highlights
 		browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 			const allHighlights: HighlightsStorage = result.highlights || {};
 			delete allHighlights[url];
@@ -1031,21 +1019,26 @@ export async function loadHighlights() {
 	lastAppliedHighlights = JSON.stringify(highlights);
 }
 
-// Clear all highlights from the page and storage
+// Sets in-memory state immediately (sync) so callers get consistent state,
+// then persists to storage asynchronously.
 export function clearHighlights() {
 	const url = window.location.href;
 	const oldHighlights = [...highlights];
+
+	// Update in-memory state immediately — this is the source of truth
+	highlights = [];
+	removeExistingHighlights();
+	updateHighlighterMenu();
+	addToHistory('remove', oldHighlights, []);
+
+	// Persist to storage asynchronously
 	browser.storage.local.get('highlights').then((result: { highlights?: HighlightsStorage }) => {
 		const allHighlights: HighlightsStorage = result.highlights || {};
 		delete allHighlights[url];
 		browser.storage.local.set({ highlights: allHighlights }).then(() => {
-			highlights = [];
-			removeExistingHighlights();
-			console.log('Highlights cleared for:', url);
-			browser.runtime.sendMessage({ action: 'highlightsCleared' });
+			debugLog('Highlighter', 'Highlights cleared for:', url);
+			browser.runtime.sendMessage({ action: 'highlightsCleared' }).catch(() => {});
 			notifyHighlightsUpdated();
-			updateHighlighterMenu();
-			addToHistory('remove', oldHighlights, []);
 		});
 	});
 }
@@ -1069,7 +1062,7 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 function exitHighlighterMode() {
-	console.log('Exiting highlighter mode');
+	debugLog('Highlighter', 'Exiting highlighter mode');
 	toggleHighlighterMenu(false);
 	browser.runtime.sendMessage({ action: 'setHighlighterMode', isActive: false });
 
@@ -1120,9 +1113,10 @@ function findFirstTextNode(element: Element): Text | null {
 function findLastTextNode(element: Element): Text | null {
 	const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
 	let lastNode = null;
-	let currentNode;
-	while ((currentNode = treeWalker.nextNode())) {
+	let currentNode: Node | null = treeWalker.nextNode();
+	while (currentNode) {
 		lastNode = currentNode;
+		currentNode = treeWalker.nextNode();
 	}
 	return lastNode as Text | null;
 }

@@ -1,19 +1,20 @@
-import { Reader } from './utils/reader';
 import browser from './utils/browser-polyfill';
+import { Reader } from './utils/reader';
 
 // Initialize reader mode
-(function () {
+(() => {
 	// Check if the script has already been initialized
-	if (window.hasOwnProperty('logseqReaderInitialized')) {
+	if (Object.hasOwn(window, 'logseqReaderInitialized')) {
 		return; // Exit if already initialized
 	}
 
 	// Mark as initialized
-	(window as any).logseqReaderInitialized = true;
+	(window as unknown as Record<string, unknown>).logseqReaderInitialized = true;
 
 	// Listen for messages from the content script
 	browser.runtime.onMessage.addListener(
-		(request: any, sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic data processing
+		(request: any, _sender: browser.Runtime.MessageSender, sendResponse: (response?: any) => void) => {
 			if (request.action === 'toggleReaderMode') {
 				(async () => {
 					try {

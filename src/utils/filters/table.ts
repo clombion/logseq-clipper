@@ -5,7 +5,7 @@ export const table = (str: string, params?: string): string => {
 	}
 
 	try {
-		const data = JSON.parse(str);
+		const data: unknown = JSON.parse(str);
 		let customHeaders: string[] = [];
 
 		// Parse custom headers from params if provided
@@ -24,10 +24,11 @@ export const table = (str: string, params?: string): string => {
 
 		// Handle single object
 		if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-			const entries = Object.entries(data);
+			const entries = Object.entries(data as Record<string, unknown>);
 			if (entries.length === 0) return str;
 
-			const [[firstKey, firstValue], ...restEntries] = entries;
+			const [firstEntry, ...restEntries] = entries;
+			const [firstKey, firstValue] = firstEntry!;
 			let table = `| ${escapeCell(firstKey)} | ${escapeCell(String(firstValue))} |\n| - | - |\n`;
 
 			restEntries.forEach(([key, value]) => {

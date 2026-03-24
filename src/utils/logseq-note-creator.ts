@@ -1,22 +1,25 @@
+import type { Property, Template } from '../types/types';
+
+export function assertNever(x: never): never {
+	throw new Error(`Unhandled case: ${x}`);
+}
+
+import { debugLog } from './debug';
 import {
-	type LogseqApiConfig,
-	type IBatchBlock,
-	type LogseqBlock,
-	createPage,
-	getPage,
 	appendBlockInPage,
-	prependBlockInPage,
-	insertBatchBlock,
+	createPage,
+	getTodayJournalPageName as fetchTodayJournalPage,
+	getPage,
 	getPageBlocksTree,
+	insertBatchBlock,
+	type LogseqApiConfig,
+	prependBlockInPage,
 	queryByProperty,
 	removeBlock,
 	upsertBlockProperty,
-	getTodayJournalPageName as fetchTodayJournalPage,
 } from './logseq-api';
 import { markdownToBlocks } from './markdown-to-blocks';
 import { generalSettings } from './storage-utils';
-import { debugLog } from './debug';
-import { type Property, type Template } from '../types/types';
 
 function getApiConfig(): LogseqApiConfig {
 	return {
@@ -37,20 +40,15 @@ export async function checkDuplicate(url: string): Promise<{
 
 		if (results && results.length > 0) {
 			// Find the log entry that has source matching this URL
-			const logEntry = results.find(
-				(r) => r.properties?.source === url || r.properties?.['source'] === url,
-			);
+			const logEntry = results.find((r) => r.properties?.source === url);
 			if (!logEntry) {
 				return { exists: false };
 			}
 
 			const pageTitle = logEntry.content?.match(/\[\[(.+?)\]\]/)?.[1];
 			const destinationPage =
-				logEntry.properties?.['destination-page'] ??
-				logEntry.properties?.destinationPage ??
-				pageTitle;
-			const clippedAt =
-				logEntry.properties?.['clipped-at'] ?? logEntry.properties?.clippedAt;
+				logEntry.properties?.['destination-page'] ?? logEntry.properties?.destinationPage ?? pageTitle;
+			const clippedAt = logEntry.properties?.['clipped-at'] ?? logEntry.properties?.clippedAt;
 
 			if (!pageTitle && !destinationPage) {
 				return { exists: false };
@@ -60,7 +58,10 @@ export async function checkDuplicate(url: string): Promise<{
 			if (destinationPage) {
 				const page = await getPage(config, destinationPage);
 				if (!page) {
-					debugLog('Dedup', `Log entry found for ${url} but destination page '${destinationPage}' no longer exists`);
+					debugLog(
+						'Dedup',
+						`Log entry found for ${url} but destination page '${destinationPage}' no longer exists`,
+					);
 					return { exists: false };
 				}
 			}
@@ -106,13 +107,36 @@ export async function saveToLogseq(
 		.map(([key, value]) => `${key}:: ${value}`)
 		.join('\n');
 
-	debugLog('Save', `[${clipId}] behavior=${behavior} page='${noteName}' blocks=${blocks.length} props=${Object.keys(propsObj).length}`);
+	debugLog(
+		'Save',
+		`[${clipId}] behavior=${behavior} page='${noteName}' blocks=${blocks.length} props=${Object.keys(propsObj).length}`,
+	);
 
 	// Helper: insert content blocks as children of a parent block
 	const insertContentAsChildren = async (parentUuid: string) => {
 		if (blocks.length > 0) {
 			await insertBatchBlock(config, parentUuid, blocks, { sibling: false });
 			debugLog('Save', `[${clipId}] inserted ${blocks.length} content blocks as children of ${parentUuid}`);
+		}
+	};
+
+	// Helper: insert content blocks directly on a page (no metadata parent).
+	// Used when metadataContent is empty — mirrors the 'create' flow pattern.
+	const insertContentDirectlyOnPage = async (pageName: string) => {
+		if (blocks.length > 0) {
+			const anchor = await appendBlockInPage(config, pageName, blocks[0]?.content ?? '');
+			if (!anchor?.uuid) {
+				throw new Error(`Failed to create block on page '${pageName}'`);
+			}
+			debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
+			const children = blocks[0]?.children ?? [];
+			if (children.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, children);
+			}
+			const remaining = blocks.slice(1);
+			if (remaining.length > 0) {
+				await insertBatchBlock(config, anchor.uuid, remaining, { sibling: true });
+			}
 		}
 	};
 
@@ -129,18 +153,26 @@ export async function saveToLogseq(
 
 			// Apply properties via upsertBlockProperty on the page entity
 			debugLog('Save', `[${clipId}] setting ${Object.keys(propsObj).length} properties on page`);
+			const propErrors: string[] = [];
 			for (const [key, value] of Object.entries(propsObj)) {
-				await upsertBlockProperty(config, page.uuid, key, value);
+				try {
+					await upsertBlockProperty(config, page.uuid, key, value);
+				} catch {
+					propErrors.push(key);
+				}
+			}
+			if (propErrors.length > 0) {
+				debugLog('Save', `[${clipId}] failed to set properties: ${propErrors.join(', ')}`);
 			}
 
 			// Insert content blocks directly on the page
 			if (blocks.length > 0) {
-				const anchor = await appendBlockInPage(config, noteName, blocks[0].content);
+				const anchor = await appendBlockInPage(config, noteName, blocks[0]?.content ?? '');
 				if (!anchor?.uuid) {
 					throw new Error(`Failed to create block on page '${noteName}'`);
 				}
 				debugLog('Save', `[${clipId}] anchor block ${anchor.uuid}`);
-				const children = blocks[0].children ?? [];
+				const children = blocks[0]?.children ?? [];
 				if (children.length > 0) {
 					await insertBatchBlock(config, anchor.uuid, children);
 				}
@@ -154,48 +186,68 @@ export async function saveToLogseq(
 		}
 		case 'append-specific': {
 			await appendBlockInPage(config, noteName, ''); // visual separator
-			const anchor = await appendBlockInPage(config, noteName, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to append block to page '${noteName}'`);
+			if (metadataContent) {
+				const anchor = await appendBlockInPage(config, noteName, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to page '${noteName}'`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(noteName);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
-			await insertContentAsChildren(anchor.uuid);
 			destinationPage = noteName;
 			break;
 		}
 		case 'append-daily': {
 			const journalPage = await fetchTodayJournalPage(config);
 			await appendBlockInPage(config, journalPage, ''); // visual separator
-			const anchor = await appendBlockInPage(config, journalPage, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to append block to daily journal page`);
+			if (metadataContent) {
+				const anchor = await appendBlockInPage(config, journalPage, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to append block to daily journal page`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(journalPage);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
-			await insertContentAsChildren(anchor.uuid);
 			destinationPage = journalPage;
 			break;
 		}
 		case 'prepend-specific': {
-			const anchor = await prependBlockInPage(config, noteName, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to prepend block to page '${noteName}'`);
+			if (metadataContent) {
+				const anchor = await prependBlockInPage(config, noteName, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to page '${noteName}'`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(noteName);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on '${noteName}'`);
-			await insertContentAsChildren(anchor.uuid);
+			await appendBlockInPage(config, noteName, ''); // visual separator after prepended content
 			destinationPage = noteName;
 			break;
 		}
 		case 'prepend-daily': {
 			const journalPage = await fetchTodayJournalPage(config);
-			const anchor = await prependBlockInPage(config, journalPage, metadataContent);
-			if (!anchor?.uuid) {
-				throw new Error(`Failed to prepend block to daily journal page`);
+			if (metadataContent) {
+				const anchor = await prependBlockInPage(config, journalPage, metadataContent);
+				if (!anchor?.uuid) {
+					throw new Error(`Failed to prepend block to daily journal page`);
+				}
+				debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
+				await insertContentAsChildren(anchor.uuid);
+			} else {
+				await insertContentDirectlyOnPage(journalPage);
 			}
-			debugLog('Save', `[${clipId}] metadata block ${anchor.uuid} on journal '${journalPage}'`);
-			await insertContentAsChildren(anchor.uuid);
+			await appendBlockInPage(config, journalPage, ''); // visual separator after prepended content
 			destinationPage = journalPage;
 			break;
 		}
+		default:
+			assertNever(behavior);
 	}
 
 	try {
@@ -232,17 +284,17 @@ export async function updateExistingClip(
 	}
 
 	// Snapshot old content blocks BEFORE inserting new ones
-	const oldBlocks = await getPageBlocksTree(config, pageTitle) ?? [];
+	const oldBlocks = (await getPageBlocksTree(config, pageTitle)) ?? [];
 	debugLog('Save', `[${clipId}] old blocks: ${oldBlocks.length}, inserting new content`);
 
 	// Insert new content
 	const blocks = markdownToBlocks(noteContent);
 	if (blocks.length > 0) {
-		const anchor = await appendBlockInPage(config, pageTitle, blocks[0].content);
+		const anchor = await appendBlockInPage(config, pageTitle, blocks[0]?.content ?? '');
 		if (!anchor?.uuid) {
 			throw new Error(`Failed to insert new content on page '${pageTitle}'`);
 		}
-		const children = blocks[0].children ?? [];
+		const children = blocks[0]?.children ?? [];
 		if (children.length > 0) {
 			await insertBatchBlock(config, anchor.uuid, children);
 		}
@@ -254,8 +306,19 @@ export async function updateExistingClip(
 
 	// Delete ALL old blocks (properties are on page entity via upsertBlockProperty)
 	debugLog('Save', `[${clipId}] deleting ${oldBlocks.length} old blocks`);
+	const deleteErrors: string[] = [];
 	for (const block of oldBlocks) {
-		await removeBlock(config, block.uuid);
+		try {
+			await removeBlock(config, block.uuid);
+		} catch {
+			deleteErrors.push(block.uuid);
+		}
+	}
+	if (deleteErrors.length > 0) {
+		debugLog('Save', `[${clipId}] failed to delete ${deleteErrors.length} old blocks: ${deleteErrors.join(', ')}`);
+		throw new Error(
+			`Updated content saved but ${deleteErrors.length} old blocks could not be removed. You may need to manually delete duplicate content on page '${pageTitle}'.`,
+		);
 	}
 
 	const contentHash = await computeContentHash(noteContent);
@@ -287,7 +350,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 			if (block.content?.includes('## Settings')) {
 				const jsonMatch = block.content.match(/```json\n([\s\S]*?)\n```/);
 				if (jsonMatch) {
-					mergeValidatedSettings(jsonMatch[1]);
+					mergeValidatedSettings(jsonMatch[1]!);
 				}
 				break;
 			}
@@ -297,7 +360,7 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 					if (child.content?.includes('## Settings')) {
 						const jsonMatch = child.content.match(/```json\n([\s\S]*?)\n```/);
 						if (jsonMatch) {
-							mergeValidatedSettings(jsonMatch[1]);
+							mergeValidatedSettings(jsonMatch[1]!);
 						}
 						break;
 					}
@@ -311,13 +374,14 @@ export async function syncSettings(direction: 'read' | 'write'): Promise<void> {
 
 function mergeValidatedSettings(jsonString: string): void {
 	try {
-		const parsed = JSON.parse(jsonString);
+		const parsed: unknown = JSON.parse(jsonString);
 		if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+			const record = parsed as Record<string, unknown>;
 			const allowedKeys = Object.keys(generalSettings);
-			const validated: Record<string, any> = {};
+			const validated: Record<string, unknown> = {};
 			for (const key of allowedKeys) {
-				if (key in parsed) {
-					validated[key] = parsed[key];
+				if (key in record) {
+					validated[key] = record[key];
 				}
 			}
 			Object.assign(generalSettings, validated);
@@ -326,7 +390,6 @@ function mergeValidatedSettings(jsonString: string): void {
 		console.error('Failed to parse settings from Logseq page');
 	}
 }
-
 
 async function appendToClipLog(
 	title: string,
@@ -345,29 +408,24 @@ async function appendToClipLog(
 		'destination-page': destinationPage,
 	};
 	if (replaces) {
-		logBlockProps['replaces'] = replaces;
+		logBlockProps.replaces = replaces;
 	}
 
 	const displayTitle = title || destinationPage;
-	const logBlock: IBatchBlock = {
-		content: `[[${displayTitle}]]`,
-		properties: logBlockProps,
-	};
-
-	const anchor = await appendBlockInPage(config, logPage, logBlock.content);
+	const anchor = await appendBlockInPage(config, logPage, `[[${displayTitle}]]`);
 	if (!anchor?.uuid) {
 		debugLog('Save', 'Failed to create clip log entry — appendBlockInPage returned null');
 		return; // Don't crash the save flow for a log failure
 	}
-	if (logBlock.properties) {
-		// Properties are set by inserting a child block with property syntax
-		// or by using the block's properties directly via insertBatchBlock
-		const propChildren: IBatchBlock[] = Object.entries(logBlock.properties).map(
-			([key, value]) => ({ content: `${key}:: ${value}` })
-		);
-		if (propChildren.length > 0) {
-			await insertBatchBlock(config, anchor.uuid, propChildren);
+	// Set properties directly on the anchor block via upsertBlockProperty.
+	// This ensures queryByProperty('source', url) matches the anchor block,
+	// which has [[PageTitle]] as content — required for dedup to work.
+	try {
+		for (const [key, value] of Object.entries(logBlockProps)) {
+			await upsertBlockProperty(config, anchor.uuid, key, value);
 		}
+	} catch (propError) {
+		debugLog('Save', 'Failed to set some clip log properties:', propError);
 	}
 }
 

@@ -1,13 +1,14 @@
-import { PropertyType } from '../types/types';
-import { generalSettings, saveSettings } from '../utils/storage-utils';
+import { getPropertyTypeIcon, initializeIcons } from '../icons/icons';
+import { PROPERTY_TYPES, type PropertyType, type PropertyTypeName } from '../types/types';
+import { debugLog } from '../utils/debug';
 import { createElementWithClass, createElementWithHTML } from '../utils/dom-utils';
-import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
-import { templates } from './template-manager';
-import { refreshPropertyNameSuggestions } from './template-ui';
-import { unescapeValue } from '../utils/string-utils';
-import { showImportModal } from '../utils/import-modal';
 import { saveFile } from '../utils/file-utils';
 import { getMessage } from '../utils/i18n';
+import { showImportModal } from '../utils/import-modal';
+import { generalSettings, saveSettings } from '../utils/storage-utils';
+import { unescapeValue } from '../utils/string-utils';
+import { templates } from './template-manager';
+import { refreshPropertyNameSuggestions } from './template-ui';
 
 export function initializePropertyTypesManager(): void {
 	ensureTagsProperty();
@@ -79,7 +80,7 @@ function countPropertyUsage(): Record<string, number> {
 	return usageCounts;
 }
 
-function createPropertyTypeListItem(propertyType: PropertyType, usageCount: number, isUsed: boolean): HTMLElement {
+function createPropertyTypeListItem(propertyType: PropertyType, usageCount: number, _isUsed: boolean): HTMLElement {
 	const listItem = createElementWithClass('div', 'property-editor');
 
 	const propertySelectDiv = createElementWithClass('div', 'property-select');
@@ -92,7 +93,7 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 
 	const select = document.createElement('select') as HTMLSelectElement;
 	select.className = 'property-type';
-	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach((type) => {
+	PROPERTY_TYPES.forEach((type) => {
 		const option = document.createElement('option');
 		option.value = type;
 		const messageKey = `propertyType${type.charAt(0).toUpperCase() + type.slice(1)}`;
@@ -140,11 +141,15 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 	if (propertyType.name !== 'tags') {
 		select.addEventListener('change', function () {
 			updateSelectedOption(this.value, propertySelectedDiv);
-			updatePropertyType(propertyType.name, this.value, defaultValueInput.value).then(updatePropertyTypesList);
+			updatePropertyType(propertyType.name, this.value as PropertyTypeName, defaultValueInput.value).then(
+				updatePropertyTypesList,
+			);
 		});
 
 		defaultValueInput.addEventListener('change', function () {
-			updatePropertyType(propertyType.name, select.value, this.value).then(updatePropertyTypesList);
+			updatePropertyType(propertyType.name, select.value as PropertyTypeName, this.value).then(
+				updatePropertyTypesList,
+			);
 		});
 	} else {
 		// For 'tags' property, disable the select and default value input
@@ -202,12 +207,12 @@ async function importTypesFromJson(jsonContent: string): Promise<void> {
 	try {
 		const content = JSON.parse(jsonContent);
 		if (content && typeof content === 'object' && 'types' in content && typeof content.types === 'object') {
-			const newTypes = Object.entries(content.types).map(([name, type]) => {
+			const newTypes: PropertyType[] = Object.entries(content.types).map(([name, type]) => {
 				if (typeof type !== 'string') {
 					console.warn(`Invalid type for property "${name}". Using 'text' as default.`);
-					return { name, type: 'text', defaultValue: '' };
+					return { name, type: 'text' as PropertyTypeName, defaultValue: '' };
 				}
-				return { name, type, defaultValue: '' };
+				return { name, type: type as PropertyTypeName, defaultValue: '' };
 			});
 
 			await mergePropertyTypes(newTypes);
@@ -217,41 +222,43 @@ async function importTypesFromJson(jsonContent: string): Promise<void> {
 		}
 	} catch (error) {
 		console.error('Error parsing types.json:', error);
-		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		throw new Error(`Error importing types.json: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+			cause: error,
+		});
 	}
 }
 
 async function mergePropertyTypes(newTypes: PropertyType[]): Promise<void> {
-	console.log('Merging property types');
+	debugLog('PropertyTypes', 'Merging property types');
 	for (const newType of newTypes) {
-		console.log(`Processing type: ${newType.name}, type: ${newType.type}`);
+		debugLog('PropertyTypes', `Processing type: ${newType.name}, type: ${newType.type}`);
 		if (newType.name === 'tags') {
-			console.log('Ensuring tags is multitext');
+			debugLog('PropertyTypes', 'Ensuring tags is multitext');
 			await updatePropertyType('tags', 'multitext', '');
 		} else {
 			const existingType = generalSettings.propertyTypes.find((pt) => pt.name === newType.name);
 			if (existingType) {
-				console.log(`Existing type found for ${newType.name}: ${existingType.type}`);
+				debugLog('PropertyTypes', `Existing type found for ${newType.name}: ${existingType.type}`);
 				if (existingType.type !== newType.type) {
 					const useNewType = await resolveConflict(newType.name, 'type', existingType.type, newType.type);
 					if (useNewType) {
-						console.log(`Updating existing type: ${newType.name} to ${newType.type}`);
+						debugLog('PropertyTypes', `Updating existing type: ${newType.name} to ${newType.type}`);
 						await updatePropertyType(newType.name, newType.type, existingType.defaultValue);
 					} else {
-						console.log(`Keeping existing type: ${newType.name} as ${existingType.type}`);
+						debugLog('PropertyTypes', `Keeping existing type: ${newType.name} as ${existingType.type}`);
 					}
 				} else {
-					console.log(`No changes needed for existing type: ${newType.name}`);
+					debugLog('PropertyTypes', `No changes needed for existing type: ${newType.name}`);
 				}
 			} else {
-				console.log(`Adding new type: ${newType.name} as ${newType.type}`);
+				debugLog('PropertyTypes', `Adding new type: ${newType.name} as ${newType.type}`);
 				await addPropertyType(newType.name, newType.type, '');
 			}
 		}
 	}
 
 	await saveSettings();
-	console.log('Property types merged and saved');
+	debugLog('PropertyTypes', 'Property types merged and saved');
 }
 
 async function resolveConflict(name: string, field: string, existingValue: string, newValue: string): Promise<boolean> {
@@ -266,13 +273,7 @@ async function resolveConflict(name: string, field: string, existingValue: strin
 }
 
 async function exportTypesJson(): Promise<void> {
-	const typesObject = generalSettings.propertyTypes.reduce(
-		(acc, { name, type }) => {
-			acc[name] = type;
-			return acc;
-		},
-		{} as Record<string, string>,
-	);
+	const typesObject = Object.fromEntries(generalSettings.propertyTypes.map(({ name, type }) => [name, type]));
 
 	const content = JSON.stringify({ types: typesObject }, null, 2);
 	const fileName = 'types.json';
@@ -285,11 +286,15 @@ async function exportTypesJson(): Promise<void> {
 	});
 }
 
-export async function addPropertyType(name: string, type: string = 'text', defaultValue: string = ''): Promise<void> {
-	console.log(`addPropertyType called with: name=${name}, type=${type}, defaultValue=${defaultValue}`);
+export async function addPropertyType(
+	name: string,
+	type: PropertyTypeName = 'text',
+	defaultValue: string = '',
+): Promise<void> {
+	debugLog('PropertyTypes', `addPropertyType called with: name=${name}, type=${type}, defaultValue=${defaultValue}`);
 	const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === name);
 	if (!existingPropertyType) {
-		console.log(`Adding new property type: ${name} with type ${type}`);
+		debugLog('PropertyTypes', `Adding new property type: ${name} with type ${type}`);
 		const newPropertyType: PropertyType = { name, type };
 		if (defaultValue !== null && defaultValue !== '') {
 			newPropertyType.defaultValue = defaultValue;
@@ -297,7 +302,10 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 		generalSettings.propertyTypes.push(newPropertyType);
 		await saveSettings();
 	} else if (existingPropertyType.type !== type || existingPropertyType.defaultValue !== defaultValue) {
-		console.log(`Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`);
+		debugLog(
+			'PropertyTypes',
+			`Updating existing property type: ${name} from ${existingPropertyType.type} to ${type}`,
+		);
 		existingPropertyType.type = type;
 		if (defaultValue !== null && defaultValue !== '') {
 			existingPropertyType.defaultValue = defaultValue;
@@ -306,19 +314,26 @@ export async function addPropertyType(name: string, type: string = 'text', defau
 		}
 		await saveSettings();
 	} else {
-		console.log(`Property type ${name} already exists and is up to date`);
+		debugLog('PropertyTypes', `Property type ${name} already exists and is up to date`);
 	}
-	console.log('Current property types:', JSON.stringify(generalSettings.propertyTypes, null, 2));
+	debugLog('PropertyTypes', 'Current property types:', JSON.stringify(generalSettings.propertyTypes, null, 2));
 }
 
-export async function updatePropertyType(name: string, newType: string, newDefaultValue?: string): Promise<void> {
+export async function updatePropertyType(
+	name: string,
+	newType: PropertyTypeName,
+	newDefaultValue?: string,
+): Promise<void> {
 	const index = generalSettings.propertyTypes.findIndex((p) => p.name === name);
 	if (index !== -1) {
-		generalSettings.propertyTypes[index].type = newType;
-		if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
-			generalSettings.propertyTypes[index].defaultValue = newDefaultValue;
-		} else {
-			delete generalSettings.propertyTypes[index].defaultValue;
+		const propertyType = generalSettings.propertyTypes[index];
+		if (propertyType) {
+			propertyType.type = newType;
+			if (newDefaultValue !== undefined && newDefaultValue !== null && newDefaultValue !== '') {
+				propertyType.defaultValue = newDefaultValue;
+			} else {
+				delete propertyType.defaultValue;
+			}
 		}
 	} else {
 		const newPropertyType: PropertyType = { name, type: newType };

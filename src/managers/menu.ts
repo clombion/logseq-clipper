@@ -1,10 +1,12 @@
+import { debugLog } from '../utils/debug';
+
 export function initializeMenu(menuBtnId: string, menuId: string): void {
 	const moreActionsBtn = document.getElementById(menuBtnId) as HTMLButtonElement;
 	const menu = document.getElementById(menuId) as HTMLElement;
 
 	if (moreActionsBtn && menu) {
 		moreActionsBtn.addEventListener('click', (event) => {
-			console.log('More actions button clicked');
+			debugLog('Menu', 'More actions button clicked');
 			event.stopPropagation(); // Prevent this click from immediately closing the dropdown
 			toggleMenu(menu);
 		});
@@ -27,11 +29,11 @@ export function initializeMenu(menuBtnId: string, menuId: string): void {
 }
 
 export function toggleMenu(menu: HTMLElement): void {
-	console.log('Toggling menu', menu);
+	debugLog('Menu', 'Toggling menu', menu);
 	const isOpening = !menu.classList.contains('show');
 	menu.classList.toggle('show');
 	document.body.classList.toggle('menu-open', isOpening);
-	console.log('Menu classes after toggle:', menu.classList);
+	debugLog('Menu', 'Menu classes after toggle:', menu.classList);
 }
 
 export function closeMenu(menu: HTMLElement): void {

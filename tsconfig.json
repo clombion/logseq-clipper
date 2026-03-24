@@ -10,6 +10,7 @@
 		"target": "es6",
 		"module": "es6",
 		"strict": true,
+		"noUncheckedIndexedAccess": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
@@ -19,7 +20,7 @@
 		"typeRoots": ["./node_modules/@types", "./src/types"],
 		"moduleResolution": "node",
 		"types": ["chrome", "webextension-polyfill", "node", "webpack-env"],
-		"lib": ["es2022", "dom"]
+		"lib": ["es2023", "dom"]
 	},
 	"include": [
 		"src/**/*"

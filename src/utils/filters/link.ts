@@ -18,31 +18,29 @@ export const link = (str: string, param?: string): string => {
 	};
 
 	try {
-		const data = JSON.parse(str);
+		const data: unknown = JSON.parse(str);
 
-		const processObject = (obj: any): string[] => {
-			return Object.entries(obj)
-				.map(([key, value]) => {
-					if (typeof value === 'object' && value !== null) {
-						return processObject(value);
-					}
-					return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
-				})
-				.flat();
+		const processObject = (obj: Record<string, unknown>): string[] => {
+			return Object.entries(obj).flatMap(([key, value]) => {
+				if (typeof value === 'object' && value !== null) {
+					return processObject(value as Record<string, unknown>);
+				}
+				return `[${escapeMarkdown(String(value))}](${encodeUrl(escapeMarkdown(key))})`;
+			});
 		};
 
 		if (Array.isArray(data)) {
 			const result = data.map((item) => {
 				if (typeof item === 'object' && item !== null) {
-					return processObject(item);
+					return processObject(item as Record<string, unknown>);
 				}
 				return item ? `[${linkText}](${encodeUrl(escapeMarkdown(String(item)))})` : '';
 			});
 			return result.join('\n');
 		} else if (typeof data === 'object' && data !== null) {
-			return processObject(data).join('\n');
+			return processObject(data as Record<string, unknown>).join('\n');
 		}
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat it as a single URL string
 		return `[${linkText}](${encodeUrl(escapeMarkdown(str))})`;
 	}

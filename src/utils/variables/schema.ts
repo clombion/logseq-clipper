@@ -1,3 +1,4 @@
+import type { TemplateValue } from '../../types/types';
 import { applyFilters } from '../filters';
 
 function splitListString(str: string): string[] {
@@ -17,7 +18,7 @@ function splitListString(str: string): string[] {
 
 export async function processSchema(
 	match: string,
-	variables: { [key: string]: string },
+	variables: { [key: string]: TemplateValue },
 	currentUrl: string,
 ): Promise<string> {
 	const [, fullSchemaKey] = match.match(/{{schema:(.*?)}}/) || [];
@@ -30,13 +31,13 @@ export async function processSchema(
 	let schemaValue = '';
 
 	// Check if we're dealing with a nested array access
-	const nestedArrayMatch = schemaKey.match(/(.*?)\[(\*|\d+)\](.*)/);
+	const nestedArrayMatch = schemaKey?.match(/(.*?)\[(\*|\d+)\](.*)/);
 	if (nestedArrayMatch) {
 		const [, arrayKey, indexOrStar, propertyKey] = nestedArrayMatch;
 
 		// Handle shorthand notation for nested arrays
 		let fullArrayKey = arrayKey;
-		if (!arrayKey.includes('@')) {
+		if (!arrayKey?.includes('@')) {
 			const matchingKey = Object.keys(variables).find(
 				(key) => key.includes('@') && key.endsWith(`:${arrayKey}}}`),
 			);
@@ -46,7 +47,7 @@ export async function processSchema(
 		}
 
 		try {
-			const rawValue = variables[`{{schema:${fullArrayKey}}}`] || '[]';
+			const rawValue = String(variables[`{{schema:${fullArrayKey}}}`] ?? '[]');
 
 			// Check if the raw value looks like any kind of list
 			if (rawValue.trim().match(/^(?:\d+\.|[-*•]\s)/m)) {
@@ -54,21 +55,23 @@ export async function processSchema(
 				if (indexOrStar === '*') {
 					schemaValue = JSON.stringify(list);
 				} else {
-					const index = parseInt(indexOrStar, 10);
+					const index = parseInt(indexOrStar ?? '0', 10);
 					schemaValue = list[index] || '';
 				}
 			} else {
 				// Handle as JSON
-				const arrayValue = JSON.parse(rawValue);
+				const arrayValue: unknown = JSON.parse(rawValue);
 				if (Array.isArray(arrayValue)) {
 					if (indexOrStar === '*') {
 						schemaValue = JSON.stringify(
-							arrayValue.map((item) => getNestedProperty(item, propertyKey.slice(1))).filter(Boolean),
+							arrayValue
+								.map((item) => getNestedProperty(item, propertyKey?.slice(1) ?? ''))
+								.filter(Boolean),
 						);
 					} else {
-						const index = parseInt(indexOrStar, 10);
+						const index = parseInt(indexOrStar ?? '0', 10);
 						schemaValue = arrayValue[index]
-							? getNestedProperty(arrayValue[index], propertyKey.slice(1))
+							? String(getNestedProperty(arrayValue[index], propertyKey?.slice(1) ?? '') ?? '')
 							: '';
 					}
 				}
@@ -80,23 +83,26 @@ export async function processSchema(
 		}
 	} else {
 		// Handle non-array schemas
-		if (!schemaKey.includes('@')) {
+		if (!schemaKey?.includes('@')) {
 			const matchingKey = Object.keys(variables).find(
 				(key) => key.includes('@') && key.endsWith(`:${schemaKey}}}`),
 			);
 			if (matchingKey) {
-				schemaValue = variables[matchingKey];
+				schemaValue = String(variables[matchingKey] ?? '');
 			}
 		}
 		// If no matching shorthand found or it's a full key
 		if (!schemaValue) {
-			schemaValue = variables[`{{schema:${schemaKey}}}`] || '';
+			schemaValue = String(variables[`{{schema:${schemaKey}}}`] ?? '');
 		}
 	}
 
 	return applyFilters(schemaValue, filtersString, currentUrl);
 }
 
-function getNestedProperty(obj: any, path: string): any {
-	return path.split('.').reduce((prev, curr) => prev && prev[curr], obj);
+function getNestedProperty(obj: unknown, path: string): unknown {
+	return path.split('.').reduce<unknown>((prev, curr) => {
+		if (prev && typeof prev === 'object') return (prev as Record<string, unknown>)[curr];
+		return undefined;
+	}, obj);
 }

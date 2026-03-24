@@ -20,13 +20,13 @@ export const validateListParams = (param: string | undefined): ParamValidationRe
 	return { valid: true };
 };
 
-export const list = (input: string | any[], param?: string): string => {
+export const list = (input: string | unknown[], param?: string): string => {
 	// Return empty string as-is without attempting to parse
 	if (input === '') {
 		return input;
 	}
 
-	const processListItem = (item: any, type: ListType, depth: number = 0): string => {
+	const processListItem = (item: unknown, type: ListType, depth: number = 0): string => {
 		const indent = '\t'.repeat(depth);
 		let prefix: string;
 		switch (type) {
@@ -49,10 +49,10 @@ export const list = (input: string | any[], param?: string): string => {
 		return `${indent}${prefix}${item}`;
 	};
 
-	const processArray = (arr: any[], type: ListType, depth: number = 0): string => {
+	const processArray = (arr: unknown[], type: ListType, depth: number = 0): string => {
 		return arr
 			.map((item, index) => {
-				let itemType = type;
+				const itemType = type;
 				if (type === 'numbered' || type === 'numbered-task') {
 					const number = index + 1;
 					return processListItem(item, itemType, depth).replace(/^\d+/, number.toString());

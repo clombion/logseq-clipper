@@ -19,23 +19,33 @@ export function escapeDoubleQuotes(str: string): string {
 }
 
 export function sanitizeFileName(fileName: string): string {
-	const platform = (navigator as any).userAgentData?.platform || navigator.platform || '';
+	const platform =
+		(navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData?.platform ||
+		navigator.platform ||
+		'';
 	const isWindows = /win/i.test(platform);
 	const isMac = /mac/i.test(platform);
 
 	// First remove characters that should be sanitized across all platforms
-	let sanitized = fileName.replace(/[#|\^\[\]]/g, '');
+	let sanitized = fileName.replace(/[#|^[\]]/g, '');
+
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsWindows = /[<>:"/\\?*\x00-\x1F]/g;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsMac = /[/:\x00-\x1F]/g;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsLinux = /[<>:"/\\|?*\x00-\x1F]/g;
 
 	if (isWindows) {
 		sanitized = sanitized
-			.replace(/[<>:"\/\\?*\x00-\x1F]/g, '')
+			.replace(controlCharsWindows, '')
 			.replace(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i, '_$1$2')
 			.replace(/[\s.]+$/, '');
 	} else if (isMac) {
-		sanitized = sanitized.replace(/[\/:\x00-\x1F]/g, '').replace(/^\./, '_');
+		sanitized = sanitized.replace(controlCharsMac, '').replace(/^\./, '_');
 	} else {
 		// Linux and other systems
-		sanitized = sanitized.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '').replace(/^\./, '_');
+		sanitized = sanitized.replace(controlCharsLinux, '').replace(/^\./, '_');
 	}
 
 	// Common operations for all platforms
@@ -111,9 +121,9 @@ export function makeUrlAbsolute(element: Element, attributeName: string, baseUrl
 				const parts = attributeValue.split('/');
 				const firstSegment = parts[2]; // The segment after the protocol
 
-				if (firstSegment && firstSegment.includes('.')) {
+				if (firstSegment?.includes('.')) {
 					// If it looks like a domain, replace the non-standard protocol with the current page's protocol
-					const newUrl = `${baseUrl.protocol}//` + attributeValue.split('://')[1];
+					const newUrl = `${baseUrl.protocol}//${attributeValue.split('://')[1]}`;
 					element.setAttribute(attributeName, newUrl);
 				} else {
 					// If it doesn't look like a domain it's probably the extension URL, remove the non-standard protocol part and use baseUrl
@@ -138,14 +148,24 @@ export function processUrls(htmlContent: string, baseUrl: URL): string {
 	const doc = parser.parseFromString(htmlContent, 'text/html');
 
 	// Handle relative URLs for images, links, videos, and audio embeds.
-	doc.querySelectorAll('img').forEach((img) => makeUrlAbsolute(img, 'srcset', baseUrl));
-	doc.querySelectorAll('img').forEach((img) => makeUrlAbsolute(img, 'src', baseUrl));
-	doc.querySelectorAll('a').forEach((link) => makeUrlAbsolute(link, 'href', baseUrl));
-	doc.querySelectorAll('video').forEach((video) => makeUrlAbsolute(video, 'src', baseUrl));
-	doc.querySelectorAll('audio').forEach((audio) => makeUrlAbsolute(audio, 'src', baseUrl));
-	doc.querySelectorAll(':is(video, audio) :is(source, track)').forEach((sourceOrTrack) =>
-		makeUrlAbsolute(sourceOrTrack, 'src', baseUrl),
-	);
+	doc.querySelectorAll('img').forEach((img) => {
+		makeUrlAbsolute(img, 'srcset', baseUrl);
+	});
+	doc.querySelectorAll('img').forEach((img) => {
+		makeUrlAbsolute(img, 'src', baseUrl);
+	});
+	doc.querySelectorAll('a').forEach((link) => {
+		makeUrlAbsolute(link, 'href', baseUrl);
+	});
+	doc.querySelectorAll('video').forEach((video) => {
+		makeUrlAbsolute(video, 'src', baseUrl);
+	});
+	doc.querySelectorAll('audio').forEach((audio) => {
+		makeUrlAbsolute(audio, 'src', baseUrl);
+	});
+	doc.querySelectorAll(':is(video, audio) :is(source, track)').forEach((sourceOrTrack) => {
+		makeUrlAbsolute(sourceOrTrack, 'src', baseUrl);
+	});
 
 	// Serialize back to HTML
 	const serializer = new XMLSerializer();
@@ -190,7 +210,7 @@ export function getDomain(url: string): string {
 		}
 
 		return hostParts.slice(-2).join('.');
-	} catch (error) {
+	} catch (_error) {
 		console.warn('Invalid URL:', url);
 		return '';
 	}

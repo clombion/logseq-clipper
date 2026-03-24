@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { markdownToBlocks } from './markdown-to-blocks';
 
 describe('markdownToBlocks', () => {
@@ -11,9 +11,7 @@ describe('markdownToBlocks', () => {
 
 	// 2. Single paragraph
 	test('single paragraph becomes one block', () => {
-		expect(markdownToBlocks('Hello world')).toEqual([
-			{ content: 'Hello world' },
-		]);
+		expect(markdownToBlocks('Hello world')).toEqual([{ content: 'Hello world' }]);
 	});
 
 	// 3. Multiple paragraphs separated by blank lines
@@ -28,14 +26,7 @@ describe('markdownToBlocks', () => {
 
 	// 4. Heading hierarchy
 	test('heading hierarchy nests content correctly', () => {
-		const md = [
-			'# Title',
-			'intro paragraph',
-			'## Section A',
-			'content A',
-			'## Section B',
-			'content B',
-		].join('\n');
+		const md = ['# Title', 'intro paragraph', '## Section A', 'content A', '## Section B', 'content B'].join('\n');
 
 		expect(markdownToBlocks(md)).toEqual([
 			{
@@ -58,17 +49,13 @@ describe('markdownToBlocks', () => {
 	// 5. Fenced code block
 	test('fenced code block becomes a single block', () => {
 		const md = '```python\ndef hello():\n    print("world")\n```';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: '```python\ndef hello():\n    print("world")\n```' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: '```python\ndef hello():\n    print("world")\n```' }]);
 	});
 
 	// 6. Table as single block
 	test('table becomes a single block', () => {
 		const md = '| Name | Age |\n|------|-----|\n| Alice | 30 |';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: '| Name | Age |\n|------|-----|\n| Alice | 30 |' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: '| Name | Age |\n|------|-----|\n| Alice | 30 |' }]);
 	});
 
 	// 7. Unordered list with nesting
@@ -77,10 +64,7 @@ describe('markdownToBlocks', () => {
 		expect(markdownToBlocks(md)).toEqual([
 			{
 				content: 'Item 1',
-				children: [
-					{ content: 'Sub item 1a' },
-					{ content: 'Sub item 1b' },
-				],
+				children: [{ content: 'Sub item 1a' }, { content: 'Sub item 1b' }],
 			},
 			{ content: 'Item 2' },
 		]);
@@ -101,9 +85,7 @@ describe('markdownToBlocks', () => {
 	// 9. Blockquote
 	test('blockquote spanning multiple lines becomes single block', () => {
 		const md = '> This is a quote\n> spanning multiple lines';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: '> This is a quote\n> spanning multiple lines' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: '> This is a quote\n> spanning multiple lines' }]);
 	});
 
 	// 10. Mixed content under a heading
@@ -148,28 +130,18 @@ describe('markdownToBlocks', () => {
 	// 12. Heading with no content beneath it
 	test('heading with no content has no children', () => {
 		const md = '# Empty heading';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: '# Empty heading' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: '# Empty heading' }]);
 	});
 
 	// Extra: consecutive blank lines don't produce empty blocks
 	test('consecutive blank lines are ignored', () => {
 		const md = 'First\n\n\n\nSecond';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: 'First' },
-			{ content: 'Second' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: 'First' }, { content: 'Second' }]);
 	});
 
 	// Extra: deeper heading nesting (h1 > h2 > h3)
 	test('three-level heading nesting', () => {
-		const md = [
-			'# H1',
-			'## H2',
-			'### H3',
-			'deep content',
-		].join('\n');
+		const md = ['# H1', '## H2', '### H3', 'deep content'].join('\n');
 
 		expect(markdownToBlocks(md)).toEqual([
 			{
@@ -192,10 +164,7 @@ describe('markdownToBlocks', () => {
 	// Extra: asterisk-style unordered lists
 	test('asterisk unordered list items', () => {
 		const md = '* Alpha\n* Beta';
-		expect(markdownToBlocks(md)).toEqual([
-			{ content: 'Alpha' },
-			{ content: 'Beta' },
-		]);
+		expect(markdownToBlocks(md)).toEqual([{ content: 'Alpha' }, { content: 'Beta' }]);
 	});
 
 	// Extra: sibling headings at same level

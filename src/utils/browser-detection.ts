@@ -1,5 +1,5 @@
 interface KagiWindow extends Window {
-	KAGI?: any;
+	KAGI?: unknown;
 }
 
 interface NavigatorExtended extends Navigator {

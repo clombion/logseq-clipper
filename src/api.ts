@@ -4,25 +4,31 @@
 
 import DefuddleClass from 'defuddle';
 import { createMarkdownContent } from 'defuddle/full';
-import { compileTemplate, SelectorProcessor } from './utils/template-compiler';
-import { AsyncResolver, RenderContext } from './utils/renderer';
+import type { Property, SchemaOrgData, Template } from './types/types';
 import { applyFilters } from './utils/filters';
+import type { AsyncResolver, RenderContext } from './utils/renderer';
 import {
 	buildVariables,
-	generateFrontmatter,
 	extractContentBySelector,
-	selectorContentToString,
 	formatPropertyValue,
+	generateFrontmatter,
+	selectorContentToString,
 } from './utils/shared';
 import { sanitizeFileName } from './utils/string-utils';
-import { Template, Property } from './types/types';
+import { compileTemplate, type SelectorProcessor } from './utils/template-compiler';
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
+/** A parsed DOM document (browser Document, linkedom, etc.) */
+interface ParsedDocument {
+	documentElement?: unknown;
+	querySelectorAll: (selector: string) => NodeListOf<Element>;
+}
+
 export interface DocumentParser {
-	parseFromString(html: string, mimeType: string): any;
+	parseFromString(html: string, mimeType: string): ParsedDocument;
 }
 
 export interface ClipOptions {
@@ -32,7 +38,7 @@ export interface ClipOptions {
 	documentParser: DocumentParser;
 	propertyTypes?: Record<string, string>;
 	/** Pre-parsed document to skip re-parsing (e.g. when already parsed for trigger matching). */
-	parsedDocument?: any;
+	parsedDocument?: ParsedDocument;
 }
 
 export interface ClipResult {
@@ -48,10 +54,10 @@ export interface ClipResult {
 // Selector resolvers (work on any { querySelectorAll } document)
 // ---------------------------------------------------------------------------
 
-type DocLike = { querySelectorAll: (selector: string) => any };
+type DocLike = { querySelectorAll: (selector: string) => NodeListOf<Element> };
 
 export function createAsyncResolver(doc: DocLike): AsyncResolver {
-	return async (name: string, _context: RenderContext): Promise<any> => {
+	return async (name: string, _context: RenderContext) => {
 		if (name.startsWith('selector:') || name.startsWith('selectorHtml:')) {
 			const extractHtml = name.startsWith('selectorHtml:');
 			const prefix = extractHtml ? 'selectorHtml:' : 'selector:';
@@ -61,7 +67,7 @@ export function createAsyncResolver(doc: DocLike): AsyncResolver {
 			const selector = attrMatch ? attrMatch[1] : selectorPart;
 			const attribute = attrMatch ? attrMatch[2] : undefined;
 
-			return extractContentBySelector(doc, selector.replace(/\\"/g, '"'), attribute, extractHtml);
+			return extractContentBySelector(doc, selector?.replace(/\\"/g, '"') ?? '', attribute, extractHtml);
 		}
 		return undefined;
 	};
@@ -75,9 +81,9 @@ export function createSelectorProcessor(doc: DocLike): SelectorProcessor {
 
 		const [, selectorType, rawSelector, attribute, filtersString] = matches;
 		const extractHtml = selectorType === 'selectorHtml';
-		const selector = rawSelector.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+		const selector = rawSelector?.replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
 
-		const content = extractContentBySelector(doc, selector, attribute, extractHtml);
+		const content = extractContentBySelector(doc, selector ?? '', attribute, extractHtml);
 		const contentString = selectorContentToString(content);
 
 		return filtersString ? applyFilters(contentString, filtersString, currentUrl) : contentString;
@@ -99,14 +105,14 @@ function matchTriggerPattern(pattern: string, url: string): boolean {
 	return url.startsWith(pattern);
 }
 
-function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
+function matchSchemaPattern(pattern: string, schemaOrgData: SchemaOrgData): boolean {
 	const match = pattern.match(/^schema:(@\w+)?(?:\.(.+?))?(?:=(.+))?$/);
 	if (!match) return false;
 	const [, schemaType, schemaKey, expectedValue] = match;
 	if (!schemaType && !schemaKey) return false;
 
 	const schemaArray = Array.isArray(schemaOrgData) ? schemaOrgData : [schemaOrgData];
-	const flattened = schemaArray.flatMap((s: any) => (Array.isArray(s) ? s : [s]));
+	const flattened = schemaArray.flatMap((s) => (Array.isArray(s) ? s : [s]));
 
 	for (const schema of flattened) {
 		if (!schema || typeof schema !== 'object') continue;
@@ -116,9 +122,9 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
 		}
 		if (schemaKey) {
 			const keys = schemaKey.split('.');
-			let val = schema;
+			let val: unknown = schema;
 			for (const k of keys) {
-				val = val && typeof val === 'object' && k in val ? val[k] : undefined;
+				val = val && typeof val === 'object' && k in val ? (val as Record<string, unknown>)[k] : undefined;
 			}
 			if (expectedValue) {
 				if (Array.isArray(val) ? val.includes(expectedValue) : val === expectedValue) return true;
@@ -136,7 +142,7 @@ function matchSchemaPattern(pattern: string, schemaOrgData: any): boolean {
  * Find the first template whose triggers match the given URL (and optionally schema data).
  * URL prefix and regex triggers are checked first, then schema triggers.
  */
-export function matchTemplate(templates: Template[], url: string, schemaOrgData?: any): Template | undefined {
+export function matchTemplate(templates: Template[], url: string, schemaOrgData?: SchemaOrgData): Template | undefined {
 	// First pass: URL prefix and regex triggers
 	for (const template of templates) {
 		if (!template.triggers) continue;
@@ -219,8 +225,8 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 	const compiledNoteName = await compile(template.noteNameFormat);
 	const noteName = sanitizeFileName(compiledNoteName) || 'Untitled';
 
-	// Compile and format each property
-	const compiledProperties: Property[] = await Promise.all(
+	// Compile and format each property (allSettled so one failure doesn't abort the rest)
+	const settledProperties = await Promise.allSettled(
 		template.properties.map(async (prop) => {
 			let value = await compile(prop.value);
 			const propType = prop.type || 'text';
@@ -228,6 +234,16 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 			return { name: prop.name, value, type: prop.type };
 		}),
 	);
+	const compiledProperties: Property[] = [];
+	for (let i = 0; i < settledProperties.length; i++) {
+		const settled = settledProperties[i]!;
+		if (settled.status === 'fulfilled') {
+			compiledProperties.push(settled.value);
+		} else {
+			const prop = template.properties[i]!;
+			compiledProperties.push({ name: prop.name, value: '', type: prop.type });
+		}
+	}
 
 	// Build property type map
 	const typeMap: Record<string, string> = {};
@@ -260,4 +276,4 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 }
 
 // Re-export types that consumers may need
-export type { Template, Property } from './types/types';
+export type { Property, Template } from './types/types';

@@ -13,7 +13,7 @@ export const length = (str: string): string => {
 		// If parsing succeeds but it's not an array or object,
 		// treat it as a string
 		return str.length.toString();
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat as a string and return its length
 		return str.length.toString();
 	}

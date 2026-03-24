@@ -95,7 +95,7 @@ button.clickable-icon {
 	user-select: none;
 	-webkit-user-select: none;
 	white-space: nowrap;
-	a {
+	a, button {
 		cursor: pointer;
 		border-radius: var(--radius-s);
 		padding: 6px 8px;

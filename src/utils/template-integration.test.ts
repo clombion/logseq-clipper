@@ -1,12 +1,12 @@
-import { describe, test, expect, vi, beforeAll, afterAll } from 'vitest';
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, basename, extname } from 'path';
-import { parseHTML } from 'linkedom';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import DefuddleClass from 'defuddle';
 import { createMarkdownContent } from 'defuddle/full';
-import { buildVariables, generateFrontmatter, formatPropertyValue } from './shared';
-import { compileTemplate } from './template-compiler';
+import { parseHTML } from 'linkedom';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createAsyncResolver, createSelectorProcessor } from '../api';
+import { buildVariables, formatPropertyValue, generateFrontmatter } from './shared';
+import { compileTemplate } from './template-compiler';
 
 // ---------------------------------------------------------------------------
 // Freeze time so {{date}} is deterministic in expected output
@@ -147,7 +147,7 @@ describe('Template fixtures', () => {
 				console.log(`Created baseline for ${name}`);
 				return;
 			}
-			throw new Error(`No expected output for fixture "${name}". ` + `Run with UPDATE_FIXTURES=1 to create it.`);
+			throw new Error(`No expected output for fixture "${name}". Run with UPDATE_FIXTURES=1 to create it.`);
 		}
 
 		expect(result.trim()).toEqual(expected.trim());

@@ -1,22 +1,27 @@
-import { Template } from '../types/types';
-import { templates, saveTemplateSettings, editingTemplateIndex, loadTemplates } from '../managers/template-manager';
-import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
-import { sanitizeFileName } from './string-utils';
-import { generalSettings, loadSettings } from '../utils/storage-utils';
-import { addPropertyType, updatePropertyTypesList } from '../managers/property-types-manager';
-import { hideModal } from '../utils/modal-utils';
-import { showImportModal } from './import-modal';
-import browser from '../utils/browser-polyfill';
-import { saveFile } from './file-utils';
-import { copyToClipboardWithFeedback } from './clipboard-utils';
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
+import { addPropertyType, updatePropertyTypesList } from '../managers/property-types-manager';
+import { editingTemplateIndex, loadTemplates, saveTemplateSettings, templates } from '../managers/template-manager';
+import { showTemplateEditor, updateTemplateList } from '../managers/template-ui';
+import { PROPERTY_TYPES, type PropertyTypeName, type Template } from '../types/types';
+import browser from '../utils/browser-polyfill';
+import { hideModal } from '../utils/modal-utils';
+import { generalSettings, loadSettings } from '../utils/storage-utils';
+import { copyToClipboardWithFeedback } from './clipboard-utils';
+import { debugLog } from './debug';
+import { saveFile } from './file-utils';
 import { getMessage } from './i18n';
+import { showImportModal } from './import-modal';
+import { sanitizeFileName } from './string-utils';
 
 const SCHEMA_VERSION = '0.1.0';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 // Add these type definitions at the top
 interface StorageData {
-	[key: string]: any;
+	[key: string]: unknown;
 	template_list?: string[];
 }
 
@@ -77,8 +82,12 @@ export function importTemplate(input?: HTMLInputElement): void {
 		const reader = new FileReader();
 		reader.onload = async (e: ProgressEvent<FileReader>) => {
 			try {
-				const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
-				console.log('Imported template:', importedTemplate);
+				const raw: unknown = JSON.parse(e.target?.result as string);
+				if (!isPlainObject(raw)) {
+					throw new Error('Invalid template file: expected a JSON object');
+				}
+				const importedTemplate = raw as Partial<Template>;
+				debugLog('ImportExport', 'Imported template:', importedTemplate);
 
 				if (!validateImportedTemplate(importedTemplate)) {
 					throw new Error('Invalid template file');
@@ -89,15 +98,19 @@ export function importTemplate(input?: HTMLInputElement): void {
 				// Handle property types and preserve existing IDs or generate new ones
 				if (importedTemplate.properties) {
 					importedTemplate.properties = await Promise.all(
-						importedTemplate.properties.map(async (prop: any) => {
-							console.log('Processing property:', prop);
+						importedTemplate.properties.map(async (prop) => {
+							debugLog('ImportExport', 'Processing property:', prop);
 							// Add or update the property type
-							await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
+							await addPropertyType(
+								prop.name,
+								(prop.type || 'text') as PropertyTypeName,
+								prop.value || '',
+							);
 
 							// Use the type from generalSettings, which will be either the existing type or the newly added one
 							const type =
 								generalSettings.propertyTypes.find((pt) => pt.name === prop.name)?.type || 'text';
-							console.log(`Property ${prop.name} type after processing:`, type);
+							debugLog('ImportExport', `Property ${prop.name} type after processing:`, type);
 							return {
 								id: prop.id || Date.now().toString() + Math.random().toString(36).slice(2, 9),
 								name: prop.name,
@@ -108,12 +121,10 @@ export function importTemplate(input?: HTMLInputElement): void {
 					);
 				}
 
-				console.log('Processed template properties:', importedTemplate.properties);
+				debugLog('ImportExport', 'Processed template properties:', importedTemplate.properties);
 
 				// Keep the context if it exists in the imported template
-				if (importedTemplate.context) {
-					importedTemplate.context = importedTemplate.context;
-				}
+				// context is preserved as-is from the imported template
 
 				let newName = importedTemplate.name as string;
 				let counter = 1;
@@ -122,7 +133,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 				}
 				importedTemplate.name = newName;
 
-				console.log('Final imported template:', importedTemplate);
+				debugLog('ImportExport', 'Final imported template:', importedTemplate);
 				templates.unshift(importedTemplate as Template);
 
 				saveTemplateSettings();
@@ -138,7 +149,7 @@ export function importTemplate(input?: HTMLInputElement): void {
 	};
 
 	if (input.files && input.files.length > 0) {
-		handleFile(input.files[0]);
+		handleFile(input.files[0]!);
 	} else {
 		input.onchange = (event: Event) => {
 			const file = (event.target as HTMLInputElement).files?.[0];
@@ -152,23 +163,23 @@ export function importTemplate(input?: HTMLInputElement): void {
 
 function validateImportedTemplate(template: Partial<Template>): boolean {
 	const requiredFields: (keyof Template)[] = ['name', 'behavior', 'properties', 'noteContentFormat'];
-	const validTypes = ['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'];
+	const validTypes: readonly string[] = PROPERTY_TYPES;
 
 	const isDailyNote = template.behavior === 'append-daily' || template.behavior === 'prepend-daily';
 
-	const hasRequiredFields = requiredFields.every((field) => template.hasOwnProperty(field));
+	const hasRequiredFields = requiredFields.every((field) => Object.hasOwn(template, field));
 	const hasValidProperties =
 		Array.isArray(template.properties) &&
-		template.properties!.every(
-			(prop: any) =>
-				prop.hasOwnProperty('name') &&
-				prop.hasOwnProperty('value') &&
-				(!prop.hasOwnProperty('type') || validTypes.includes(prop.type)),
+		template.properties?.every(
+			(prop) =>
+				Object.hasOwn(prop, 'name') &&
+				Object.hasOwn(prop, 'value') &&
+				(!Object.hasOwn(prop, 'type') || !prop.type || validTypes.includes(prop.type)),
 		);
 
 	// Check for noteNameFormat and path only if it's not a daily note template
 	const hasValidNoteNameAndPath =
-		isDailyNote || (template.hasOwnProperty('noteNameFormat') && template.hasOwnProperty('path'));
+		isDailyNote || (Object.hasOwn(template, 'noteNameFormat') && Object.hasOwn(template, 'path'));
 
 	// Add optional check for context
 	const hasValidContext = !template.context || typeof template.context === 'string';
@@ -176,16 +187,16 @@ function validateImportedTemplate(template: Partial<Template>): boolean {
 	return hasRequiredFields && hasValidProperties && hasValidNoteNameAndPath && hasValidContext;
 }
 
-function preventDefaults(e: Event): void {
+function _preventDefaults(e: Event): void {
 	e.preventDefault();
 	e.stopPropagation();
 }
 
-function handleDrop(e: DragEvent): void {
+function _handleDrop(e: DragEvent): void {
 	const dt = e.dataTransfer;
 	const files = dt?.files;
 
-	if (files && files.length) {
+	if (files?.length) {
 		handleFiles(files);
 	}
 }
@@ -195,7 +206,7 @@ function handleFiles(files: FileList): void {
 }
 
 async function processImportedTemplate(importedTemplate: Partial<Template>): Promise<Template> {
-	console.log('Processing imported template:', importedTemplate);
+	debugLog('ImportExport', 'Processing imported template:', importedTemplate);
 
 	if (!validateImportedTemplate(importedTemplate)) {
 		throw new Error('Invalid template file');
@@ -205,15 +216,19 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 
 	// Process property types
 	if (importedTemplate.properties) {
-		console.log('Processing properties:', importedTemplate.properties);
+		debugLog('ImportExport', 'Processing properties:', importedTemplate.properties);
 		for (const prop of importedTemplate.properties) {
-			console.log(`Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`);
+			debugLog(
+				'ImportExport',
+				`Processing property: ${prop.name}, type: ${prop.type || 'text'}, value: ${prop.value}`,
+			);
 			const existingPropertyType = generalSettings.propertyTypes.find((pt) => pt.name === prop.name);
 			if (!existingPropertyType) {
 				// Only add the property type if it doesn't exist
-				await addPropertyType(prop.name, prop.type || 'text', prop.value || '');
+				await addPropertyType(prop.name, (prop.type || 'text') as PropertyTypeName, prop.value || '');
 			} else {
-				console.log(
+				debugLog(
+					'ImportExport',
 					`Property type ${prop.name} already exists, keeping existing type: ${existingPropertyType.type}`,
 				);
 			}
@@ -231,7 +246,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 		});
 	}
 
-	console.log('Processed template properties:', importedTemplate.properties);
+	debugLog('ImportExport', 'Processed template properties:', importedTemplate.properties);
 
 	// Ensure unique name
 	let newName = importedTemplate.name as string;
@@ -241,7 +256,7 @@ async function processImportedTemplate(importedTemplate: Partial<Template>): Pro
 	}
 	importedTemplate.name = newName;
 
-	console.log('Final imported template:', importedTemplate);
+	debugLog('ImportExport', 'Final imported template:', importedTemplate);
 	return importedTemplate as Template;
 }
 
@@ -249,15 +264,19 @@ export function importTemplateFile(file: File): void {
 	const reader = new FileReader();
 	reader.onload = async (e: ProgressEvent<FileReader>) => {
 		try {
-			console.log('Starting template import');
-			const importedTemplate = JSON.parse(e.target?.result as string) as Partial<Template>;
+			debugLog('ImportExport', 'Starting template import');
+			const raw: unknown = JSON.parse(e.target?.result as string);
+			if (!isPlainObject(raw)) {
+				throw new Error('Invalid template file: expected a JSON object');
+			}
+			const importedTemplate = raw as Partial<Template>;
 			const processedTemplate = await processImportedTemplate(importedTemplate);
 
 			templates.unshift(processedTemplate);
 			await saveTemplateSettings();
 			updateTemplateList();
 			showTemplateEditor(processedTemplate);
-			console.log('Template import completed');
+			debugLog('ImportExport', 'Template import completed');
 		} catch (error) {
 			console.error('Error parsing imported template:', error);
 			alert(getMessage('failedToImportTemplate'));
@@ -272,7 +291,11 @@ export function showTemplateImportModal(): void {
 
 async function importTemplateFromJson(jsonContent: string): Promise<void> {
 	try {
-		const importedTemplate = JSON.parse(jsonContent) as Partial<Template>;
+		const raw: unknown = JSON.parse(jsonContent);
+		if (!isPlainObject(raw)) {
+			throw new Error('Invalid template data: expected a JSON object');
+		}
+		const importedTemplate = raw as Partial<Template>;
 		const processedTemplate = await processImportedTemplate(importedTemplate);
 
 		templates.unshift(processedTemplate);
@@ -326,14 +349,14 @@ export function copyTemplateToClipboard(template: Template): void {
 }
 
 export async function exportAllSettings(): Promise<void> {
-	console.log('Starting exportAllSettings function');
+	debugLog('ImportExport', 'Starting exportAllSettings function');
 	try {
-		console.log('Fetching all data from browser storage');
+		debugLog('ImportExport', 'Fetching all data from browser storage');
 		const allData = (await browser.storage.sync.get(null)) as StorageData;
-		console.log('All data fetched:', allData);
+		debugLog('ImportExport', 'All data fetched:', allData);
 
 		// Create a copy of the data to modify, excluding connection settings (machine-specific secret)
-		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: any };
+		const { logseq_settings, ...exportData } = allData as StorageData & { logseq_settings?: unknown };
 
 		// Decompress all templates
 		const templateIds = exportData.template_list || [];
@@ -344,7 +367,8 @@ export async function exportAllSettings(): Promise<void> {
 					// Join chunks and decompress
 					const compressedData = (exportData[key] as string[]).join('');
 					const decompressedData = decompressFromUTF16(compressedData);
-					exportData[key] = JSON.parse(decompressedData);
+					const parsed: unknown = JSON.parse(decompressedData);
+					exportData[key] = parsed;
 				} catch (error) {
 					console.error(`Failed to decompress template ${id}:`, error);
 				}
@@ -352,16 +376,16 @@ export async function exportAllSettings(): Promise<void> {
 		}
 
 		// Strip API keys from providers to prevent credential leakage
-		if ((exportData as any).interpreter_settings?.providers) {
-			(exportData as any).interpreter_settings.providers =
-				(exportData as any).interpreter_settings.providers.map(
-					({ apiKey, ...rest }: any) => rest
-				);
+		const interpreterSettings = exportData.interpreter_settings as Record<string, unknown> | undefined;
+		if (interpreterSettings?.providers) {
+			interpreterSettings.providers = (interpreterSettings.providers as Record<string, unknown>[]).map(
+				({ apiKey, ...rest }: Record<string, unknown>) => rest,
+			);
 		}
 
-		console.log('Data prepared for export:', exportData);
+		debugLog('ImportExport', 'Data prepared for export:', exportData);
 		const content = JSON.stringify(exportData, null, 2);
-		console.log('Data stringified, length:', content.length);
+		debugLog('ImportExport', 'Data stringified, length:', content.length);
 
 		const fileName = 'logseq-web-clipper-settings.json';
 
@@ -372,7 +396,7 @@ export async function exportAllSettings(): Promise<void> {
 			onError: (error) => console.error('Failed to export settings:', error),
 		});
 
-		console.log('Export completed successfully');
+		debugLog('ImportExport', 'Export completed successfully');
 	} catch (error) {
 		console.error('Error in exportAllSettings:', error);
 		alert(getMessage('failedToExportSettings'));
@@ -385,7 +409,11 @@ export function importAllSettings(): void {
 
 async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 	try {
-		const settings = JSON.parse(jsonContent) as StorageData;
+		const raw: unknown = JSON.parse(jsonContent);
+		if (!isPlainObject(raw)) {
+			throw new Error('Invalid settings data: expected a JSON object');
+		}
+		const settings = raw as StorageData;
 
 		if (confirm(getMessage('confirmReplaceSettings'))) {
 			// Create a copy of the settings to modify
@@ -400,7 +428,7 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 						// Check if the data is already compressed (will be an array of strings)
 						const isAlreadyCompressed =
 							Array.isArray(importData[key]) &&
-							importData[key].every((chunk: any) => typeof chunk === 'string');
+							(importData[key] as unknown[]).every((chunk: unknown) => typeof chunk === 'string');
 
 						if (!isAlreadyCompressed) {
 							// Compress the template data
@@ -422,18 +450,18 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 			}
 
 			// Preserve connection settings (machine-specific, contains API token)
-			const currentStorage = await browser.storage.sync.get('logseq_settings');
-			const preservedLogseqSettings = currentStorage.logseq_settings;
+			const currentLocal = await browser.storage.local.get('logseq_settings');
+			const preservedLogseqSettings = currentLocal.logseq_settings;
 
 			// Remove logseq_settings from import data if present (don't import secrets)
-			delete (importData as any).logseq_settings;
+			delete importData.logseq_settings;
 
 			await browser.storage.sync.clear();
 			await browser.storage.sync.set(importData);
 
-			// Restore connection settings
+			// Restore connection settings to local storage (never cloud-synced)
 			if (preservedLogseqSettings) {
-				await browser.storage.sync.set({ logseq_settings: preservedLogseqSettings });
+				await browser.storage.local.set({ logseq_settings: preservedLogseqSettings });
 			}
 			await loadSettings();
 			await loadTemplates();

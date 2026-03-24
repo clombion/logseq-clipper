@@ -1,9 +1,9 @@
-import { Template, Property } from '../types/types';
-import { templates, getTemplates, saveTemplateSettings, getEditingTemplateIndex } from '../managers/template-manager';
-import { updateTemplateList } from '../managers/template-ui';
-import { generalSettings, saveSettings } from './storage-utils';
-import { initializeModelList } from '../managers/interpreter-settings';
 import { initializeIcons } from '../icons/icons';
+import { initializeModelList } from '../managers/interpreter-settings';
+import { getEditingTemplateIndex, getTemplates, saveTemplateSettings } from '../managers/template-manager';
+import { updateTemplateList } from '../managers/template-ui';
+import type { Property, Template } from '../types/types';
+import { generalSettings, saveSettings } from './storage-utils';
 
 let draggedElement: HTMLElement | null = null;
 
@@ -89,7 +89,7 @@ function handleTemplateReorder(draggedItemId: string, newIndex: number): void {
 	const oldIndex = templates.findIndex((t) => (t as Template).id === draggedItemId);
 	if (oldIndex !== -1 && oldIndex !== newIndex) {
 		const [movedTemplate] = templates.splice(oldIndex, 1);
-		templates.splice(newIndex, 0, movedTemplate);
+		templates.splice(newIndex, 0, movedTemplate!);
 		saveTemplateSettings()
 			.then(() => {
 				updateTemplateList();
@@ -139,7 +139,7 @@ function handlePropertyReorder(draggedItemId: string, newIndex: number): void {
 
 	if (oldIndex !== newIndex) {
 		const [movedProperty] = template.properties.splice(oldIndex, 1);
-		template.properties.splice(newIndex, 0, movedProperty);
+		template.properties.splice(newIndex, 0, movedProperty!);
 		saveTemplateSettings()
 			.then(() => {
 				updateTemplateList();
@@ -152,10 +152,10 @@ function handlePropertyReorder(draggedItemId: string, newIndex: number): void {
 
 function handleModelReorder(newIndex: number): void {
 	if (!draggedElement) return;
-	const oldIndex = parseInt(draggedElement.dataset.index || '-1');
+	const oldIndex = parseInt(draggedElement.dataset.index || '-1', 10);
 	if (oldIndex !== -1 && oldIndex !== newIndex) {
 		const [movedModel] = generalSettings.models.splice(oldIndex, 1);
-		generalSettings.models.splice(newIndex, 0, movedModel);
+		generalSettings.models.splice(newIndex, 0, movedModel!);
 		saveSettings();
 		initializeModelList();
 		const modelList = document.getElementById('model-list');
@@ -168,6 +168,6 @@ function handleModelReorder(newIndex: number): void {
 export function moveItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
 	const newArray = [...array];
 	const [movedItem] = newArray.splice(fromIndex, 1);
-	newArray.splice(toIndex, 0, movedItem);
+	newArray.splice(toIndex, 0, movedItem!);
 	return newArray;
 }

@@ -19,7 +19,10 @@
 		"rules": {
 			"recommended": true,
 			"suspicious": {
-				"noExplicitAny": "off"
+				"noExplicitAny": "error"
+			},
+			"style": {
+				"noNonNullAssertion": "off"
 			},
 			"complexity": {
 				"noForEach": "off"
@@ -32,6 +35,19 @@
 			"semicolons": "always"
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off",
+						"noTemplateCurlyInString": "off"
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {

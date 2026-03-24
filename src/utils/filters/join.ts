@@ -4,7 +4,7 @@ export const join = (str: string, param?: string): string => {
 		return '';
 	}
 
-	let array;
+	let array: unknown;
 	try {
 		array = JSON.parse(str);
 	} catch (error) {

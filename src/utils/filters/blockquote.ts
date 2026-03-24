@@ -7,7 +7,7 @@ export const blockquote = (input: string | string[]): string => {
 			.join('\n');
 	};
 
-	const processArray = (arr: any[], depth: number = 1): string => {
+	const processArray = (arr: unknown[], depth: number = 1): string => {
 		return arr
 			.map((item) => {
 				if (Array.isArray(item)) {
@@ -29,7 +29,7 @@ export const blockquote = (input: string | string[]): string => {
 		}
 		// If it's a single value, treat it as a string
 		return processBlockquote(String(parsedInput));
-	} catch (error) {
+	} catch (_error) {
 		// If parsing fails, treat it as a single string or array of strings
 		if (Array.isArray(input)) {
 			return processArray(input);

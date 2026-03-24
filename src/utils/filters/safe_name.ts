@@ -24,25 +24,34 @@ export const safe_name = (str: string, param?: string): string => {
 	let sanitized = str;
 
 	// First remove characters that should be sanitized across all platforms
-	sanitized = sanitized.replace(/[#|\^\[\]]/g, '');
+	sanitized = sanitized.replace(/[#|^[\]]/g, '');
+
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsWindows = /[<>:"/\\|?*\x00-\x1F]/g;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsMac = /[/:\x00-\x1F]/g;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsLinux = /[/\x00-\x1F]/g;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for filesystem safety
+	const controlCharsDefault = /[<>:"/\\|?*:\x00-\x1F]/g;
 
 	switch (os) {
 		case 'windows':
 			sanitized = sanitized
-				.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '')
+				.replace(controlCharsWindows, '')
 				.replace(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i, '_$1$2')
 				.replace(/[\s.]+$/, '');
 			break;
 		case 'mac':
-			sanitized = sanitized.replace(/[\/:\x00-\x1F]/g, '').replace(/^\./, '_');
+			sanitized = sanitized.replace(controlCharsMac, '').replace(/^\./, '_');
 			break;
 		case 'linux':
-			sanitized = sanitized.replace(/[\/\x00-\x1F]/g, '').replace(/^\./, '_');
+			sanitized = sanitized.replace(controlCharsLinux, '').replace(/^\./, '_');
 			break;
 		default:
 			// Most conservative approach (combination of all rules)
 			sanitized = sanitized
-				.replace(/[<>:"\/\\|?*:\x00-\x1F]/g, '')
+				.replace(controlCharsDefault, '')
 				.replace(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i, '_$1$2')
 				.replace(/[\s.]+$/, '')
 				.replace(/^\./, '_');

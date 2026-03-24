@@ -19,7 +19,9 @@ export function createElementWithHTML(
 		element.appendChild(node.cloneNode(true));
 	});
 
-	Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+	Object.entries(attributes).forEach(([key, value]) => {
+		element.setAttribute(key, value);
+	});
 	return element;
 }
 
@@ -39,7 +41,7 @@ export function getElementXPath(element: Node): string {
 	let ix = 0;
 	const siblings = element.parentNode?.childNodes || [];
 	for (let i = 0; i < siblings.length; i++) {
-		const sibling = siblings[i];
+		const sibling = siblings[i]!;
 		if (sibling === element) {
 			return (
 				getElementXPath(element.parentNode!) +
@@ -68,7 +70,7 @@ export function isDarkColor(color: string): boolean {
 	if (!rgb || rgb.length < 3) return false;
 
 	// Calculate the perceived brightness
-	const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+	const brightness = (parseInt(rgb[0]!, 10) * 299 + parseInt(rgb[1]!, 10) * 587 + parseInt(rgb[2]!, 10) * 114) / 1000;
 
 	// Return true if the brightness is below 128 (assuming 0-255 range)
 	return brightness < 128;
@@ -92,8 +94,8 @@ export function wrapTextWithMark(element: Element, highlight: { startOffset: num
 	let startOffset = 0;
 	let endOffset = 0;
 
-	let node;
-	while ((node = walker.nextNode() as Text)) {
+	let node: Text | null = walker.nextNode() as Text | null;
+	while (node) {
 		const length = node.length;
 
 		if (!startNode && currentOffset + length > highlight.startOffset) {
@@ -108,6 +110,7 @@ export function wrapTextWithMark(element: Element, highlight: { startOffset: num
 		}
 
 		currentOffset += length;
+		node = walker.nextNode() as Text | null;
 	}
 
 	if (startNode && endNode) {

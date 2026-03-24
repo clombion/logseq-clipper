@@ -1,6 +1,6 @@
-import { showModal, hideModal } from './modal-utils';
-import { importTemplateFile } from './import-export';
 import { getMessage, translatePage } from './i18n';
+import { importTemplateFile } from './import-export';
+import { hideModal, showModal } from './modal-utils';
 
 export async function showImportModal(
 	modalId: string,

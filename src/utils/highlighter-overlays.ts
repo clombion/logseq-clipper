@@ -1,17 +1,18 @@
+import { debugLog } from './debug';
+import { getElementByXPath, isDarkColor } from './dom-utils';
 import {
+	type AnyHighlightData,
+	applyHighlights,
 	handleTextSelection,
 	highlightElement,
-	AnyHighlightData,
 	highlights,
 	isApplyingHighlights,
-	sortHighlights,
-	applyHighlights,
 	saveHighlights,
-	updateHighlights,
+	sortHighlights,
 	updateHighlighterMenu,
+	updateHighlights,
 } from './highlighter';
 import { throttle } from './throttle';
-import { getElementByXPath, isDarkColor } from './dom-utils';
 
 let hoverOverlay: HTMLElement | null = null;
 let touchStartX: number = 0;
@@ -66,7 +67,7 @@ export function handleMouseMove(event: MouseEvent | TouchEvent) {
 		target = event.target as Element;
 	} else {
 		// Touch event
-		const touch = event.changedTouches[0];
+		const touch = event.changedTouches[0]!;
 		target = document.elementFromPoint(touch.clientX, touch.clientY) as Element;
 	}
 
@@ -88,7 +89,7 @@ export function handleMouseUp(event: MouseEvent | TouchEvent) {
 			isTouchMoved = false;
 			return; // Don't highlight if the touch moved (scrolling)
 		}
-		const touch = event.changedTouches[0];
+		const touch = event.changedTouches[0]!;
 		target = document.elementFromPoint(touch.clientX, touch.clientY) as Element;
 	}
 
@@ -134,7 +135,7 @@ export function handleMouseUp(event: MouseEvent | TouchEvent) {
 
 // Add touch start handler
 export function handleTouchStart(event: TouchEvent) {
-	const touch = event.touches[0];
+	const touch = event.touches[0]!;
 	touchStartX = touch.clientX;
 	touchStartY = touch.clientY;
 	isTouchMoved = false;
@@ -142,7 +143,7 @@ export function handleTouchStart(event: TouchEvent) {
 
 // Add touch move handler
 export function handleTouchMove(event: TouchEvent) {
-	const touch = event.touches[0];
+	const touch = event.touches[0]!;
 	const moveThreshold = 10; // pixels
 
 	if (
@@ -334,11 +335,11 @@ function mergeHighlightOverlayRects(
 	index: number,
 	notes?: string[],
 ) {
-	let mergedRects: DOMRect[] = [];
+	const mergedRects: DOMRect[] = [];
 	let currentRect: DOMRect | null = null;
 
 	for (let i = 0; i < rects.length; i++) {
-		const rect = rects[i];
+		const rect = rects[i]!;
 		if (!currentRect) {
 			currentRect = new DOMRect(rect.x, rect.y, rect.width, rect.height);
 		} else if (Math.abs(rect.y - currentRect.y) < 1 && Math.abs(rect.height - currentRect.height) < 1) {
@@ -353,9 +354,10 @@ function mergeHighlightOverlayRects(
 		mergedRects.push(currentRect);
 	}
 
+	const overlayRects = existingOverlays.map((overlay) => overlay.getBoundingClientRect());
+
 	for (const rect of mergedRects) {
-		const isDuplicate = existingOverlays.some((overlay) => {
-			const overlayRect = overlay.getBoundingClientRect();
+		const isDuplicate = overlayRects.some((overlayRect) => {
 			return (
 				Math.abs(rect.left - overlayRect.left) < 1 &&
 				Math.abs(rect.top - overlayRect.top) < 1 &&
@@ -374,7 +376,7 @@ function mergeHighlightOverlayRects(
 function createHighlightOverlayElement(
 	rect: DOMRect,
 	content: string,
-	isText: boolean = false,
+	_isText: boolean = false,
 	index: number,
 	notes?: string[],
 ) {
@@ -428,9 +430,8 @@ function updateHighlightOverlayPositions() {
 	highlights.forEach((highlight, index) => {
 		const target = getElementByXPath(highlight.xpath);
 		if (target) {
-			const hasExisting = document.querySelectorAll(
-				`.logseq-highlight-overlay[data-highlight-index="${index}"]`,
-			).length > 0;
+			const hasExisting =
+				document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`).length > 0;
 			updates.push({ target, highlight, index, hasExisting });
 		}
 	});
@@ -446,9 +447,9 @@ function updateHighlightOverlayPositions() {
 
 // Remove existing highlight overlays for a specific index
 function removeExistingHighlightOverlays(index: number) {
-	document
-		.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`)
-		.forEach((el) => el.remove());
+	document.querySelectorAll(`.logseq-highlight-overlay[data-highlight-index="${index}"]`).forEach((el) => {
+		el.remove();
+	});
 }
 
 const throttledUpdateHighlights = throttle(() => {
@@ -457,8 +458,8 @@ const throttledUpdateHighlights = throttle(() => {
 	}
 }, 100);
 
-window.addEventListener('resize', throttledUpdateHighlights);
-window.addEventListener('scroll', throttledUpdateHighlights);
+window.addEventListener('resize', throttledUpdateHighlights, { passive: true });
+window.addEventListener('scroll', throttledUpdateHighlights, { passive: true });
 
 const observer = new MutationObserver((mutations) => {
 	if (!isApplyingHighlights) {
@@ -580,7 +581,7 @@ export function removeHoverOverlay() {
 async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) {
 	event.stopPropagation();
 	event.preventDefault(); // Prevent default touch behavior
-	const overlay = overlayElement ?? event.currentTarget as HTMLElement;
+	const overlay = overlayElement ?? (event.currentTarget as HTMLElement);
 
 	try {
 		if (!overlay || !overlay.dataset) {
@@ -593,13 +594,13 @@ async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) 
 			return;
 		}
 
-		const highlightIndex = parseInt(index);
-		if (isNaN(highlightIndex) || highlightIndex < 0 || highlightIndex >= highlights.length) {
+		const highlightIndex = parseInt(index, 10);
+		if (Number.isNaN(highlightIndex) || highlightIndex < 0 || highlightIndex >= highlights.length) {
 			console.warn(`Invalid highlight index: ${index}`);
 			return;
 		}
 
-		const highlightToRemove = highlights[highlightIndex];
+		const highlightToRemove = highlights[highlightIndex]!;
 		const newHighlights = highlights.filter((h: AnyHighlightData) => h.id !== highlightToRemove.id);
 		updateHighlights(newHighlights);
 		removeExistingHighlightOverlays(highlightIndex);
@@ -615,8 +616,10 @@ async function handleHighlightClick(event: Event, overlayElement?: HTMLElement) 
 // Remove all existing highlight overlays from the page
 export function removeExistingHighlights() {
 	const existingHighlights = document.querySelectorAll('.logseq-highlight-overlay');
-	console.log('existingHighlights', existingHighlights.length);
+	debugLog('HighlighterOverlays', 'existingHighlights', existingHighlights.length);
 	if (existingHighlights.length > 0) {
-		existingHighlights.forEach((el) => el.remove());
+		existingHighlights.forEach((el) => {
+			el.remove();
+		});
 	}
 }

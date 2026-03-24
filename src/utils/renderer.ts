@@ -8,23 +8,24 @@
 // - Variable assignment (set)
 // - Whitespace control
 
-import {
-	ASTNode,
-	TextNode,
-	VariableNode,
-	IfNode,
-	ForNode,
-	SetNode,
-	Expression,
-	LiteralExpression,
-	IdentifierExpression,
-	BinaryExpression,
-	UnaryExpression,
-	FilterExpression,
-	MemberExpression,
-	parse,
-} from './parser';
+import type { TemplateValue } from '../types/types';
 import { applyFilterDirect as builtInApplyFilterDirect } from './filters';
+import {
+	type ASTNode,
+	type BinaryExpression,
+	type Expression,
+	type FilterExpression,
+	type ForNode,
+	type IdentifierExpression,
+	type IfNode,
+	type LiteralExpression,
+	type MemberExpression,
+	parse,
+	type SetNode,
+	type TextNode,
+	type UnaryExpression,
+	type VariableNode,
+} from './parser';
 
 // Filter application function type for direct invocation (already-parsed filter name and params)
 type ApplyFilterDirectFn = (
@@ -44,14 +45,14 @@ const defaultApplyFilterDirect: ApplyFilterDirectFn = builtInApplyFilterDirect;
 /**
  * Function type for resolving variables asynchronously (e.g., selectors)
  */
-export type AsyncResolver = (name: string, context: RenderContext) => Promise<any>;
+export type AsyncResolver = (name: string, context: RenderContext) => Promise<TemplateValue>;
 
 /**
  * Context for rendering templates
  */
 export interface RenderContext {
 	/** Variables available in the template */
-	variables: Record<string, any>;
+	variables: Record<string, TemplateValue>;
 
 	/** Current URL for filter processing */
 	currentUrl: string;
@@ -63,7 +64,7 @@ export interface RenderContext {
 	asyncResolver?: AsyncResolver;
 
 	/** Custom filter functions (optional, merged with built-in filters) */
-	filters?: Record<string, (...args: any[]) => any>;
+	filters?: Record<string, (...args: TemplateValue[]) => TemplateValue>;
 
 	/** Custom applyFilterDirect implementation (optional, uses built-in if not provided) */
 	applyFilterDirect?: ApplyFilterDirectFn;
@@ -146,7 +147,7 @@ export async function renderAST(
 	let output = '';
 
 	for (let i = 0; i < ast.length; i++) {
-		const node = ast[i];
+		const node = ast[i]!;
 		const nodeOutput = await renderNode(node, state);
 		output = appendNodeOutput(output, nodeOutput, node, state);
 	}
@@ -188,7 +189,7 @@ async function renderNode(node: ASTNode, state: RenderState): Promise<string> {
 			return renderSet(node, state);
 		default:
 			state.errors.push({
-				message: `Unknown node type: ${(node as any).type}`,
+				message: `Unknown node type: ${(node as { type: string }).type}`,
 			});
 			return '';
 	}
@@ -273,7 +274,9 @@ function formatFilterArgs(args: Expression[]): string {
 			}
 			return String(val);
 		}
-		return String((arg as any).value || (arg as any).name || '');
+		if ('value' in arg) return String((arg as unknown as LiteralExpression).value ?? '');
+		if ('name' in arg) return String((arg as unknown as IdentifierExpression).name ?? '');
+		return '';
 	});
 	if (formatted.length > 1) {
 		return `(${formatted.join(',')})`;
@@ -363,9 +366,9 @@ async function renderFor(node: ForNode, state: RenderState): Promise<string> {
 		let iterableArray = iterableValue;
 		if (!Array.isArray(iterableArray) && typeof iterableArray === 'string') {
 			try {
-				const parsed = JSON.parse(iterableArray);
-				if (Array.isArray(parsed)) {
-					iterableArray = parsed;
+				const raw: unknown = JSON.parse(iterableArray);
+				if (Array.isArray(raw)) {
+					iterableArray = raw;
 				}
 			} catch {
 				// Not valid JSON, fall through to error below
@@ -472,7 +475,7 @@ async function renderNodes(nodes: ASTNode[], state: RenderState): Promise<string
  */
 function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, state: RenderState): string {
 	// Handle trimLeft - trim trailing whitespace from previous output
-	if ('trimLeft' in node && (node as any).trimLeft && output.length > 0) {
+	if ('trimLeft' in node && (node as unknown as Record<string, unknown>).trimLeft && output.length > 0) {
 		output = trimTrailingWhitespace(output);
 	}
 
@@ -491,7 +494,7 @@ function appendNodeOutput(output: string, nodeOutput: string, node: ASTNode, sta
 // Expression Evaluation
 // ============================================================================
 
-async function evaluateExpression(expr: Expression, state: RenderState): Promise<any> {
+async function evaluateExpression(expr: Expression, state: RenderState): Promise<TemplateValue> {
 	switch (expr.type) {
 		case 'literal':
 			return evaluateLiteral(expr);
@@ -515,15 +518,15 @@ async function evaluateExpression(expr: Expression, state: RenderState): Promise
 			return evaluateMember(expr, state);
 
 		default:
-			throw new Error(`Unknown expression type: ${(expr as any).type}`);
+			throw new Error(`Unknown expression type: ${(expr as { type: string }).type}`);
 	}
 }
 
-function evaluateLiteral(expr: LiteralExpression): any {
+function evaluateLiteral(expr: LiteralExpression): TemplateValue {
 	return expr.value;
 }
 
-async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState): Promise<any> {
+async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState): Promise<TemplateValue> {
 	const name = expr.name;
 
 	// Check for special prefixes that need async resolution or post-processing
@@ -555,7 +558,7 @@ async function evaluateIdentifier(expr: IdentifierExpression, state: RenderState
 	return resolveVariable(name, state.context.variables);
 }
 
-async function evaluateMember(expr: MemberExpression, state: RenderState): Promise<any> {
+async function evaluateMember(expr: MemberExpression, state: RenderState): Promise<TemplateValue> {
 	const object = await evaluateExpression(expr.object, state);
 	const property = await evaluateExpression(expr.property, state);
 
@@ -574,14 +577,14 @@ async function evaluateMember(expr: MemberExpression, state: RenderState): Promi
 	}
 
 	// Object property access
-	if (typeof object === 'object' && property !== undefined) {
-		return object[property];
+	if (typeof object === 'object' && object !== null && !Array.isArray(object) && property !== undefined) {
+		return (object as Record<string, TemplateValue>)[String(property)];
 	}
 
 	return undefined;
 }
 
-async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promise<any> {
+async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promise<TemplateValue> {
 	// Handle nullish coalescing with short-circuit evaluation
 	if (expr.operator === '??') {
 		const left = await evaluateExpression(expr.left, state);
@@ -597,17 +600,17 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 
 	switch (expr.operator) {
 		case '==':
-			return left == right;
+			return left === right;
 		case '!=':
-			return left != right;
+			return left !== right;
 		case '>':
-			return left > right;
+			return Number(left) > Number(right);
 		case '<':
-			return left < right;
+			return Number(left) < Number(right);
 		case '>=':
-			return left >= right;
+			return Number(left) >= Number(right);
 		case '<=':
-			return left <= right;
+			return Number(left) <= Number(right);
 		case 'contains':
 			return evaluateContains(left, right);
 		case 'and':
@@ -619,7 +622,7 @@ async function evaluateBinary(expr: BinaryExpression, state: RenderState): Promi
 	}
 }
 
-async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise<any> {
+async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise<TemplateValue> {
 	const argument = await evaluateExpression(expr.argument, state);
 
 	switch (expr.operator) {
@@ -630,11 +633,11 @@ async function evaluateUnary(expr: UnaryExpression, state: RenderState): Promise
 	}
 }
 
-async function evaluateFilter(expr: FilterExpression, state: RenderState): Promise<any> {
+async function evaluateFilter(expr: FilterExpression, state: RenderState): Promise<TemplateValue> {
 	const value = await evaluateExpression(expr.value, state);
 
 	// Evaluate filter arguments
-	const args: any[] = [];
+	const args: TemplateValue[] = [];
 	for (const arg of expr.args) {
 		let argValue = await evaluateExpression(arg, state);
 		// If a filter argument is an identifier that resolved to undefined,
@@ -646,8 +649,8 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	}
 
 	// Check for custom filters first
-	if (state.context.filters && state.context.filters[expr.name]) {
-		return state.context.filters[expr.name](value, ...args);
+	if (state.context.filters?.[expr.name]) {
+		return state.context.filters[expr.name]?.(value, ...args);
 	}
 
 	const stringValue = valueToString(value);
@@ -683,7 +686,7 @@ async function evaluateFilter(expr: FilterExpression, state: RenderState): Promi
 	return applyFilterDirectFn(stringValue, expr.name, paramString, state.context.currentUrl);
 }
 
-function evaluateContains(left: any, right: any): boolean {
+function evaluateContains(left: TemplateValue, right: TemplateValue): boolean {
 	if (left === undefined || left === null) return false;
 	if (right === undefined || right === null) return false;
 
@@ -693,7 +696,7 @@ function evaluateContains(left: any, right: any): boolean {
 			if (typeof item === 'string' && typeof right === 'string') {
 				return item.toLowerCase() === right.toLowerCase();
 			}
-			return item == right;
+			return item === right;
 		});
 	}
 
@@ -715,7 +718,7 @@ function evaluateContains(left: any, right: any): boolean {
  * Schema variables can be stored with full keys like {{schema:@Movie.genre}}
  * but referenced with shorthand like schema:genre.
  */
-function resolveSchemaVariable(name: string, variables: Record<string, any>): any {
+function resolveSchemaVariable(name: string, variables: Record<string, TemplateValue>): TemplateValue {
 	// name is like "schema:genre" or "schema:@Movie.genre" or "schema:director[*].name"
 	const schemaKey = name.slice('schema:'.length);
 
@@ -723,7 +726,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
 	const nestedArrayMatch = schemaKey.match(/^(.*?)\[(\*|\d+)\](\.(.*))?$/);
 	if (nestedArrayMatch) {
 		const [, arrayKey, indexOrStar, , propertyPath] = nestedArrayMatch;
-		const arrayValue = resolveSchemaKey(arrayKey, variables);
+		const arrayValue = resolveSchemaKey(arrayKey!, variables);
 		if (arrayValue === undefined) return undefined;
 
 		const parsed = parseSchemaValue(arrayValue);
@@ -735,7 +738,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
 			}
 			return parsed;
 		} else {
-			const index = parseInt(indexOrStar, 10);
+			const index = parseInt(indexOrStar!, 10);
 			const item = parsed[index];
 			if (item === undefined) return undefined;
 			return propertyPath ? getNestedValue(item, propertyPath) : item;
@@ -751,7 +754,7 @@ function resolveSchemaVariable(name: string, variables: Record<string, any>): an
  * Resolve a schema key to its raw value from variables (before parsing).
  * Handles exact match, plain key, and shorthand resolution.
  */
-function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): any {
+function resolveSchemaKey(schemaKey: string, variables: Record<string, TemplateValue>): TemplateValue {
 	const name = `schema:${schemaKey}`;
 
 	// Try exact match first with {{ }} wrapper
@@ -780,12 +783,13 @@ function resolveSchemaKey(schemaKey: string, variables: Record<string, any>): an
 /**
  * Parse a schema value - if it's a JSON string, parse it to get the actual value.
  */
-function parseSchemaValue(value: any): any {
+function parseSchemaValue(value: TemplateValue): TemplateValue {
 	if (typeof value === 'string') {
 		// Try to parse as JSON to get arrays/objects
 		if (value.startsWith('[') || value.startsWith('{')) {
 			try {
-				return JSON.parse(value);
+				const raw: unknown = JSON.parse(value);
+				return raw as TemplateValue;
 			} catch {
 				return value;
 			}
@@ -794,7 +798,7 @@ function parseSchemaValue(value: any): any {
 	return value;
 }
 
-function resolveVariable(name: string, variables: Record<string, any>): any {
+function resolveVariable(name: string, variables: Record<string, TemplateValue>): TemplateValue {
 	const trimmed = name.trim();
 
 	// Try with {{ }} wrapper first (how variables are stored)
@@ -816,26 +820,44 @@ function resolveVariable(name: string, variables: Record<string, any>): any {
 	return undefined;
 }
 
-function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: TemplateValue, path: string): TemplateValue {
 	if (!path || !obj) return undefined;
 
 	const keys = path.split('.');
-	let value = obj;
+	let value: TemplateValue = obj;
 
 	for (const key of keys) {
 		if (value === undefined || value === null) return undefined;
+		if (typeof value !== 'object') return undefined;
+
+		if (Array.isArray(value)) {
+			// Handle bracket notation on arrays: items[0]
+			if (key.includes('[') && key.includes(']')) {
+				const match = key.match(/^([^[]*)\[([^\]]+)\]/);
+				if (match) {
+					const [, , indexStr] = match;
+					const index = parseInt(indexStr!, 10);
+					value = value[index] as TemplateValue;
+					continue;
+				}
+			}
+			return undefined;
+		}
+
+		const record = value as Record<string, TemplateValue>;
 
 		// Handle bracket notation: items[0]
 		if (key.includes('[') && key.includes(']')) {
-			const match = key.match(/^([^\[]*)\[([^\]]+)\]/);
+			const match = key.match(/^([^[]*)\[([^\]]+)\]/);
 			if (match) {
 				const [, arrayKey, indexStr] = match;
-				const baseValue = arrayKey ? value[arrayKey] : value;
+				const baseValue = arrayKey ? record[arrayKey] : value;
 				if (Array.isArray(baseValue)) {
-					const index = parseInt(indexStr, 10);
-					value = baseValue[index];
-				} else if (baseValue && typeof baseValue === 'object') {
-					value = baseValue[indexStr.replace(/^["']|["']$/g, '')];
+					const index = parseInt(indexStr!, 10);
+					value = baseValue[index] as TemplateValue;
+				} else if (baseValue && typeof baseValue === 'object' && !Array.isArray(baseValue)) {
+					const cleanIndex = indexStr?.replace(/^["']|["']$/g, '') ?? '';
+					value = (baseValue as Record<string, TemplateValue>)[cleanIndex];
 				} else {
 					return undefined;
 				}
@@ -844,10 +866,10 @@ function getNestedValue(obj: any, path: string): any {
 		}
 
 		// Try wrapped key first
-		if (value[`{{${key}}}`] !== undefined) {
-			value = value[`{{${key}}}`];
+		if (record[`{{${key}}}`] !== undefined) {
+			value = record[`{{${key}}}`];
 		} else {
-			value = value[key];
+			value = record[key];
 		}
 	}
 
@@ -886,7 +908,7 @@ function isQuotedString(str: string): boolean {
 /**
  * Check if a value is "truthy" for template conditionals
  */
-function isTruthy(value: any): boolean {
+function isTruthy(value: TemplateValue): boolean {
 	if (value === undefined || value === null) return false;
 	if (value === '') return false;
 	if (value === 0) return false;
@@ -898,7 +920,7 @@ function isTruthy(value: any): boolean {
 /**
  * Convert any value to a string for output
  */
-function valueToString(value: any): string {
+export function valueToString(value: TemplateValue): string {
 	if (value === undefined || value === null) {
 		return '';
 	}
@@ -920,7 +942,7 @@ function valueToString(value: any): string {
  */
 export async function renderTemplate(
 	template: string,
-	variables: Record<string, any>,
+	variables: Record<string, TemplateValue>,
 	currentUrl: string = '',
 ): Promise<string> {
 	const result = await render(template, { variables, currentUrl });
@@ -935,9 +957,9 @@ export async function renderTemplate(
  */
 export function createSelectorResolver(
 	tabId: number,
-	sendMessage: (tabId: number, message: any) => Promise<any>,
+	sendMessage: (tabId: number, message: Record<string, TemplateValue>) => Promise<TemplateValue>,
 ): AsyncResolver {
-	return async (name: string, context: RenderContext): Promise<any> => {
+	return async (name: string, _context: RenderContext): Promise<TemplateValue> => {
 		const extractHtml = name.startsWith('selectorHtml:');
 		const prefix = extractHtml ? 'selectorHtml:' : 'selector:';
 		const selectorPart = name.slice(prefix.length);
@@ -950,12 +972,15 @@ export function createSelectorResolver(
 		try {
 			const response = await sendMessage(tabId, {
 				action: 'extractContent',
-				selector: selector.replace(/\\"/g, '"'),
+				selector: selector?.replace(/\\"/g, '"'),
 				attribute: attribute,
 				extractHtml: extractHtml,
 			});
 
-			return response ? response.content : undefined;
+			if (response && typeof response === 'object' && !Array.isArray(response)) {
+				return (response as Record<string, TemplateValue>).content;
+			}
+			return undefined;
 		} catch (error) {
 			console.error('Error extracting content by selector:', error);
 			return undefined;

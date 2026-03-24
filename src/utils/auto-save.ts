@@ -1,7 +1,8 @@
-import { saveTemplateSettings, editingTemplateIndex } from '../managers/template-manager';
-import { updateTemplateList, addPropertyToEditor, updateTemplateFromForm } from '../managers/template-ui';
+import { editingTemplateIndex, saveTemplateSettings } from '../managers/template-manager';
+import { updateTemplateFromForm, updateTemplateList } from '../managers/template-ui';
+import { debugLog } from './debug';
 
-let isReordering = false;
+const isReordering = false;
 
 export function initializeAutoSave(): void {
 	const templateForm = document.getElementById('template-settings-form');
@@ -10,15 +11,15 @@ export function initializeAutoSave(): void {
 		return;
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: generic constraint requires any for function type compatibility
 	const debounce = <T extends (...args: any[]) => any>(
 		func: T,
 		delay: number,
 	): ((...args: Parameters<T>) => void) => {
 		let debounceTimer: NodeJS.Timeout | null = null;
-		return function (this: any, ...args: Parameters<T>) {
-			const context = this;
+		return function (this: unknown, ...args: Parameters<T>) {
 			if (debounceTimer) clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => func.apply(context, args), delay);
+			debounceTimer = setTimeout(() => func.apply(this, args), delay);
 		};
 	};
 
@@ -28,7 +29,7 @@ export function initializeAutoSave(): void {
 				const warnings = await saveTemplateSettings();
 				if (warnings.length > 0) {
 					updateTemplateList();
-					console.log('Auto-save completed');
+					debugLog('AutoSave', 'Auto-save completed');
 					showWarnings(warnings);
 				}
 			} catch (error) {

@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-import advancedFormat from 'dayjs/plugin/advancedFormat';
 import type { ParamValidationResult } from '../filters';
 
 dayjs.extend(customParseFormat);
@@ -44,7 +44,7 @@ export const validateDateModifyParams = (param: string | undefined): ParamValida
 	}
 
 	const [, , , unit] = match;
-	const normalizedUnit = unit.toLowerCase().replace(/s$/, '');
+	const normalizedUnit = unit?.toLowerCase().replace(/s$/, '');
 
 	if (!validUnits.some((u) => u.replace(/s$/, '') === normalizedUnit)) {
 		return { valid: false, error: `invalid unit "${unit}". Use year, month, week, day, hour, minute, or second` };
@@ -86,12 +86,12 @@ export const date_modify = (str: string, param?: string): string => {
 	}
 
 	const [, operation, amount, unit] = match;
-	const numericAmount = parseInt(amount, 10);
+	const numericAmount = parseInt(amount!, 10);
 
 	if (operation === '+') {
-		date = date.add(numericAmount, unit as any);
+		date = date.add(numericAmount, unit as dayjs.ManipulateType);
 	} else {
-		date = date.subtract(numericAmount, unit as any);
+		date = date.subtract(numericAmount, unit as dayjs.ManipulateType);
 	}
 
 	return date.format('YYYY-MM-DD');
