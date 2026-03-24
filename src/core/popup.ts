@@ -370,6 +370,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 				// Initial content load
 				await refreshFields(currentTabId);
+
+				// Reconnect to in-progress batch clip if popup was reopened
+				await reconnectToBatch();
 			} catch (error) {
 				console.error('Error initializing popup:', error);
 				showError(getMessage('pleaseReload'));
@@ -1211,6 +1214,7 @@ function determineMainAction() {
 			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
 				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
 			);
+			addSecondaryAction(secondaryActions, 'clipAllTabs', showBatchView);
 			break;
 		case 'saveFile':
 			mainButton.textContent = getMessage('saveFile');
@@ -1223,6 +1227,7 @@ function determineMainAction() {
 			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
 				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
 			);
+			addSecondaryAction(secondaryActions, 'clipAllTabs', showBatchView);
 			break;
 		default: // 'addToLogseq'
 			mainButton.textContent = getMessage('addToLogseq');
@@ -1233,11 +1238,18 @@ function determineMainAction() {
 			addSecondaryAction(secondaryActions, 'saveAsPage', () =>
 				handleClipLogseq('create').catch((e) => debugLog('Clip', 'Unhandled clip error:', e)),
 			);
+			addSecondaryAction(secondaryActions, 'clipAllTabs', showBatchView);
 	}
 }
 
 async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promise<void> {
-	if (!currentTemplate) return;
+	const clipBtn = document.getElementById('clip-btn') as HTMLButtonElement;
+	if (clipBtn) clipBtn.disabled = true;
+
+	if (!currentTemplate) {
+		if (clipBtn) clipBtn.disabled = false;
+		return;
+	}
 
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 	const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
@@ -1246,6 +1258,7 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 
 	if (!noteContentField) {
 		showError('Some required fields are missing. Please try reloading the extension.');
+		if (clipBtn) clipBtn.disabled = false;
 		return;
 	}
 
@@ -1324,6 +1337,8 @@ async function handleClipLogseq(behaviorOverride?: Template['behavior']): Promis
 			showError(`Save failed: ${msg}`);
 		}
 		throw error; // Keep throw — quickClip .catch() at line 217 needs it
+	} finally {
+		if (clipBtn) clipBtn.disabled = false;
 	}
 }
 
@@ -1365,6 +1380,8 @@ function getActionIcon(actionType: string): string {
 			return 'pen-line';
 		case 'saveAsPage':
 			return 'file-plus';
+		case 'clipAllTabs':
+			return 'layers';
 		default:
 			return 'plus';
 	}
@@ -1377,6 +1394,448 @@ async function copyContent() {
 	const frontmatter = buildFrontmatter(properties);
 	const fileContent = frontmatter + noteContentField.value;
 	await copyToClipboard(fileContent);
+}
+
+// --- Batch Tab Clip UI ---
+
+interface BatchClipResult {
+	tabId: number;
+	title: string;
+	status: 'pending' | 'clipping' | 'done' | 'failed' | 'duplicate';
+	error?: string;
+}
+
+interface BatchClipState {
+	status: 'idle' | 'clipping' | 'complete' | 'cancelled';
+	results: BatchClipResult[];
+	current: number;
+	total: number;
+}
+
+interface ClippableTab {
+	id: number;
+	title: string;
+	url: string;
+	favIconUrl: string;
+	matchedTemplateId: string;
+}
+
+let batchTabs: ClippableTab[] = [];
+let batchProgressListener:
+	| ((
+			message: unknown,
+			sender: browser.Runtime.MessageSender,
+			sendResponse: (response?: unknown) => void,
+	  ) => undefined)
+	| null = null;
+
+function showBatchView(): void {
+	const clipper = document.querySelector('.clipper') as HTMLElement;
+	const popupHeader = document.getElementById('popup-header') as HTMLElement;
+	const batchView = document.getElementById('batch-clip-view') as HTMLElement;
+	if (!batchView) return;
+
+	if (clipper) clipper.style.display = 'none';
+	if (popupHeader) popupHeader.style.display = 'none';
+	batchView.style.display = 'flex';
+
+	// Reset sub-views
+	const batchProgress = document.getElementById('batch-progress') as HTMLElement;
+	const batchComplete = document.getElementById('batch-complete') as HTMLElement;
+	const batchTabList = document.getElementById('batch-tab-list') as HTMLElement;
+	const batchControls = document.querySelector('.batch-controls') as HTMLElement;
+	const batchActions = batchView.querySelector('.batch-actions') as HTMLElement;
+	if (batchProgress) batchProgress.style.display = 'none';
+	if (batchComplete) batchComplete.style.display = 'none';
+	if (batchTabList) batchTabList.style.display = '';
+	if (batchControls) batchControls.style.display = '';
+	if (batchActions) batchActions.style.display = '';
+
+	// Fetch clippable tabs
+	browser.runtime.sendMessage({ action: 'getClippableTabs' }).then((response) => {
+		const resp = response as { success: boolean; tabs: ClippableTab[] };
+		if (resp?.success) {
+			batchTabs = resp.tabs;
+			renderBatchTabList(batchTabs);
+		}
+	});
+
+	// Wire event listeners
+	const backBtn = document.getElementById('batch-back-btn');
+	if (backBtn) {
+		backBtn.onclick = hideBatchView;
+	}
+
+	const selectAllCheckbox = document.getElementById('batch-select-all') as HTMLInputElement;
+	if (selectAllCheckbox) {
+		selectAllCheckbox.onclick = handleSelectAll;
+	}
+
+	const clipBtn = document.getElementById('batch-clip-btn');
+	if (clipBtn) {
+		clipBtn.onclick = startBatchClip;
+	}
+
+	initializeIcons(batchView);
+}
+
+function hideBatchView(): void {
+	const clipper = document.querySelector('.clipper') as HTMLElement;
+	const popupHeader = document.getElementById('popup-header') as HTMLElement;
+	const batchView = document.getElementById('batch-clip-view') as HTMLElement;
+
+	if (batchView) batchView.style.display = 'none';
+	if (clipper) clipper.style.display = '';
+	if (popupHeader) popupHeader.style.display = '';
+}
+
+function renderBatchTabList(tabs: ClippableTab[]): void {
+	const list = document.getElementById('batch-tab-list');
+	if (!list) return;
+
+	list.textContent = '';
+	const fragment = document.createDocumentFragment();
+
+	for (const tab of tabs) {
+		const row = document.createElement('div');
+		row.className = 'batch-tab-row';
+		row.dataset.tabId = String(tab.id);
+
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.checked = true;
+		checkbox.dataset.tabId = String(tab.id);
+		checkbox.addEventListener('change', updateBatchCount);
+		row.appendChild(checkbox);
+
+		const favicon = document.createElement('img');
+		favicon.className = 'batch-tab-favicon';
+		favicon.src = tab.favIconUrl || '';
+		favicon.alt = '';
+		favicon.onerror = () => {
+			favicon.style.display = 'none';
+		};
+		row.appendChild(favicon);
+
+		const title = document.createElement('span');
+		title.className = 'batch-tab-title';
+		title.textContent = tab.title;
+		title.title = tab.title;
+		row.appendChild(title);
+
+		const templateSelect = document.createElement('select');
+		templateSelect.className = 'batch-tab-template';
+		templateSelect.dataset.tabId = String(tab.id);
+		for (const t of templates) {
+			const option = document.createElement('option');
+			option.value = t.id;
+			option.textContent = t.name;
+			templateSelect.appendChild(option);
+		}
+		if (tab.matchedTemplateId) {
+			templateSelect.value = tab.matchedTemplateId;
+		}
+		row.appendChild(templateSelect);
+
+		fragment.appendChild(row);
+	}
+
+	list.appendChild(fragment);
+	updateBatchCount();
+}
+
+function updateBatchCount(): void {
+	const checkboxes = document.querySelectorAll<HTMLInputElement>('#batch-tab-list input[type="checkbox"]');
+	const checked = Array.from(checkboxes).filter((cb) => cb.checked).length;
+	const total = checkboxes.length;
+
+	const countEl = document.getElementById('batch-tab-count');
+	if (countEl) {
+		countEl.textContent = `${checked} / ${total}`;
+	}
+
+	const clipBtn = document.getElementById('batch-clip-btn');
+	if (clipBtn) {
+		clipBtn.textContent = `Clip selected (${checked})`;
+		(clipBtn as HTMLButtonElement).disabled = checked === 0;
+	}
+
+	// Update select-all checkbox state
+	const selectAll = document.getElementById('batch-select-all') as HTMLInputElement;
+	if (selectAll) {
+		selectAll.checked = checked === total;
+		selectAll.dataset.indeterminate = String(checked > 0 && checked < total);
+	}
+}
+
+function handleSelectAll(): void {
+	const selectAll = document.getElementById('batch-select-all') as HTMLInputElement;
+	const checkboxes = Array.from(
+		document.querySelectorAll<HTMLInputElement>('#batch-tab-list input[type="checkbox"]'),
+	);
+	const shouldCheck = selectAll.checked;
+
+	for (const cb of checkboxes) {
+		cb.checked = shouldCheck;
+	}
+	updateBatchCount();
+}
+
+function startBatchClip(): void {
+	const checkboxes = Array.from(
+		document.querySelectorAll<HTMLInputElement>('#batch-tab-list input[type="checkbox"]'),
+	);
+	const clips: Array<{ tabId: number; templateId: string }> = [];
+
+	for (const cb of checkboxes) {
+		if (!cb.checked) continue;
+		const tabId = Number(cb.dataset.tabId);
+		const templateSelect = document.querySelector<HTMLSelectElement>(
+			`#batch-tab-list select[data-tab-id="${tabId}"]`,
+		);
+		const templateId = templateSelect?.value || templates[0]?.id || '';
+		clips.push({ tabId, templateId });
+	}
+
+	if (clips.length === 0) return;
+
+	browser.runtime.sendMessage({
+		action: 'executeBatchClip',
+		clips,
+		templates,
+	});
+
+	showBatchProgress(clips);
+}
+
+function showBatchProgress(clips: Array<{ tabId: number; templateId: string }>): void {
+	const batchView = document.getElementById('batch-clip-view') as HTMLElement;
+	const batchTabList = document.getElementById('batch-tab-list') as HTMLElement;
+	const batchControls = document.querySelector('.batch-controls') as HTMLElement;
+	const batchActions = batchView?.querySelector('.batch-actions') as HTMLElement;
+	const batchProgress = document.getElementById('batch-progress') as HTMLElement;
+	const batchComplete = document.getElementById('batch-complete') as HTMLElement;
+
+	if (batchTabList) batchTabList.style.display = 'none';
+	if (batchControls) batchControls.style.display = 'none';
+	if (batchActions) batchActions.style.display = 'none';
+	if (batchComplete) batchComplete.style.display = 'none';
+	if (batchProgress) batchProgress.style.display = '';
+
+	const progressHeader = document.getElementById('batch-progress-header');
+	if (progressHeader) {
+		progressHeader.textContent = `Clipping 0 / ${clips.length}...`;
+	}
+
+	// Build initial progress list
+	const progressList = document.getElementById('batch-progress-list');
+	if (progressList) {
+		progressList.textContent = '';
+		const fragment = document.createDocumentFragment();
+		for (const clip of clips) {
+			const tab = batchTabs.find((t) => t.id === clip.tabId);
+			const row = document.createElement('div');
+			row.className = 'batch-progress-row';
+			row.dataset.tabId = String(clip.tabId);
+
+			const icon = document.createElement('span');
+			icon.className = 'status-icon';
+			icon.textContent = '\u00B7'; // middle dot for pending
+			row.appendChild(icon);
+
+			const title = document.createElement('span');
+			title.textContent = tab?.title || `Tab ${clip.tabId}`;
+			row.appendChild(title);
+
+			fragment.appendChild(row);
+		}
+		progressList.appendChild(fragment);
+	}
+
+	// Wire cancel button
+	const cancelBtn = document.getElementById('batch-cancel-btn');
+	if (cancelBtn) {
+		cancelBtn.onclick = () => {
+			browser.runtime.sendMessage({ action: 'cancelBatchClip' });
+		};
+	}
+
+	// Listen for progress updates
+	if (batchProgressListener) {
+		browser.runtime.onMessage.removeListener(batchProgressListener);
+	}
+	batchProgressListener = (
+		message: unknown,
+		_sender: browser.Runtime.MessageSender,
+		_sendResponse: (response?: unknown) => void,
+	) => {
+		const msg = message as Record<string, unknown>;
+		if (msg.action === 'batchClipProgress') {
+			const state = msg.state as BatchClipState;
+			updateBatchProgressUI(state);
+			if (state.status === 'complete' || state.status === 'cancelled') {
+				showBatchComplete(state);
+				if (batchProgressListener) {
+					browser.runtime.onMessage.removeListener(batchProgressListener);
+					batchProgressListener = null;
+				}
+			}
+		}
+		return undefined;
+	};
+	browser.runtime.onMessage.addListener(batchProgressListener);
+}
+
+const STATUS_ICONS: Record<string, string> = {
+	pending: '\u00B7',
+	clipping: '\u231B',
+	done: '\u2713',
+	failed: '\u2717',
+	duplicate: '\u2298',
+};
+
+function updateBatchProgressUI(state: BatchClipState): void {
+	const progressHeader = document.getElementById('batch-progress-header');
+	if (progressHeader) {
+		progressHeader.textContent = `Clipping ${state.current} / ${state.total}...`;
+	}
+
+	for (const result of state.results) {
+		const row = document.querySelector(`.batch-progress-row[data-tab-id="${result.tabId}"]`);
+		if (!row) continue;
+		const icon = row.querySelector('.status-icon');
+		if (icon) {
+			icon.textContent = STATUS_ICONS[result.status] || '\u00B7';
+		}
+	}
+}
+
+function showBatchComplete(state: BatchClipState): void {
+	const batchProgress = document.getElementById('batch-progress') as HTMLElement;
+	const batchComplete = document.getElementById('batch-complete') as HTMLElement;
+
+	if (batchProgress) batchProgress.style.display = 'none';
+	if (batchComplete) batchComplete.style.display = '';
+
+	const done = state.results.filter((r) => r.status === 'done').length;
+	const failed = state.results.filter((r) => r.status === 'failed').length;
+	const duplicate = state.results.filter((r) => r.status === 'duplicate').length;
+
+	const summary = document.getElementById('batch-complete-summary');
+	if (summary) {
+		const parts: string[] = [];
+		if (done > 0) parts.push(`${done} clipped`);
+		if (failed > 0) parts.push(`${failed} failed`);
+		if (duplicate > 0) parts.push(`${duplicate} already existed`);
+		summary.textContent = parts.join(', ') || 'No tabs processed';
+	}
+
+	const errorsEl = document.getElementById('batch-complete-errors');
+	if (errorsEl) {
+		errorsEl.textContent = '';
+		const failedResults = state.results.filter((r) => r.status === 'failed');
+		if (failedResults.length > 0) {
+			for (const r of failedResults) {
+				const div = document.createElement('div');
+				div.textContent = `${r.title}: ${r.error || 'Unknown error'}`;
+				errorsEl.appendChild(div);
+			}
+		}
+	}
+
+	// Close tabs prompt
+	const closeable = state.results.filter((r) => r.status === 'done' || r.status === 'duplicate');
+	const closeQuestion = document.getElementById('batch-close-question');
+	const closePrompt = document.querySelector('.batch-close-prompt') as HTMLElement;
+
+	if (closeable.length > 0) {
+		if (closeQuestion) {
+			closeQuestion.textContent = `Close ${closeable.length} clipped tab${closeable.length === 1 ? '' : 's'}?`;
+		}
+		if (closePrompt) closePrompt.style.display = '';
+
+		const yesBtn = document.getElementById('batch-close-yes');
+		const noBtn = document.getElementById('batch-close-no');
+
+		if (yesBtn) {
+			yesBtn.onclick = () => {
+				browser.runtime.sendMessage({ action: 'closeClippedTabs' });
+				hideBatchView();
+			};
+		}
+		if (noBtn) {
+			noBtn.onclick = () => {
+				browser.runtime.sendMessage({ action: 'dismissBatchClip' });
+				hideBatchView();
+			};
+		}
+	} else {
+		if (closePrompt) closePrompt.style.display = 'none';
+		// Auto-dismiss after a short delay since there's nothing to close
+		setTimeout(() => {
+			browser.runtime.sendMessage({ action: 'dismissBatchClip' });
+		}, 100);
+	}
+}
+
+async function reconnectToBatch(): Promise<void> {
+	try {
+		const response = (await browser.runtime.sendMessage({ action: 'getBatchClipStatus' })) as {
+			success: boolean;
+			state: BatchClipState;
+		};
+		if (!response?.success) return;
+
+		const state = response.state;
+		if (state.status === 'clipping') {
+			// Show batch view in progress mode
+			const clipper = document.querySelector('.clipper') as HTMLElement;
+			const popupHeader = document.getElementById('popup-header') as HTMLElement;
+			const batchView = document.getElementById('batch-clip-view') as HTMLElement;
+			if (!batchView) return;
+
+			if (clipper) clipper.style.display = 'none';
+			if (popupHeader) popupHeader.style.display = 'none';
+			batchView.style.display = 'flex';
+
+			initializeIcons(batchView);
+
+			// Reconstruct clips from state results for progress view
+			const clips = state.results.map((r) => ({ tabId: r.tabId, templateId: '' }));
+			batchTabs = state.results.map((r) => ({
+				id: r.tabId,
+				title: r.title,
+				url: '',
+				favIconUrl: '',
+				matchedTemplateId: '',
+			}));
+			showBatchProgress(clips);
+			updateBatchProgressUI(state);
+		} else if (state.status === 'complete' || state.status === 'cancelled') {
+			const clipper = document.querySelector('.clipper') as HTMLElement;
+			const popupHeader = document.getElementById('popup-header') as HTMLElement;
+			const batchView = document.getElementById('batch-clip-view') as HTMLElement;
+			if (!batchView) return;
+
+			if (clipper) clipper.style.display = 'none';
+			if (popupHeader) popupHeader.style.display = 'none';
+			batchView.style.display = 'flex';
+
+			// Hide the review list UI
+			const batchTabList = document.getElementById('batch-tab-list') as HTMLElement;
+			const batchControls = document.querySelector('.batch-controls') as HTMLElement;
+			const batchActions = batchView.querySelector('.batch-actions') as HTMLElement;
+			if (batchTabList) batchTabList.style.display = 'none';
+			if (batchControls) batchControls.style.display = 'none';
+			if (batchActions) batchActions.style.display = 'none';
+
+			initializeIcons(batchView);
+			showBatchComplete(state);
+		}
+		// 'idle' → do nothing
+	} catch {
+		// Background may not be ready yet — that's fine
+	}
 }
 
 // Update the resize event listener to use the debounced version

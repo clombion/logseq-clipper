@@ -1,9 +1,16 @@
 import browser from 'webextension-polyfill';
+import type { Template } from './types/types';
 import { isBlankPage, isValidUrl, updateCurrentActiveTab } from './utils/active-tab-manager';
 import { detectBrowser } from './utils/browser-detection';
 import { debounce } from './utils/debounce';
 import { debugLog } from './utils/debug';
 import type { TextHighlightData } from './utils/highlighter';
+import { collectPromptVariables, replacePromptVariablesInText, sendToLLM } from './utils/interpreter';
+import { checkDuplicate, saveToLogseq } from './utils/logseq-note-creator';
+import { buildVariables } from './utils/shared';
+import { generalSettings, loadSettings } from './utils/storage-utils';
+import { compileTemplate } from './utils/template-compiler';
+import { findMatchingTemplate } from './utils/triggers';
 
 const YOUTUBE_EMBED_RULE_ID = 9001;
 
@@ -195,6 +202,9 @@ browser.runtime.onMessage.addListener(
 				tabId?: number;
 				text?: string;
 				message?: { action: string; [key: string]: unknown };
+				// Batch clip fields
+				clips?: Array<{ tabId: number; templateId: string }>;
+				templates?: Template[];
 			};
 
 			if (typedRequest.action === 'copy-to-clipboard' && typedRequest.text) {
@@ -480,6 +490,58 @@ browser.runtime.onMessage.addListener(
 				}
 			}
 
+			// --- Batch Tab Clip handlers ---
+
+			if (typedRequest.action === 'getClippableTabs') {
+				getClippableTabs()
+					.then((tabs) => sendResponse({ success: true, tabs }))
+					.catch((error) =>
+						sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) }),
+					);
+				return true;
+			}
+
+			if (typedRequest.action === 'executeBatchClip') {
+				const clips = typedRequest.clips ?? [];
+				const templates = typedRequest.templates ?? [];
+				executeBatchClip(clips, templates).catch((error) => {
+					debugLog('BatchClip', 'Batch clip failed:', error);
+				});
+				sendResponse({ success: true });
+				return true;
+			}
+
+			if (typedRequest.action === 'getBatchClipStatus') {
+				sendResponse({ success: true, state: batchState });
+				return true;
+			}
+
+			if (typedRequest.action === 'cancelBatchClip') {
+				batchState.status = 'cancelled';
+				sendResponse({ success: true });
+				return true;
+			}
+
+			if (typedRequest.action === 'closeClippedTabs') {
+				const tabIds = batchState.results
+					.filter((r) => r.status === 'done' || r.status === 'duplicate')
+					.map((r) => r.tabId);
+				if (tabIds.length > 0) {
+					browser.tabs.remove(tabIds).catch((error) => {
+						debugLog('BatchClip', 'Failed to close tabs:', error);
+					});
+				}
+				batchState = { status: 'idle', results: [], current: 0, total: 0 };
+				sendResponse({ success: true });
+				return true;
+			}
+
+			if (typedRequest.action === 'dismissBatchClip') {
+				batchState = { status: 'idle', results: [], current: 0, total: 0 };
+				sendResponse({ success: true });
+				return true;
+			}
+
 			// For other actions that use sendResponse
 			if (
 				typedRequest.action === 'extractContent' ||
@@ -493,6 +555,209 @@ browser.runtime.onMessage.addListener(
 		return undefined;
 	},
 );
+
+// --- Batch Tab Clip Engine ---
+
+interface BatchClipResult {
+	tabId: number;
+	title: string;
+	status: 'pending' | 'clipping' | 'done' | 'failed' | 'duplicate';
+	error?: string;
+}
+
+interface BatchClipState {
+	status: 'idle' | 'clipping' | 'complete' | 'cancelled';
+	results: BatchClipResult[];
+	current: number;
+	total: number;
+}
+
+let batchState: BatchClipState = { status: 'idle', results: [], current: 0, total: 0 };
+
+const INTERNAL_URL_PREFIXES = ['chrome://', 'about:', 'moz-extension://', 'chrome-extension://', 'edge://'];
+
+function isClippableTab(tab: browser.Tabs.Tab): boolean {
+	if (tab.pinned) return false;
+	if (!tab.url) return false;
+	if (isBlankPage(tab.url)) return false;
+	return !INTERNAL_URL_PREFIXES.some((prefix) => tab.url?.startsWith(prefix));
+}
+
+async function getClippableTabs(): Promise<
+	Array<{ id: number; title: string; url: string; favIconUrl: string; matchedTemplateId: string }>
+> {
+	await loadSettings();
+	const tabs = await browser.tabs.query({ currentWindow: true });
+	const clippable = tabs.filter(isClippableTab);
+
+	const result = [];
+	for (const tab of clippable) {
+		if (!tab.id || !tab.url) continue;
+		const matched = await findMatchingTemplate(tab.url, () => Promise.resolve(null));
+		result.push({
+			id: tab.id,
+			title: tab.title ?? 'Untitled',
+			url: tab.url,
+			favIconUrl: tab.favIconUrl ?? '',
+			matchedTemplateId: matched?.id ?? '',
+		});
+	}
+	return result;
+}
+
+async function executeBatchClip(
+	clips: Array<{ tabId: number; templateId: string }>,
+	templates: Template[],
+): Promise<void> {
+	batchState = {
+		status: 'clipping',
+		results: clips.map((c) => ({
+			tabId: c.tabId,
+			title: '',
+			status: 'pending' as const,
+		})),
+		current: 0,
+		total: clips.length,
+	};
+
+	for (let i = 0; i < clips.length; i++) {
+		if (batchState.status === 'cancelled') break;
+
+		const clip = clips[i]!;
+		const resultEntry = batchState.results[i]!;
+		resultEntry.status = 'clipping';
+		batchState.current = i + 1;
+
+		// Broadcast progress
+		broadcastBatchProgress();
+
+		try {
+			// Get tab info for title
+			const tabInfo = await browser.tabs.get(clip.tabId).catch(() => null);
+			if (!tabInfo) {
+				resultEntry.status = 'failed';
+				resultEntry.error = 'Tab closed';
+				resultEntry.title = 'Unknown';
+				continue;
+			}
+			resultEntry.title = tabInfo.title ?? 'Untitled';
+			const url = tabInfo.url ?? '';
+
+			// Find template
+			const template = templates.find((t) => t.id === clip.templateId);
+			if (!template) {
+				resultEntry.status = 'failed';
+				resultEntry.error = 'Template not found';
+				continue;
+			}
+
+			// Ensure content script loaded
+			await ensureContentScriptLoadedInBackground(clip.tabId);
+
+			// Extract page content
+			// biome-ignore lint/suspicious/noExplicitAny: content script returns untyped response
+			const contentResponse: any = await browser.tabs.sendMessage(clip.tabId, { action: 'getPageContent' });
+			if (!contentResponse) {
+				resultEntry.status = 'failed';
+				resultEntry.error = 'Content extraction failed';
+				continue;
+			}
+
+			// Check duplicate
+			const dup = await checkDuplicate(url);
+			if (dup.exists) {
+				resultEntry.status = 'duplicate';
+				continue;
+			}
+
+			// Build variables
+			const variables = buildVariables({
+				title: contentResponse.title ?? tabInfo.title ?? '',
+				author: contentResponse.author ?? '',
+				content: contentResponse.content ?? '',
+				contentHtml: contentResponse.contentHtml ?? contentResponse.content ?? '',
+				url,
+				fullHtml: contentResponse.fullHtml ?? '',
+				description: contentResponse.description ?? '',
+				favicon: contentResponse.favicon ?? tabInfo.favIconUrl ?? '',
+				image: contentResponse.image ?? '',
+				published: contentResponse.published ?? '',
+				site: contentResponse.site ?? contentResponse.domain ?? '',
+				language: contentResponse.language ?? '',
+				wordCount: contentResponse.wordCount ?? 0,
+				schemaOrgData: contentResponse.schemaOrgData ?? null,
+				metaTags: contentResponse.metaTags ?? [],
+				extractedContent: contentResponse.extractedContent ?? {},
+			});
+
+			// Compile template fields
+			const [noteContent, noteName, _path] = await Promise.all([
+				template.noteContentFormat
+					? compileTemplate(clip.tabId, template.noteContentFormat, variables, url)
+					: '',
+				compileTemplate(clip.tabId, template.noteNameFormat, variables, url),
+				compileTemplate(clip.tabId, template.path, variables, url),
+			]);
+
+			// Compile properties
+			const compiledProperties = await Promise.all(
+				template.properties.map(async (prop) => ({
+					name: prop.name,
+					value: await compileTemplate(clip.tabId, prop.value, variables, url),
+				})),
+			);
+
+			// Handle LLM if template has prompt variables
+			let finalContent = noteContent;
+			let finalNoteName = noteName;
+			const promptVariables = collectPromptVariables(template);
+			if (promptVariables.length > 0 && generalSettings.interpreterEnabled) {
+				const selectedModelId = generalSettings.interpreterModel;
+				const modelConfig = generalSettings.models.find((m) => m.id === selectedModelId);
+				if (modelConfig) {
+					const { promptResponses } = await sendToLLM(
+						template.context || generalSettings.defaultPromptContext || '',
+						variables.content ?? '',
+						promptVariables,
+						modelConfig,
+					);
+					finalContent = replacePromptVariablesInText(finalContent, promptVariables, promptResponses);
+					finalNoteName = replacePromptVariablesInText(finalNoteName, promptVariables, promptResponses);
+				}
+			}
+
+			// Determine behavior
+			const behavior = template.behavior;
+			const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
+			const effectiveNoteName = isDailyNote ? '' : finalNoteName;
+
+			// Save to Logseq
+			await saveToLogseq(finalContent, effectiveNoteName, compiledProperties, behavior, url);
+
+			resultEntry.status = 'done';
+		} catch (error) {
+			resultEntry.status = 'failed';
+			resultEntry.error = error instanceof Error ? error.message : String(error);
+			debugLog('BatchClip', `Tab ${clip.tabId} failed:`, error);
+		}
+	}
+
+	if (batchState.status !== 'cancelled') {
+		batchState.status = 'complete';
+	}
+	broadcastBatchProgress();
+}
+
+function broadcastBatchProgress(): void {
+	browser.runtime
+		.sendMessage({
+			action: 'batchClipProgress',
+			state: batchState,
+		})
+		.catch(() => {
+			// Popup may be closed — that's fine
+		});
+}
 
 browser.commands.onCommand.addListener(async (command, tab) => {
 	if (command === 'quick_clip') {

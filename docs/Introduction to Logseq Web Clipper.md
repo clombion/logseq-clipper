@@ -16,6 +16,8 @@ Install the Logseq Web Clipper extension from the release page or build it from 
 
 - [[Clip web pages]]
 	- Get started and learn how to save content from pages.
+- [[Batch clip web pages]]
+	- Clip all open tabs at once with a review screen.
 - [[Highlight web pages|Highlighter]]
 	- Highlight important passages and select elements you want to save.
 - [[Interpret web pages|Interpreter]]

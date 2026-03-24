@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"default_locale": "en",
 	"name": "Logseq Web Clipper",
-	"version": "0.3.4",
+	"version": "0.4.0",
 	"description": "Save and highlight web pages to Logseq in a private and durable format that you can access offline.",
 	"permissions": [
 		"activeTab",
@@ -12,6 +12,7 @@
 		"sidePanel",
 		"storage",
 		"scripting",
+		"tabs",
 		"declarativeNetRequest"
 	],
 	"host_permissions": ["<all_urls>", "http://*/*", "https://*/*"],
