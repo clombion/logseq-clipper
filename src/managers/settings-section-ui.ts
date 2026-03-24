@@ -13,6 +13,7 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	});
 	sidebarItems.forEach((item) => {
 		item.classList.remove('active');
+		item.setAttribute('aria-selected', 'false');
 	});
 
 	const selectedSection = document.getElementById(`${section}-section`);
@@ -23,6 +24,7 @@ export function showSettingsSection(section: SettingsSection, templateId?: strin
 	}
 	if (selectedSidebarItem) {
 		selectedSidebarItem.classList.add('active');
+		selectedSidebarItem.setAttribute('aria-selected', 'true');
 	}
 
 	updateUrl(section, templateId);

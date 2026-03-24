@@ -20,6 +20,8 @@ function createVariableItem(key: string, value: string): HTMLElement {
 	const variableKey = document.createElement('span');
 	variableKey.className = 'variable-key';
 	variableKey.setAttribute('data-variable', key);
+	variableKey.setAttribute('tabindex', '0');
+	variableKey.setAttribute('role', 'button');
 	variableKey.textContent = cleanKey;
 
 	const variableValue = document.createElement('span');
@@ -29,6 +31,8 @@ function createVariableItem(key: string, value: string): HTMLElement {
 	const chevronIcon = document.createElement('span');
 	chevronIcon.className = 'chevron-icon';
 	chevronIcon.setAttribute('aria-label', 'Expand');
+	chevronIcon.setAttribute('tabindex', '0');
+	chevronIcon.setAttribute('role', 'button');
 
 	const chevronI = document.createElement('i');
 	chevronI.setAttribute('data-lucide', 'chevron-right');
@@ -237,6 +241,13 @@ function handleVariableSearch() {
 			}
 		});
 
+		key.addEventListener('keydown', function (e: KeyboardEvent) {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				this.click();
+			}
+		});
+
 		chevron.addEventListener('click', function () {
 			item.classList.toggle('is-collapsed');
 			const isCollapsed = item.classList.contains('is-collapsed');
@@ -246,6 +257,13 @@ function handleVariableSearch() {
 				initializeIcons();
 			}
 			this.setAttribute('aria-label', isCollapsed ? 'Expand' : 'Collapse');
+		});
+
+		chevron.addEventListener('keydown', function (e: KeyboardEvent) {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				this.click();
+			}
 		});
 
 		if (currentSearchTerm.length < 2) {
