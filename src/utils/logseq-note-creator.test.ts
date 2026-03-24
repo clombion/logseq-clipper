@@ -138,18 +138,12 @@ describe('saveToLogseq', () => {
 		expect(createArgs[1]).toBe('Test Note');
 		expect(createArgs[2]).toEqual({ redirect: false });
 
-		// upsertBlockProperty called only for template properties (not source/clipped-at)
-		// Template properties set on page UUID (log properties also set on anchor UUID)
-		const templatePropCalls = mockedUpsertBlockProperty.mock.calls.filter(
-			(c) => c[1] === 'page-uuid' || c[1] === 'p-uuid' || c[1] === 'existing-uuid',
+		// Template properties set as first block content (key:: value lines)
+		const appendCalls = mockedAppendBlockInPage.mock.calls;
+		const propsBlock = appendCalls.find(
+			(c) => c[1] === 'Test Note' && typeof c[2] === 'string' && c[2].includes('tags:: test'),
 		);
-		expect(templatePropCalls).toHaveLength(1);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'page-uuid',
-			'tags',
-			'test',
-		);
+		expect(propsBlock).toBeDefined();
 
 		// appendBlockInPage called with page name and first block content
 		expect(mockedAppendBlockInPage).toHaveBeenCalledWith(
@@ -199,18 +193,12 @@ describe('saveToLogseq', () => {
 			'https://example.com/existing',
 		);
 
-		// upsertBlockProperty is the mechanism that works for existing pages (template props only)
-		// Template properties set on page UUID (log properties also set on anchor UUID)
-		const templatePropCalls = mockedUpsertBlockProperty.mock.calls.filter(
-			(c) => c[1] === 'page-uuid' || c[1] === 'p-uuid' || c[1] === 'existing-uuid',
+		// Template properties set as first block content on the page
+		const appendCalls = mockedAppendBlockInPage.mock.calls;
+		const propsBlock = appendCalls.find(
+			(c) => c[1] === 'Existing' && typeof c[2] === 'string' && c[2].includes('tags:: retest'),
 		);
-		expect(templatePropCalls).toHaveLength(1);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'existing-uuid',
-			'tags',
-			'retest',
-		);
+		expect(propsBlock).toBeDefined();
 	});
 
 	test('append-specific creates metadata parent with properties, content as children', async () => {
@@ -269,21 +257,15 @@ describe('saveToLogseq', () => {
 
 		// Only template properties set via upsertBlockProperty
 		// Template properties set on page UUID (log properties also set on anchor UUID)
-		const templatePropCalls = mockedUpsertBlockProperty.mock.calls.filter(
-			(c) => c[1] === 'page-uuid' || c[1] === 'p-uuid' || c[1] === 'existing-uuid',
+		// Template properties set as first block (key:: value lines), not via upsertBlockProperty on page
+		const appendCalls = mockedAppendBlockInPage.mock.calls;
+		const propsBlock = appendCalls.find(
+			(c) => c[1] === 'Props Test' && typeof c[2] === 'string' && c[2].includes('author:: Alice'),
 		);
-		expect(templatePropCalls).toHaveLength(1);
-		const upsertCalls = mockedUpsertBlockProperty.mock.calls;
-
-		const authorCall = upsertCalls.find((c) => c[2] === 'author');
-		expect(authorCall).toBeDefined();
-		expect(authorCall?.[3]).toBe('Alice');
-
-		// source and clipped-at are NOT set on the page entity — only on the log anchor
-		const sourceOnPage = upsertCalls.find((c) => c[1] === 'p-uuid' && c[2] === 'source');
-		expect(sourceOnPage).toBeUndefined();
-		const clippedAtOnPage = upsertCalls.find((c) => c[1] === 'p-uuid' && c[2] === 'clipped-at');
-		expect(clippedAtOnPage).toBeUndefined();
+		expect(propsBlock).toBeDefined();
+		// source and clipped-at are NOT in the properties block — only in the clip log
+		expect(propsBlock?.[2]).not.toContain('source::');
+		expect(propsBlock?.[2]).not.toContain('clipped-at::');
 	});
 
 	test('prepend-specific with empty properties inserts content directly, adds separator', async () => {
@@ -350,18 +332,12 @@ describe('updateExistingClip', () => {
 		// getPage called
 		expect(mockedGetPage).toHaveBeenCalledWith({ port: 12315, token: 'test-token' }, 'Existing Article');
 
-		// upsertBlockProperty for template properties only (not source/clipped-at)
-		// Template properties set on page UUID (log properties also set on anchor UUID)
-		const templatePropCalls = mockedUpsertBlockProperty.mock.calls.filter(
-			(c) => c[1] === 'page-uuid' || c[1] === 'p-uuid' || c[1] === 'existing-uuid',
+		// Template properties set as first block content (metadata block)
+		const appendCalls = mockedAppendBlockInPage.mock.calls;
+		const propsBlock = appendCalls.find(
+			(c) => c[1] === 'Existing Article' && typeof c[2] === 'string' && c[2].includes('tags:: updated'),
 		);
-		expect(templatePropCalls).toHaveLength(1);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'page-uuid',
-			'tags',
-			'updated',
-		);
+		expect(propsBlock).toBeDefined();
 
 		// ALL old blocks removed (not skipping first)
 		expect(mockedRemoveBlock).toHaveBeenCalledTimes(3);
@@ -530,18 +506,12 @@ describe('saveToLogseq edge cases', () => {
 		// createPage called without properties
 		expect(mockedCreatePage.mock.calls[0][2]).toEqual({ redirect: false });
 
-		// Only template properties set via upsertBlockProperty (not source/clipped-at)
-		// Template properties set on page UUID (log properties also set on anchor UUID)
-		const templatePropCalls = mockedUpsertBlockProperty.mock.calls.filter(
-			(c) => c[1] === 'page-uuid' || c[1] === 'p-uuid' || c[1] === 'existing-uuid',
+		// Template properties set as first block content
+		const appendCalls = mockedAppendBlockInPage.mock.calls;
+		const propsBlock = appendCalls.find(
+			(c) => c[1] === 'Empty Note' && typeof c[2] === 'string' && c[2].includes('tags:: empty'),
 		);
-		expect(templatePropCalls).toHaveLength(1);
-		expect(mockedUpsertBlockProperty).toHaveBeenCalledWith(
-			{ port: 12315, token: 'test-token' },
-			'p-uuid',
-			'tags',
-			'empty',
-		);
+		expect(propsBlock).toBeDefined();
 
 		// insertBatchBlock should NOT be called for content (no blocks)
 		// but IS called for the log entry
