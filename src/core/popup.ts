@@ -1451,12 +1451,17 @@ function showBatchView(): void {
 	if (batchControls) batchControls.style.display = '';
 	if (batchActions) batchActions.style.display = '';
 
-	// Fetch clippable tabs
+	// Fetch clippable tabs (filtered to active tab's group if in one)
 	browser.runtime.sendMessage({ action: 'getClippableTabs' }).then((response) => {
-		const resp = response as { success: boolean; tabs: ClippableTab[] };
+		const resp = response as { success: boolean; tabs: ClippableTab[]; groupName?: string | null };
 		if (resp?.success) {
 			batchTabs = resp.tabs;
 			renderBatchTabList(batchTabs);
+			// Update title if showing a tab group
+			const titleEl = document.querySelector('.batch-title');
+			if (titleEl) {
+				titleEl.textContent = resp.groupName ? `Clip group: ${resp.groupName}` : 'Clip all tabs';
+			}
 		}
 	});
 
