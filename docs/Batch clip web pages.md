@@ -13,6 +13,14 @@ Clip all open browser tabs in one operation. Review which tabs to include and wh
 4. Adjust selections and templates as needed
 5. Click **Clip selected (N)**
 
+## Tab groups (Chrome)
+
+If the active tab is in a **tab group**, only that group's tabs are shown in the review screen. The header shows "Clip group: *group name*" instead of "Clip all tabs". This makes it easy to clip a specific research session or topic without manually unchecking unrelated tabs.
+
+If the active tab is not in a group, all tabs in the window are shown.
+
+> **Note:** Firefox does not support tab groups. On Firefox, all tabs in the window are always shown.
+
 ## Review screen
 
 - **Select all / Deselect all**: Toggle at the top to quickly include or exclude all tabs
