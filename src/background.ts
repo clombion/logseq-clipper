@@ -494,7 +494,7 @@ browser.runtime.onMessage.addListener(
 
 			if (typedRequest.action === 'getClippableTabs') {
 				getClippableTabs()
-					.then((tabs) => sendResponse({ success: true, tabs }))
+					.then(({ tabs, groupName }) => sendResponse({ success: true, tabs, groupName }))
 					.catch((error) =>
 						sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) }),
 					);
@@ -583,12 +583,37 @@ function isClippableTab(tab: browser.Tabs.Tab): boolean {
 	return !INTERNAL_URL_PREFIXES.some((prefix) => tab.url?.startsWith(prefix));
 }
 
-async function getClippableTabs(): Promise<
-	Array<{ id: number; title: string; url: string; favIconUrl: string; matchedTemplateId: string }>
-> {
+async function getClippableTabs(): Promise<{
+	tabs: Array<{ id: number; title: string; url: string; favIconUrl: string; matchedTemplateId: string }>;
+	groupName: string | null;
+}> {
 	await loadSettings();
-	const tabs = await browser.tabs.query({ currentWindow: true });
-	const clippable = tabs.filter(isClippableTab);
+	const allTabs = await browser.tabs.query({ currentWindow: true });
+
+	// If the active tab is in a tab group, only show that group's tabs.
+	// Chrome: groupId is a number (-1 = ungrouped). Firefox: groupId is undefined.
+	const activeTab = allTabs.find((t) => t.active);
+	// biome-ignore lint/suspicious/noExplicitAny: Chrome-only groupId not in webextension-polyfill types
+	const activeGroupId = (activeTab as any)?.groupId;
+	const hasGroup = typeof activeGroupId === 'number' && activeGroupId !== -1;
+
+	let filteredTabs = allTabs;
+	let groupName: string | null = null;
+
+	if (hasGroup) {
+		// biome-ignore lint/suspicious/noExplicitAny: Chrome-only groupId not in webextension-polyfill types
+		filteredTabs = allTabs.filter((t) => (t as any).groupId === activeGroupId);
+		// Try to get the group name (Chrome-only API)
+		try {
+			// biome-ignore lint/suspicious/noExplicitAny: Chrome-only tabGroups API
+			const group = await (chrome as any).tabGroups?.get(activeGroupId);
+			groupName = group?.title || null;
+		} catch {
+			// Firefox or API unavailable — no group name
+		}
+	}
+
+	const clippable = filteredTabs.filter(isClippableTab);
 
 	const result = [];
 	for (const tab of clippable) {
@@ -602,7 +627,7 @@ async function getClippableTabs(): Promise<
 			matchedTemplateId: matched?.id ?? '',
 		});
 	}
-	return result;
+	return { tabs: result, groupName };
 }
 
 async function executeBatchClip(
