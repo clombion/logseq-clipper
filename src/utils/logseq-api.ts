@@ -167,7 +167,7 @@ export async function queryByProperty(config: LogseqApiConfig, property: string,
 	if (!VALID_PROPERTY_NAME.test(property)) {
 		throw new Error(`Invalid property name: "${property}" — must match /^[a-zA-Z][a-zA-Z0-9_-]*$/`);
 	}
-	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+	const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\)/g, '\\)');
 	const query = `(property ${property} "${escaped}")`;
 	return await logseqApi(config, 'logseq.DB.q', [query]);
 }

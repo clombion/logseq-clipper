@@ -450,8 +450,8 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 			}
 
 			// Preserve connection settings (machine-specific, contains API token)
-			const currentStorage = await browser.storage.sync.get('logseq_settings');
-			const preservedLogseqSettings = currentStorage.logseq_settings;
+			const currentLocal = await browser.storage.local.get('logseq_settings');
+			const preservedLogseqSettings = currentLocal.logseq_settings;
 
 			// Remove logseq_settings from import data if present (don't import secrets)
 			delete importData.logseq_settings;
@@ -459,9 +459,9 @@ async function importAllSettingsFromJson(jsonContent: string): Promise<void> {
 			await browser.storage.sync.clear();
 			await browser.storage.sync.set(importData);
 
-			// Restore connection settings
+			// Restore connection settings to local storage (never cloud-synced)
 			if (preservedLogseqSettings) {
-				await browser.storage.sync.set({ logseq_settings: preservedLogseqSettings });
+				await browser.storage.local.set({ logseq_settings: preservedLogseqSettings });
 			}
 			await loadSettings();
 			await loadTemplates();

@@ -6,10 +6,13 @@ export function showModal(modal: HTMLElement | null): void {
 
 		modal.style.display = 'flex';
 
+		// Store click handler so removeEventListener can reference the same function
+		const bgClickHandler = () => hideModal(modal);
 		const modalBg = modal.querySelector('.modal-bg');
 		if (modalBg) {
-			modalBg.addEventListener('click', () => hideModal(modal));
+			modalBg.addEventListener('click', bgClickHandler);
 		}
+		(modal as unknown as Record<string, unknown>).bgClickHandler = bgClickHandler;
 
 		// Add escape key listener when showing modal
 		const handleEscape = (e: KeyboardEvent) => {
@@ -37,10 +40,12 @@ export function hideModal(modal: HTMLElement | null): void {
 	if (modal) {
 		modal.style.display = 'none';
 
-		// Remove the event listener when hiding the modal
+		// Remove the click listener using the stored handler reference
 		const modalBg = modal.querySelector('.modal-bg');
-		if (modalBg) {
-			modalBg.removeEventListener('click', () => hideModal(modal));
+		const bgClickHandler = (modal as unknown as Record<string, unknown>).bgClickHandler as (() => void) | undefined;
+		if (modalBg && bgClickHandler) {
+			modalBg.removeEventListener('click', bgClickHandler);
+			delete (modal as unknown as Record<string, unknown>).bgClickHandler;
 		}
 
 		// Remove escape key handler if it exists

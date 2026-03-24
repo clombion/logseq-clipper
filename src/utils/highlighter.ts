@@ -523,7 +523,11 @@ export function handleTextSelection(selection: Selection, notes?: string[]) {
 		highlights = currentBatchHighlights; // Update global highlights with the final merged result
 
 		// Only add to history if something actually changed from the initial global state
-		if (highlights.length !== oldGlobalHighlights.length) {
+		if (
+			highlights.length !== oldGlobalHighlights.length ||
+			highlights[0]?.id !== oldGlobalHighlights[0]?.id ||
+			highlights[highlights.length - 1]?.id !== oldGlobalHighlights[oldGlobalHighlights.length - 1]?.id
+		) {
 			addToHistory('add', oldGlobalHighlights, highlights);
 		}
 

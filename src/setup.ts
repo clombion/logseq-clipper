@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	saveBtn.addEventListener('click', async () => {
 		// Save to extension storage
-		await browser.storage.sync.set({
+		await browser.storage.local.set({
 			logseq_settings: {
 				apiPort: parseInt(portInput.value, 10) || 12315,
 				apiToken: tokenInput.value,

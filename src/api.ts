@@ -225,8 +225,8 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 	const compiledNoteName = await compile(template.noteNameFormat);
 	const noteName = sanitizeFileName(compiledNoteName) || 'Untitled';
 
-	// Compile and format each property
-	const compiledProperties: Property[] = await Promise.all(
+	// Compile and format each property (allSettled so one failure doesn't abort the rest)
+	const settledProperties = await Promise.allSettled(
 		template.properties.map(async (prop) => {
 			let value = await compile(prop.value);
 			const propType = prop.type || 'text';
@@ -234,6 +234,16 @@ export async function clip(options: ClipOptions): Promise<ClipResult> {
 			return { name: prop.name, value, type: prop.type };
 		}),
 	);
+	const compiledProperties: Property[] = [];
+	for (let i = 0; i < settledProperties.length; i++) {
+		const settled = settledProperties[i]!;
+		if (settled.status === 'fulfilled') {
+			compiledProperties.push(settled.value);
+		} else {
+			const prop = template.properties[i]!;
+			compiledProperties.push({ name: prop.name, value: '', type: prop.type });
+		}
+	}
 
 	// Build property type map
 	const typeMap: Record<string, string> = {};

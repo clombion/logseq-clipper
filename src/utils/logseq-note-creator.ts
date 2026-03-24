@@ -153,8 +153,16 @@ export async function saveToLogseq(
 
 			// Apply properties via upsertBlockProperty on the page entity
 			debugLog('Save', `[${clipId}] setting ${Object.keys(propsObj).length} properties on page`);
+			const propErrors: string[] = [];
 			for (const [key, value] of Object.entries(propsObj)) {
-				await upsertBlockProperty(config, page.uuid, key, value);
+				try {
+					await upsertBlockProperty(config, page.uuid, key, value);
+				} catch {
+					propErrors.push(key);
+				}
+			}
+			if (propErrors.length > 0) {
+				debugLog('Save', `[${clipId}] failed to set properties: ${propErrors.join(', ')}`);
 			}
 
 			// Insert content blocks directly on the page
