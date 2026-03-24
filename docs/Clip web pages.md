@@ -56,3 +56,7 @@ Footer functionality includes:
 - **Add to Logseq** button to save data to Logseq.
 - **Graph** dropdown to switch between saved graphs added in Web Clipper settings.
 - **Interpreter** to run [[Interpret web pages|natural language prompts]] on the page.
+
+## Clip multiple tabs at once
+
+To clip all open tabs in one operation, click **Clip all tabs** from the dropdown menu. This opens a review screen where you can select which tabs to include and choose a template for each. See [[Batch clip web pages]] for details.

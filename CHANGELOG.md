@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-24
+
+### Added
+- Batch tab clipping: "Clip all tabs" button with review screen, per-tab template selection, background execution, and post-clip tab closing
+
 ## [0.3.4] - 2026-03-24
 
 ### Fixed
@@ -100,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Firefox extension signing via Mozilla AMO (unlisted)
 - Save-as-page dropdown with error handling
 
+[0.4.0]: https://github.com/clombion/logseq-clipper/releases/tag/0.4.0
 [0.3.4]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.4
 [0.3.3]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.3
 [0.3.2]: https://github.com/clombion/logseq-clipper/releases/tag/0.3.2
