@@ -273,13 +273,7 @@ async function resolveConflict(name: string, field: string, existingValue: strin
 }
 
 async function exportTypesJson(): Promise<void> {
-	const typesObject = generalSettings.propertyTypes.reduce(
-		(acc, { name, type }) => {
-			acc[name] = type;
-			return acc;
-		},
-		{} as Record<string, string>,
-	);
+	const typesObject = Object.fromEntries(generalSettings.propertyTypes.map(({ name, type }) => [name, type]));
 
 	const content = JSON.stringify({ types: typesObject }, null, 2);
 	const fileName = 'types.json';

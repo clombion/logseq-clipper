@@ -210,12 +210,11 @@ Example response:
 
 	// Sort messages alphabetically by key
 	private sortMessages(messages: Messages): Messages {
-		return Object.keys(messages)
-			.sort()
-			.reduce((acc: Messages, key) => {
-				acc[key] = messages[key]!;
-				return acc;
-			}, {});
+		return Object.fromEntries(
+			Object.keys(messages)
+				.sort()
+				.map((key) => [key, messages[key]!]),
+		);
 	}
 
 	// Process all locales

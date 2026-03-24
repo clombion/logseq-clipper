@@ -458,8 +458,8 @@ const throttledUpdateHighlights = throttle(() => {
 	}
 }, 100);
 
-window.addEventListener('resize', throttledUpdateHighlights);
-window.addEventListener('scroll', throttledUpdateHighlights);
+window.addEventListener('resize', throttledUpdateHighlights, { passive: true });
+window.addEventListener('scroll', throttledUpdateHighlights, { passive: true });
 
 const observer = new MutationObserver((mutations) => {
 	if (!isApplyingHighlights) {

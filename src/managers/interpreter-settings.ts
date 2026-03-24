@@ -1148,8 +1148,7 @@ function saveInterpreterSettingsFromForm(): void {
 	}
 }
 
-// biome-ignore lint/complexity/noBannedTypes: local utility, Function type is acceptable
-function debounce(func: Function, delay: number): (...args: unknown[]) => void {
+function debounce(func: (...args: unknown[]) => unknown, delay: number): (...args: unknown[]) => void {
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 	return (...args: unknown[]) => {
 		clearTimeout(timeoutId);

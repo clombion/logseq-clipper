@@ -30,7 +30,7 @@ import {
 
 // --- Config ---
 
-const TOKEN = process.env.LOGSEQ_TEST_TOKEN || 'c5934ee27f58524f1264fad25041e1ae4d7e9cec311871d1';
+const TOKEN = process.env.LOGSEQ_TEST_TOKEN ?? '';
 const PORT = parseInt(process.env.LOGSEQ_TEST_PORT || '12315', 10);
 const config: LogseqApiConfig = { port: PORT, token: TOKEN };
 
@@ -81,8 +81,12 @@ async function isLogseqRunning(): Promise<boolean> {
 	}
 }
 
-const logseqAvailable = await isLogseqRunning();
-if (!logseqAvailable) {
+if (!TOKEN) {
+	console.warn('\n⚠️  LOGSEQ_TEST_TOKEN not set — skipping integration tests.\n');
+}
+
+const logseqAvailable = TOKEN ? await isLogseqRunning() : false;
+if (TOKEN && !logseqAvailable) {
 	console.warn('\n⚠️  Logseq is not running — skipping integration tests.\n');
 }
 

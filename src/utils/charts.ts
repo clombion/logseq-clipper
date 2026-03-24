@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import type { HistoryEntry } from '../types/types';
 import { getMessage } from '../utils/i18n';
+import { throttle } from '../utils/throttle';
 
 interface WeeklyUsage {
 	period: string;
@@ -140,47 +141,63 @@ export async function createUsageChart(container: HTMLElement, data: WeeklyUsage
 	const overlay = document.createElement('div');
 	overlay.className = 'chart-overlay';
 
-	// Handle mouse movement
-	overlay.addEventListener('mousemove', (e) => {
-		const rect = overlay.getBoundingClientRect();
-		const x = e.clientX - rect.left;
-		const relativeX = (x / rect.width) * viewBoxWidth;
+	// Cache bounding rect, invalidate on resize
+	let cachedRect: DOMRect | null = null;
+	window.addEventListener(
+		'resize',
+		() => {
+			cachedRect = null;
+		},
+		{ passive: true },
+	);
 
-		// Find closest point
-		const closestPoint = points.reduce((prev, curr) => {
-			const prevDist = Math.abs(prev.x - relativeX);
-			const currDist = Math.abs(curr.x - relativeX);
-			return currDist < prevDist ? curr : prev;
-		});
+	// Handle mouse movement (throttled)
+	overlay.addEventListener(
+		'mousemove',
+		throttle((e: MouseEvent) => {
+			if (!cachedRect) {
+				cachedRect = overlay.getBoundingClientRect();
+			}
+			const rect = cachedRect;
+			const x = e.clientX - rect.left;
+			const relativeX = (x / rect.width) * viewBoxWidth;
 
-		tooltip.textContent = '';
+			// Find closest point
+			const closestPoint = points.reduce((prev, curr) => {
+				const prevDist = Math.abs(prev.x - relativeX);
+				const currDist = Math.abs(curr.x - relativeX);
+				return currDist < prevDist ? curr : prev;
+			});
 
-		const dateDiv = document.createElement('div');
-		dateDiv.className = 'tooltip-date';
-		dateDiv.textContent = closestPoint.date;
-		tooltip.appendChild(dateDiv);
+			tooltip.textContent = '';
 
-		const countDiv = document.createElement('div');
-		countDiv.className = 'tooltip-count';
-		countDiv.textContent = closestPoint.count.toString();
-		tooltip.appendChild(countDiv);
-		tooltip.style.display = 'flex';
+			const dateDiv = document.createElement('div');
+			dateDiv.className = 'tooltip-date';
+			dateDiv.textContent = closestPoint.date;
+			tooltip.appendChild(dateDiv);
 
-		// Calculate smooth transform offset based on position
-		const position = x / rect.width; // 0 to 1
-		const minOffset = 10; // leftmost offset (%)
-		const maxOffset = -110; // rightmost offset (%)
-		const offset = minOffset + (maxOffset - minOffset) * position;
+			const countDiv = document.createElement('div');
+			countDiv.className = 'tooltip-count';
+			countDiv.textContent = closestPoint.count.toString();
+			tooltip.appendChild(countDiv);
+			tooltip.style.display = 'flex';
 
-		tooltip.style.transform = `translate(${offset}%, 0)`;
-		tooltip.style.left = `${x}px`;
-		tooltip.style.top = `${e.clientY - rect.top - 30}px`;
+			// Calculate smooth transform offset based on position
+			const position = x / rect.width; // 0 to 1
+			const minOffset = 10; // leftmost offset (%)
+			const maxOffset = -110; // rightmost offset (%)
+			const offset = minOffset + (maxOffset - minOffset) * position;
 
-		// Update vertical line position
-		verticalLine.setAttribute('x1', relativeX.toString());
-		verticalLine.setAttribute('x2', relativeX.toString());
-		verticalLine.style.display = 'block';
-	});
+			tooltip.style.transform = `translate(${offset}%, 0)`;
+			tooltip.style.left = `${x}px`;
+			tooltip.style.top = `${e.clientY - rect.top - 30}px`;
+
+			// Update vertical line position
+			verticalLine.setAttribute('x1', relativeX.toString());
+			verticalLine.setAttribute('x2', relativeX.toString());
+			verticalLine.style.display = 'block';
+		}, 16),
+	);
 
 	overlay.addEventListener('mouseleave', () => {
 		tooltip.style.display = 'none';

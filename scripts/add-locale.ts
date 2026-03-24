@@ -105,8 +105,13 @@ async function addLocale(locale: string) {
 		throw new Error('Could not find languages array in i18n.ts');
 	}
 
-	// Parse existing languages
-	const languages: Language[] = eval(`[${languagesMatch[1]}]`);
+	// Parse existing languages using regex (no eval)
+	const languages: Language[] = [];
+	const langRegex = /\{\s*code:\s*'([^']*)'\s*,\s*name:\s*'([^']*)'\s*\}/g;
+	let langMatch: RegExpExecArray | null;
+	while ((langMatch = langRegex.exec(languagesMatch[1])) !== null) {
+		languages.push({ code: langMatch[1], name: langMatch[2] });
+	}
 	
 	// Add new language in alphabetical order
 	languages.push({ code: locale, name: nativeName });
