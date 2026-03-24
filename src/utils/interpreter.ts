@@ -341,7 +341,7 @@ function tryRegexRebuild(content: string, promptVariables: PromptVariable[]): LL
 
 // --- Main parse function ---
 
-interface PromptResponse {
+export interface PromptResponse {
 	key: string;
 	prompt: string;
 	user_response: string;
@@ -703,6 +703,40 @@ async function handleInterpreterUIInternal(
 			throw new Error('An unknown error occurred while processing the interpreter request.', { cause: error });
 		}
 	}
+}
+
+// Headless variant of replacePromptVariables for use in background service worker (no DOM)
+export function replacePromptVariablesInText(
+	text: string,
+	promptVariables: PromptVariable[],
+	promptResponses: PromptResponse[],
+): string {
+	return text.replace(/{{(?:prompt:)?"([\s\S]*?)"(\|[\s\S]*?)?}}/g, (match, promptText, filters) => {
+		const variable = promptVariables.find((v) => v.prompt === promptText);
+		if (!variable) return match;
+
+		const response = promptResponses.find((r) => r.key === variable.key);
+		if (response && response.user_response !== undefined) {
+			let value = response.user_response;
+
+			// Handle array or object responses
+			if (typeof value === 'object') {
+				try {
+					value = JSON.stringify(value, null, 2);
+				} catch (error) {
+					console.error('Error stringifying object:', error);
+					value = String(value);
+				}
+			}
+
+			if (filters) {
+				value = applyFilters(value, filters.slice(1));
+			}
+
+			return value;
+		}
+		return match; // Return original if no match found
+	});
 }
 
 // Similar to replaceVariables, but happens after the LLM response is received

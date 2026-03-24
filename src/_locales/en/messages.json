@@ -681,6 +681,9 @@
 	"saveAsPage": {
 		"message": "Save as Logseq page"
 	},
+	"clipAllTabs": {
+		"message": "Clip all tabs"
+	},
 	"saveFile": {
 		"message": "Save file..."
 	},

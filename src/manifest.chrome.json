@@ -12,6 +12,7 @@
 		"sidePanel",
 		"storage",
 		"scripting",
+		"tabs",
 		"declarativeNetRequest"
 	],
 	"host_permissions": ["<all_urls>", "http://*/*", "https://*/*"],

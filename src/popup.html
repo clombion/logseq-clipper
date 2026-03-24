@@ -82,6 +82,43 @@
 				</div>
 			</div>
 		</div>
+		<div id="batch-clip-view" style="display: none;">
+			<div class="batch-header">
+				<button type="button" id="batch-back-btn" class="clickable-icon" aria-label="Back">
+					<i data-lucide="arrow-left" aria-hidden="true"></i>
+				</button>
+				<span class="batch-title">Clip all tabs</span>
+			</div>
+			<div class="batch-controls">
+				<label class="batch-select-all">
+					<input type="checkbox" id="batch-select-all" checked>
+					<span>Select all</span>
+				</label>
+				<span id="batch-tab-count" class="batch-count"></span>
+			</div>
+			<div id="batch-tab-list" class="batch-tab-list"></div>
+			<div class="batch-actions">
+				<button type="button" id="batch-clip-btn" class="mod-cta">Clip selected</button>
+			</div>
+			<div id="batch-progress" style="display: none;">
+				<div id="batch-progress-header"></div>
+				<div id="batch-progress-list" class="batch-tab-list"></div>
+				<div class="batch-actions">
+					<button type="button" id="batch-cancel-btn">Cancel</button>
+				</div>
+			</div>
+			<div id="batch-complete" style="display: none;">
+				<div id="batch-complete-summary"></div>
+				<div id="batch-complete-errors"></div>
+				<div class="batch-close-prompt">
+					<span id="batch-close-question"></span>
+					<div class="batch-close-actions">
+						<button type="button" id="batch-close-yes" class="mod-cta">Yes</button>
+						<button type="button" id="batch-close-no">No</button>
+					</div>
+				</div>
+			</div>
+		</div>
 		<script type="module" src="popup.js"></script>
 	</body>
 </html>
